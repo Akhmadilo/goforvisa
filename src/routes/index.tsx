@@ -537,6 +537,106 @@ function Dashboard() {
           </Card>
         </div>
 
+        {/* Debtors */}
+        <Card className="shadow-[var(--shadow-card)] overflow-hidden border-destructive/30">
+          <div className="p-5 border-b border-border flex items-center justify-between bg-destructive/5">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-lg bg-destructive/15 text-destructive flex items-center justify-center">
+                <AlertTriangle className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="font-semibold">
+                  Qarzdorlar{" "}
+                  <span className="text-muted-foreground font-normal">
+                    ({debtors.length})
+                  </span>
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Partially yoki No payment · shartnoma sanasidan o'tgan kunlar
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-muted-foreground">Jami qarz</div>
+              <div className="text-lg font-bold text-destructive">
+                {fmtUsd(debtorsTotalUsd)}
+              </div>
+            </div>
+          </div>
+          <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+            {debtors.length === 0 ? (
+              <div className="p-10 text-center text-sm text-muted-foreground">
+                Qarzdorlar yo'q. Barchasi to'liq to'lagan ✓
+              </div>
+            ) : (
+              <Table>
+                <TableHeader className="sticky top-0 bg-card z-10">
+                  <TableRow>
+                    <TableHead>№</TableHead>
+                    <TableHead>Mijoz</TableHead>
+                    <TableHead>Telefon</TableHead>
+                    <TableHead>Sana</TableHead>
+                    <TableHead className="text-right">Kun o'tdi</TableHead>
+                    <TableHead className="text-right">Shartnoma</TableHead>
+                    <TableHead>To'lov</TableHead>
+                    <TableHead>Menejer</TableHead>
+                    <TableHead>Izoh</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {debtors.map((c, i) => (
+                    <TableRow
+                      key={`debt-${c.contractNo}-${i}`}
+                      className="hover:bg-destructive/5"
+                    >
+                      <TableCell className="font-mono text-xs">
+                        {c.contractNo}
+                      </TableCell>
+                      <TableCell className="font-medium">{c.name}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {c.phone}
+                      </TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">
+                        {c.contractDate}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DaysBadge days={c.daysOverdue} />
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-xs">
+                        {c.priceUsd > 0
+                          ? `$${c.priceUsd.toLocaleString()}`
+                          : c.priceUzs > 0
+                            ? `${(c.priceUzs / 1000).toLocaleString()}k UZS`
+                            : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          className={
+                            c.payment === "No payment"
+                              ? "bg-destructive/15 text-destructive border-destructive/30"
+                              : "bg-accent/15 text-accent border-accent/30"
+                          }
+                        >
+                          {c.payment}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {c.salesManager}
+                      </TableCell>
+                      <TableCell
+                        className="text-xs text-muted-foreground max-w-[240px] truncate"
+                        title={c.note}
+                      >
+                        {c.note}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </Card>
+
         {/* Table */}
         <Card className="shadow-[var(--shadow-card)] overflow-hidden">
           <div className="p-5 border-b border-border flex items-center justify-between">
