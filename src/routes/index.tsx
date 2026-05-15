@@ -44,6 +44,7 @@ import {
   XCircle,
   Clock,
   Search,
+  RefreshCw,
 } from "lucide-react";
 import { getContracts, type Contract } from "@/lib/contracts.functions";
 
@@ -94,9 +95,13 @@ function unique(arr: string[]): string[] {
 
 function Dashboard() {
   const fetchContracts = useServerFn(getContracts);
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, isFetching, error, dataUpdatedAt, refetch } = useQuery({
     queryKey: ["contracts"],
     queryFn: () => fetchContracts(),
+    refetchInterval: 30_000, // auto-refresh every 30s
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+    staleTime: 15_000,
   });
 
   const [year, setYear] = useState<string>("all");
@@ -263,9 +268,26 @@ function Dashboard() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-            Live · Google Sheets
+          <div className="flex items-center gap-3">
+            <div className="text-right hidden sm:block">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground justify-end">
+                <span className={`h-2 w-2 rounded-full ${isFetching ? "bg-accent animate-pulse" : "bg-primary"}`} />
+                {isFetching ? "Yangilanmoqda..." : "Live · har 30s"}
+              </div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">
+                {dataUpdatedAt
+                  ? `Oxirgi: ${new Date(dataUpdatedAt).toLocaleTimeString("uz-UZ")}`
+                  : "—"}
+              </div>
+            </div>
+            <button
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary transition-colors flex items-center justify-center disabled:opacity-50"
+              title="Hozir yangilash"
+            >
+              <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+            </button>
           </div>
         </div>
       </header>
