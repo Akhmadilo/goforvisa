@@ -659,19 +659,22 @@ function Kpi({
   label: string;
   value: string;
   sub?: string;
-  tone?: "primary" | "accent";
+  tone?: "primary" | "accent" | "danger";
 }) {
+  const toneBg =
+    tone === "primary"
+      ? "var(--gradient-primary)"
+      : tone === "accent"
+        ? "var(--color-accent)"
+        : tone === "danger"
+          ? "var(--color-destructive)"
+          : undefined;
   return (
     <Card className="p-5 shadow-[var(--shadow-card)] relative overflow-hidden">
       {tone && (
         <div
           className="absolute inset-x-0 top-0 h-1"
-          style={{
-            background:
-              tone === "primary"
-                ? "var(--gradient-primary)"
-                : "var(--color-accent)",
-          }}
+          style={{ background: toneBg }}
         />
       )}
       <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wide">
