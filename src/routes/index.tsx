@@ -44,6 +44,7 @@ import {
   XCircle,
   Clock,
   Search,
+  RefreshCw,
 } from "lucide-react";
 import { getContracts, type Contract } from "@/lib/contracts.functions";
 
