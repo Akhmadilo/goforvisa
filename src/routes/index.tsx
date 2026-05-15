@@ -45,6 +45,7 @@ import {
   Clock,
   Search,
   RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 import { getContracts, type Contract } from "@/lib/contracts.functions";
 
