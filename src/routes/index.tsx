@@ -787,6 +787,20 @@ function Kpi({
   );
 }
 
+function DaysBadge({ days }: { days: number }) {
+  if (days <= 0)
+    return <span className="text-xs text-muted-foreground">—</span>;
+  let cls = "bg-muted text-muted-foreground border-border";
+  if (days >= 90) cls = "bg-destructive/20 text-destructive border-destructive/40";
+  else if (days >= 30) cls = "bg-accent/20 text-accent border-accent/40";
+  else if (days >= 7) cls = "bg-chart-3/20 text-chart-3 border-chart-3/40";
+  return (
+    <Badge className={`${cls} font-mono`}>
+      {days} kun
+    </Badge>
+  );
+}
+
 function VisaBadge({ result }: { result: string }) {
   const r = result.toLowerCase();
   if (r === "taken")
