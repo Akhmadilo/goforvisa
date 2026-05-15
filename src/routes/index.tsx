@@ -94,6 +94,18 @@ function unique(arr: string[]): string[] {
   return Array.from(new Set(arr.filter(Boolean))).sort();
 }
 
+function parseContractDate(s: string): Date | null {
+  if (!s) return null;
+  // Format: "10 June 2025"
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d;
+  return null;
+}
+
+function daysBetween(a: Date, b: Date): number {
+  return Math.floor((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
+}
+
 function Dashboard() {
   const fetchContracts = useServerFn(getContracts);
   const { data, isLoading, isFetching, error, dataUpdatedAt, refetch } = useQuery({
