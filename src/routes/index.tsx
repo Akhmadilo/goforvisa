@@ -251,6 +251,23 @@ function Dashboard() {
       .slice(0, 8);
   }, [filtered]);
 
+  const debtors = useMemo(() => {
+    const today = new Date();
+    return filtered
+      .filter((c) => c.payment === "Partially" || c.payment === "No payment")
+      .map((c) => {
+        const date = parseContractDate(c.contractDate);
+        const days = date ? daysBetween(today, date) : 0;
+        return { ...c, daysOverdue: days, parsedDate: date };
+      })
+      .sort((a, b) => b.daysOverdue - a.daysOverdue);
+  }, [filtered]);
+
+  const debtorsTotalUsd = useMemo(
+    () => debtors.reduce((s, c) => s + toUsd(c), 0),
+    [debtors],
+  );
+
   const PIE_COLORS = [
     "var(--color-chart-1)",
     "var(--color-chart-2)",
