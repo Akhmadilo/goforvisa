@@ -45,6 +45,7 @@ import {
   Clock,
   Search,
   RefreshCw,
+  AlertTriangle,
 } from "lucide-react";
 import { getContracts, type Contract } from "@/lib/contracts.functions";
 
@@ -91,6 +92,18 @@ function fmtUsd(n: number): string {
 
 function unique(arr: string[]): string[] {
   return Array.from(new Set(arr.filter(Boolean))).sort();
+}
+
+function parseContractDate(s: string): Date | null {
+  if (!s) return null;
+  // Format: "10 June 2025"
+  const d = new Date(s);
+  if (!isNaN(d.getTime())) return d;
+  return null;
+}
+
+function daysBetween(a: Date, b: Date): number {
+  return Math.floor((a.getTime() - b.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 function Dashboard() {
@@ -238,6 +251,23 @@ function Dashboard() {
       .slice(0, 8);
   }, [filtered]);
 
+  const debtors = useMemo(() => {
+    const today = new Date();
+    return filtered
+      .filter((c) => c.payment === "Partially" || c.payment === "No payment")
+      .map((c) => {
+        const date = parseContractDate(c.contractDate);
+        const days = date ? daysBetween(today, date) : 0;
+        return { ...c, daysOverdue: days, parsedDate: date };
+      })
+      .sort((a, b) => b.daysOverdue - a.daysOverdue);
+  }, [filtered]);
+
+  const debtorsTotalUsd = useMemo(
+    () => debtors.reduce((s, c) => s + toUsd(c), 0),
+    [debtors],
+  );
+
   const PIE_COLORS = [
     "var(--color-chart-1)",
     "var(--color-chart-2)",
@@ -350,7 +380,7 @@ function Dashboard() {
         </Card>
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <Kpi
             icon={<DollarSign className="h-4 w-4" />}
             label="Jami shartnoma"
@@ -382,6 +412,13 @@ function Dashboard() {
             label="Visa Success"
             value={kpis.successRate.toFixed(1) + "%"}
             sub={`${kpis.visaRejected} rejected · ${kpis.visaInProcess} jarayonda`}
+          />
+          <Kpi
+            icon={<AlertTriangle className="h-4 w-4" />}
+            label="Qarzdorlar"
+            value={debtors.length.toString()}
+            sub={`Jami qarz ${fmtUsd(debtorsTotalUsd)}`}
+            tone="danger"
           />
         </div>
 
@@ -499,6 +536,106 @@ function Dashboard() {
             </ResponsiveContainer>
           </Card>
         </div>
+
+        {/* Debtors */}
+        <Card className="shadow-[var(--shadow-card)] overflow-hidden border-destructive/30">
+          <div className="p-5 border-b border-border flex items-center justify-between bg-destructive/5">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-lg bg-destructive/15 text-destructive flex items-center justify-center">
+                <AlertTriangle className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="font-semibold">
+                  Qarzdorlar{" "}
+                  <span className="text-muted-foreground font-normal">
+                    ({debtors.length})
+                  </span>
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Partially yoki No payment · shartnoma sanasidan o'tgan kunlar
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-xs text-muted-foreground">Jami qarz</div>
+              <div className="text-lg font-bold text-destructive">
+                {fmtUsd(debtorsTotalUsd)}
+              </div>
+            </div>
+          </div>
+          <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+            {debtors.length === 0 ? (
+              <div className="p-10 text-center text-sm text-muted-foreground">
+                Qarzdorlar yo'q. Barchasi to'liq to'lagan ✓
+              </div>
+            ) : (
+              <Table>
+                <TableHeader className="sticky top-0 bg-card z-10">
+                  <TableRow>
+                    <TableHead>№</TableHead>
+                    <TableHead>Mijoz</TableHead>
+                    <TableHead>Telefon</TableHead>
+                    <TableHead>Sana</TableHead>
+                    <TableHead className="text-right">Kun o'tdi</TableHead>
+                    <TableHead className="text-right">Shartnoma</TableHead>
+                    <TableHead>To'lov</TableHead>
+                    <TableHead>Menejer</TableHead>
+                    <TableHead>Izoh</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {debtors.map((c, i) => (
+                    <TableRow
+                      key={`debt-${c.contractNo}-${i}`}
+                      className="hover:bg-destructive/5"
+                    >
+                      <TableCell className="font-mono text-xs">
+                        {c.contractNo}
+                      </TableCell>
+                      <TableCell className="font-medium">{c.name}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {c.phone}
+                      </TableCell>
+                      <TableCell className="text-xs whitespace-nowrap">
+                        {c.contractDate}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DaysBadge days={c.daysOverdue} />
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-xs">
+                        {c.priceUsd > 0
+                          ? `$${c.priceUsd.toLocaleString()}`
+                          : c.priceUzs > 0
+                            ? `${(c.priceUzs / 1000).toLocaleString()}k UZS`
+                            : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          className={
+                            c.payment === "No payment"
+                              ? "bg-destructive/15 text-destructive border-destructive/30"
+                              : "bg-accent/15 text-accent border-accent/30"
+                          }
+                        >
+                          {c.payment}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {c.salesManager}
+                      </TableCell>
+                      <TableCell
+                        className="text-xs text-muted-foreground max-w-[240px] truncate"
+                        title={c.note}
+                      >
+                        {c.note}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </Card>
 
         {/* Table */}
         <Card className="shadow-[var(--shadow-card)] overflow-hidden">
@@ -622,19 +759,22 @@ function Kpi({
   label: string;
   value: string;
   sub?: string;
-  tone?: "primary" | "accent";
+  tone?: "primary" | "accent" | "danger";
 }) {
+  const toneBg =
+    tone === "primary"
+      ? "var(--gradient-primary)"
+      : tone === "accent"
+        ? "var(--color-accent)"
+        : tone === "danger"
+          ? "var(--color-destructive)"
+          : undefined;
   return (
     <Card className="p-5 shadow-[var(--shadow-card)] relative overflow-hidden">
       {tone && (
         <div
           className="absolute inset-x-0 top-0 h-1"
-          style={{
-            background:
-              tone === "primary"
-                ? "var(--gradient-primary)"
-                : "var(--color-accent)",
-          }}
+          style={{ background: toneBg }}
         />
       )}
       <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wide">
@@ -644,6 +784,20 @@ function Kpi({
       <div className="mt-2 text-2xl font-bold tracking-tight">{value}</div>
       {sub && <div className="text-xs text-muted-foreground mt-1">{sub}</div>}
     </Card>
+  );
+}
+
+function DaysBadge({ days }: { days: number }) {
+  if (days <= 0)
+    return <span className="text-xs text-muted-foreground">—</span>;
+  let cls = "bg-muted text-muted-foreground border-border";
+  if (days >= 90) cls = "bg-destructive/20 text-destructive border-destructive/40";
+  else if (days >= 30) cls = "bg-accent/20 text-accent border-accent/40";
+  else if (days >= 7) cls = "bg-chart-3/20 text-chart-3 border-chart-3/40";
+  return (
+    <Badge className={`${cls} font-mono`}>
+      {days} kun
+    </Badge>
   );
 }
 
