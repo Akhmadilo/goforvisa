@@ -94,9 +94,13 @@ function unique(arr: string[]): string[] {
 
 function Dashboard() {
   const fetchContracts = useServerFn(getContracts);
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, isFetching, error, dataUpdatedAt, refetch } = useQuery({
     queryKey: ["contracts"],
     queryFn: () => fetchContracts(),
+    refetchInterval: 30_000, // auto-refresh every 30s
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+    staleTime: 15_000,
   });
 
   const [year, setYear] = useState<string>("all");
