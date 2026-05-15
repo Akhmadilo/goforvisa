@@ -413,6 +413,13 @@ function Dashboard() {
             value={kpis.successRate.toFixed(1) + "%"}
             sub={`${kpis.visaRejected} rejected · ${kpis.visaInProcess} jarayonda`}
           />
+          <Kpi
+            icon={<AlertTriangle className="h-4 w-4" />}
+            label="Qarzdorlar"
+            value={debtors.length.toString()}
+            sub={`Jami qarz ${fmtUsd(debtorsTotalUsd)}`}
+            tone="danger"
+          />
         </div>
 
         {/* Charts row */}
