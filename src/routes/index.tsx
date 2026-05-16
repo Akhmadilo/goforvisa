@@ -257,7 +257,20 @@ function Dashboard() {
       .slice(0, 8);
   }, [filtered]);
 
-  const debtors = useMemo(() => {
+  const companyData = useMemo(() => {
+    const map = new Map<string, { clients: number; revenue: number; profit: number }>();
+    for (const c of filtered) {
+      const key = c.company || "—";
+      const m = map.get(key) ?? { clients: 0, revenue: 0, profit: 0 };
+      m.clients += 1;
+      m.revenue += toUsd(c);
+      m.profit += netProfit(c);
+      map.set(key, m);
+    }
+    return Array.from(map.entries())
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.clients - a.clients);
+  }, [filtered]);
     const today = new Date();
     return filtered
       .filter((c) => c.payment === "Partially" || c.payment === "No payment")
