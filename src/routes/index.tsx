@@ -557,7 +557,9 @@ function Dashboard() {
         )}
 
         {/* Charts row */}
+        {(can("monthly_revenue") || can("visa_results")) && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {can("monthly_revenue") && (
           <Card className="p-5 lg:col-span-2 shadow-[var(--shadow-card)]">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">Oylik daromad va sof foyda</h3>
