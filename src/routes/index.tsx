@@ -130,8 +130,8 @@ function Dashboard() {
     staleTime: 15_000,
   });
 
-  const [year, setYear] = useState<string>("all");
-  const [month, setMonth] = useState<string>("all");
+  const [years, setYears] = useState<string[]>([]);
+  const [months, setMonths] = useState<string[]>([]);
   const [managers, setManagers] = useState<string[]>([]);
   const [backOffices, setBackOffices] = useState<string[]>([]);
   const [visas, setVisas] = useState<string[]>([]);
@@ -156,8 +156,8 @@ function Dashboard() {
 
   type SkipKey = "manager" | "backOffice" | "company" | "visa";
   const matches = (c: Contract, skip?: SkipKey) => {
-    if (year !== "all" && c.year !== year) return false;
-    if (month !== "all" && c.month !== month) return false;
+    if (years.length > 0 && !years.includes(c.year)) return false;
+    if (months.length > 0 && !months.includes(c.month)) return false;
     if (skip !== "manager" && managers.length > 0 && !managers.includes(c.salesManager)) return false;
     if (skip !== "backOffice" && backOffices.length > 0 && !backOffices.includes(c.backOfficeManager)) return false;
     if (skip !== "visa" && visas.length > 0 && !visas.includes(c.visaResult)) return false;
@@ -174,7 +174,7 @@ function Dashboard() {
     return true;
   };
 
-  const deps = [all, year, month, managers, backOffices, visas, companies, search];
+  const deps = [all, years, months, managers, backOffices, visas, companies, search];
   const filtered = useMemo(() => all.filter((c) => matches(c)), deps);
   const filteredForManagers = useMemo(() => all.filter((c) => matches(c, "manager")), deps);
   const filteredForBackOffice = useMemo(() => all.filter((c) => matches(c, "backOffice")), deps);
@@ -420,16 +420,16 @@ function Dashboard() {
         {/* Filters */}
         <Card className="p-4 shadow-[var(--shadow-card)]">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
-            <FilterSelect
+            <MultiFilter
               label="Yil"
-              value={year}
-              onChange={setYear}
+              values={years}
+              onChange={setYears}
               options={opts.years}
             />
-            <FilterSelect
+            <MultiFilter
               label="Oy"
-              value={month}
-              onChange={setMonth}
+              values={months}
+              onChange={setMonths}
               options={opts.months}
             />
             <MultiFilter
@@ -1068,16 +1068,15 @@ function MultiFilter({
           </div>
           <div className="max-h-64 overflow-y-auto space-y-1">
             {options.map((o) => (
-              <label
+              <div
                 key={o}
-                className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent/10 cursor-pointer"
+                role="button"
+                onClick={() => toggle(o)}
+                className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent/10 cursor-pointer select-none"
               >
-                <Checkbox
-                  checked={values.includes(o)}
-                  onCheckedChange={() => toggle(o)}
-                />
+                <Checkbox checked={values.includes(o)} tabIndex={-1} />
                 <span className="text-sm truncate">{o}</span>
-              </label>
+              </div>
             ))}
           </div>
         </PopoverContent>
