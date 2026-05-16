@@ -145,25 +145,27 @@ function Dashboard() {
     [all],
   );
 
-  const filtered = useMemo(() => {
-    return all.filter((c) => {
-      if (year !== "all" && c.year !== year) return false;
-      if (month !== "all" && c.month !== month) return false;
-      if (manager !== "all" && c.salesManager !== manager) return false;
-      if (visa !== "all" && c.visaResult !== visa) return false;
-      if (company !== "all" && c.company !== company) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        if (
-          !c.name.toLowerCase().includes(q) &&
-          !c.contractNo.toLowerCase().includes(q) &&
-          !c.phone.toLowerCase().includes(q)
-        )
-          return false;
-      }
-      return true;
-    });
-  }, [all, year, month, manager, visa, company, search]);
+  const matches = (c: Contract, skip?: "manager" | "company") => {
+    if (year !== "all" && c.year !== year) return false;
+    if (month !== "all" && c.month !== month) return false;
+    if (skip !== "manager" && manager !== "all" && c.salesManager !== manager) return false;
+    if (visa !== "all" && c.visaResult !== visa) return false;
+    if (skip !== "company" && company !== "all" && c.company !== company) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (
+        !c.name.toLowerCase().includes(q) &&
+        !c.contractNo.toLowerCase().includes(q) &&
+        !c.phone.toLowerCase().includes(q)
+      )
+        return false;
+    }
+    return true;
+  };
+
+  const filtered = useMemo(() => all.filter((c) => matches(c)), [all, year, month, manager, visa, company, search]);
+  const filteredForManagers = useMemo(() => all.filter((c) => matches(c, "manager")), [all, year, month, manager, visa, company, search]);
+  const filteredForCompanies = useMemo(() => all.filter((c) => matches(c, "company")), [all, year, month, manager, visa, company, search]);
 
   const kpis = useMemo(() => {
     const totalUsd = filtered.reduce((s, c) => s + toUsd(c), 0);
@@ -231,7 +233,7 @@ function Dashboard() {
       string,
       { clients: number; revenue: number; commission: number }
     >();
-    for (const c of filtered) {
+    for (const c of filteredForManagers) {
       const key = c.salesManager || "—";
       const m = map.get(key) ?? { clients: 0, revenue: 0, commission: 0 };
       m.clients += 1;
@@ -243,7 +245,7 @@ function Dashboard() {
       .map(([name, v]) => ({ name, ...v }))
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 8);
-  }, [filtered]);
+  }, [filteredForManagers]);
 
   const typeData = useMemo(() => {
     const map = new Map<string, number>();
@@ -259,7 +261,7 @@ function Dashboard() {
 
   const companyData = useMemo(() => {
     const map = new Map<string, { clients: number; revenue: number; profit: number }>();
-    for (const c of filtered) {
+    for (const c of filteredForCompanies) {
       const key = c.company || "—";
       const m = map.get(key) ?? { clients: 0, revenue: 0, profit: 0 };
       m.clients += 1;
@@ -270,7 +272,7 @@ function Dashboard() {
     return Array.from(map.entries())
       .map(([name, v]) => ({ name, ...v }))
       .sort((a, b) => b.clients - a.clients);
-  }, [filtered]);
+  }, [filteredForCompanies]);
 
   const debtors = useMemo(() => {
     const today = new Date();
