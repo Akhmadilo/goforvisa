@@ -87,7 +87,13 @@ function toUsd(c: Contract): number {
 }
 
 function fmtUsd(n: number): string {
-  return "$" + Math.round(n).toLocaleString("en-US");
+  const v = Math.round(n);
+  return (v < 0 ? "-$" : "$") + Math.abs(v).toLocaleString("en-US");
+}
+
+// Sof daromad = Contract fee (USD) - Doc costs (USD)
+function netProfit(c: Contract): number {
+  return toUsd(c) - (c.docsUsd || 0);
 }
 
 function unique(arr: string[]): string[] {
