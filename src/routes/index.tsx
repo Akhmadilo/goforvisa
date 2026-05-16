@@ -597,7 +597,9 @@ function Dashboard() {
               </LineChart>
             </ResponsiveContainer>
           </Card>
+          )}
 
+          {can("visa_results") && (
           <Card className="p-5 shadow-[var(--shadow-card)]">
             <h3 className="font-semibold mb-4">Visa natijalari</h3>
             <ResponsiveContainer width="100%" height={280}>
