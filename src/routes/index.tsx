@@ -326,16 +326,16 @@ function Dashboard() {
   }
 
   const salesMonthly = useMemo(
-    () => buildMonthlySeries(filteredForManagers, (c) => c.salesManager, () => 1),
-    [filteredForManagers],
+    () => buildMonthlySeries(filtered, (c) => c.salesManager, () => 1),
+    [filtered],
   );
   const backOfficeMonthly = useMemo(
-    () => buildMonthlySeries(filteredForBackOffice, (c) => c.backOfficeManager, () => 1),
-    [filteredForBackOffice],
+    () => buildMonthlySeries(filtered, (c) => c.backOfficeManager, () => 1),
+    [filtered],
   );
   const companyMonthly = useMemo(
-    () => buildMonthlySeries(filteredForCompanies, (c) => c.company, () => 1),
-    [filteredForCompanies],
+    () => buildMonthlySeries(filtered, (c) => c.company, () => 1),
+    [filtered],
   );
 
 
