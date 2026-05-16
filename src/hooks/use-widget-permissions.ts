@@ -10,13 +10,13 @@ import { useIsAdmin } from "@/hooks/use-is-admin";
  */
 export function useWidgetPermissions() {
   const { user, loading: authLoading } = useAuth();
-  const { isAdmin, loading: adminLoading } = useIsAdmin();
+  const isAdmin = useIsAdmin();
   const [keys, setKeys] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
-    if (authLoading || adminLoading) return;
+    if (authLoading) return;
     if (!user) {
       setKeys(new Set());
       setLoading(false);
