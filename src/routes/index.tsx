@@ -1125,6 +1125,30 @@ function MonthlySeriesCard({
                 border: "1px solid var(--color-border)",
                 borderRadius: "8px",
               }}
+              filterNull
+              content={({ active, payload, label }) => {
+                if (!active || !payload) return null;
+                const items = payload.filter((p) => Number(p.value) > 0);
+                if (items.length === 0) return null;
+                return (
+                  <div
+                    style={{
+                      background: "var(--color-card)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: 8,
+                      padding: "8px 12px",
+                      fontSize: 12,
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
+                    {items.map((p) => (
+                      <div key={String(p.dataKey)} style={{ color: p.color }}>
+                        {p.name} : {p.value}
+                      </div>
+                    ))}
+                  </div>
+                );
+              }}
             />
             <Legend wrapperStyle={{ fontSize: "12px" }} />
             {data.keys.map((k, i) => (
