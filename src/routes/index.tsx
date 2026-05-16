@@ -661,7 +661,9 @@ function Dashboard() {
               </BarChart>
             </ResponsiveContainer>
           </Card>
+          )}
 
+          {can("contract_types") && (
           <Card className="p-5 shadow-[var(--shadow-card)]">
             <h3 className="font-semibold mb-4">Shartnoma turlari</h3>
             <ResponsiveContainer width="100%" height={300}>
@@ -680,10 +682,14 @@ function Dashboard() {
               </BarChart>
             </ResponsiveContainer>
           </Card>
+          )}
         </div>
+        )}
 
         {/* Managers clients + Companies */}
+        {(can("managers_clients") || can("companies_sales_pie")) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {can("managers_clients") && (
           <Card className="p-5 shadow-[var(--shadow-card)]">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">Menejerlar bo'yicha mijozlar soni</h3>
