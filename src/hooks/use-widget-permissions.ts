@@ -40,7 +40,7 @@ export function useWidgetPermissions() {
     return () => {
       mounted = false;
     };
-  }, [user, isAdmin, authLoading, adminLoading]);
+  }, [user, isAdmin, authLoading]);
 
   const can = (key: string) => keys.has("*") || keys.has(key);
   return { can, loading, isAdmin };
