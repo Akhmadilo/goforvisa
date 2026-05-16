@@ -462,7 +462,7 @@ function Dashboard() {
                   dataKey="commission"
                   stroke="var(--color-chart-3)"
                   strokeWidth={2.5}
-                  name="Komissiya $"
+                  name="Sof daromad $"
                   dot={{ r: 3 }}
                 />
               </LineChart>
