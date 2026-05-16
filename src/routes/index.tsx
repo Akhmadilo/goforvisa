@@ -1018,3 +1018,129 @@ function VisaBadge({ result }: { result: string }) {
     );
   return <Badge variant="outline">{result || "—"}</Badge>;
 }
+
+function MultiFilter({
+  label,
+  values,
+  onChange,
+  options,
+}: {
+  label: string;
+  values: string[];
+  onChange: (v: string[]) => void;
+  options: string[];
+}) {
+  const toggle = (o: string) => {
+    if (values.includes(o)) onChange(values.filter((v) => v !== o));
+    else onChange([...values, o]);
+  };
+  const display =
+    values.length === 0
+      ? "Barchasi"
+      : values.length === 1
+        ? values[0]
+        : `${values.length} ta tanlangan`;
+  return (
+    <div>
+      <label className="text-xs text-muted-foreground mb-1 block">{label}</label>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="h-9 w-full px-3 rounded-md border border-input bg-background text-sm flex items-center justify-between gap-2 hover:bg-accent/5"
+          >
+            <span className="truncate">{display}</span>
+            <ChevronDown className="h-4 w-4 opacity-60 shrink-0" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-64 p-2">
+          <div className="flex items-center justify-between px-1 pb-2 border-b border-border mb-2">
+            <span className="text-xs text-muted-foreground">{values.length} tanlangan</span>
+            {values.length > 0 && (
+              <button
+                type="button"
+                onClick={() => onChange([])}
+                className="text-xs text-primary hover:underline"
+              >
+                Tozalash
+              </button>
+            )}
+          </div>
+          <div className="max-h-64 overflow-y-auto space-y-1">
+            {options.map((o) => (
+              <label
+                key={o}
+                className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent/10 cursor-pointer"
+              >
+                <Checkbox
+                  checked={values.includes(o)}
+                  onCheckedChange={() => toggle(o)}
+                />
+                <span className="text-sm truncate">{o}</span>
+              </label>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
+function MonthlySeriesCard({
+  title,
+  data,
+  colors,
+}: {
+  title: string;
+  data: { rows: Array<Record<string, number | string>>; keys: string[] };
+  colors: string[];
+}) {
+  return (
+    <Card className="p-5 shadow-[var(--shadow-card)]">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold">{title}</h3>
+        <Badge variant="secondary">{data.keys.length} ta</Badge>
+      </div>
+      {data.rows.length === 0 ? (
+        <div className="h-[320px] flex items-center justify-center text-sm text-muted-foreground">
+          Ma'lumot yo'q
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={320}>
+          <LineChart data={data.rows}>
+            <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+            <XAxis
+              dataKey="name"
+              stroke="var(--color-muted-foreground)"
+              fontSize={11}
+              angle={-15}
+              textAnchor="end"
+              height={60}
+              interval={0}
+            />
+            <YAxis stroke="var(--color-muted-foreground)" fontSize={11} allowDecimals={false} />
+            <Tooltip
+              contentStyle={{
+                background: "var(--color-card)",
+                border: "1px solid var(--color-border)",
+                borderRadius: "8px",
+              }}
+            />
+            <Legend wrapperStyle={{ fontSize: "12px" }} />
+            {data.keys.map((k, i) => (
+              <Line
+                key={k}
+                type="monotone"
+                dataKey={k}
+                stroke={colors[i % colors.length]}
+                strokeWidth={2}
+                dot={{ r: 2 }}
+                name={k}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      )}
+    </Card>
+  );
+}
