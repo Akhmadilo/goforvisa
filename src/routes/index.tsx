@@ -203,7 +203,7 @@ function Dashboard() {
       const key = `${c.year} ${c.month}`;
       const b = buckets.get(key) ?? { revenue: 0, commission: 0, clients: 0 };
       b.revenue += toUsd(c);
-      b.commission += c.commission;
+      b.commission += netProfit(c);
       b.clients += 1;
       buckets.set(key, b);
     }
