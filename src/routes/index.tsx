@@ -145,25 +145,27 @@ function Dashboard() {
     [all],
   );
 
-  const filtered = useMemo(() => {
-    return all.filter((c) => {
-      if (year !== "all" && c.year !== year) return false;
-      if (month !== "all" && c.month !== month) return false;
-      if (manager !== "all" && c.salesManager !== manager) return false;
-      if (visa !== "all" && c.visaResult !== visa) return false;
-      if (company !== "all" && c.company !== company) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        if (
-          !c.name.toLowerCase().includes(q) &&
-          !c.contractNo.toLowerCase().includes(q) &&
-          !c.phone.toLowerCase().includes(q)
-        )
-          return false;
-      }
-      return true;
-    });
-  }, [all, year, month, manager, visa, company, search]);
+  const matches = (c: Contract, skip?: "manager" | "company") => {
+    if (year !== "all" && c.year !== year) return false;
+    if (month !== "all" && c.month !== month) return false;
+    if (skip !== "manager" && manager !== "all" && c.salesManager !== manager) return false;
+    if (visa !== "all" && c.visaResult !== visa) return false;
+    if (skip !== "company" && company !== "all" && c.company !== company) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (
+        !c.name.toLowerCase().includes(q) &&
+        !c.contractNo.toLowerCase().includes(q) &&
+        !c.phone.toLowerCase().includes(q)
+      )
+        return false;
+    }
+    return true;
+  };
+
+  const filtered = useMemo(() => all.filter((c) => matches(c)), [all, year, month, manager, visa, company, search]);
+  const filteredForManagers = useMemo(() => all.filter((c) => matches(c, "manager")), [all, year, month, manager, visa, company, search]);
+  const filteredForCompanies = useMemo(() => all.filter((c) => matches(c, "company")), [all, year, month, manager, visa, company, search]);
 
   const kpis = useMemo(() => {
     const totalUsd = filtered.reduce((s, c) => s + toUsd(c), 0);
