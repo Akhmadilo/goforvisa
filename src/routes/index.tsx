@@ -91,9 +91,9 @@ function fmtUsd(n: number): string {
   return (v < 0 ? "-$" : "$") + Math.abs(v).toLocaleString("en-US");
 }
 
-// Sof daromad = Contract fee (USD) - Doc costs (USD)
+// Komissiya = Google Sheets'dagi formulani o'zgartirmaymiz, sheet'dan o'qiymiz
 function netProfit(c: Contract): number {
-  return toUsd(c) - (c.docsUsd || 0);
+  return c.commission || 0;
 }
 
 function unique(arr: string[]): string[] {
@@ -170,7 +170,7 @@ function Dashboard() {
   const kpis = useMemo(() => {
     const totalUsd = filtered.reduce((s, c) => s + toUsd(c), 0);
     const docsTotal = filtered.reduce((s, c) => s + (c.docsUsd || 0), 0);
-    const commission = totalUsd - docsTotal; // Sof daromad
+    const commission = filtered.reduce((s, c) => s + (c.commission || 0), 0);
     const marginPct = totalUsd > 0 ? (commission / totalUsd) * 100 : 0;
     const clients = filtered.length;
     const avgComm = clients > 0 ? commission / clients : 0;
