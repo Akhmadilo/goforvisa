@@ -287,6 +287,58 @@ function Dashboard() {
       .sort((a, b) => b.clients - a.clients);
   }, [filteredForCompanies]);
 
+  // Oylik time-series helper: rows = months, columns = each entity (top-N)
+  function buildMonthlySeries(
+    source: Contract[],
+    keyOf: (c: Contract) => string,
+    valueOf: (c: Contract) => number,
+    topN = 8,
+  ) {
+    const totals = new Map<string, number>();
+    for (const c of source) {
+      const k = keyOf(c) || "—";
+      totals.set(k, (totals.get(k) ?? 0) + valueOf(c));
+    }
+    const top = Array.from(totals.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, topN)
+      .map(([k]) => k);
+    const topSet = new Set(top);
+
+    const monthMap = new Map<string, Record<string, number | string>>();
+    for (const c of source) {
+      const k = keyOf(c) || "—";
+      if (!topSet.has(k)) continue;
+      const name = `${c.year} ${c.month}`;
+      const row = monthMap.get(name) ?? { name };
+      row[k] = ((row[k] as number) ?? 0) + valueOf(c);
+      monthMap.set(name, row);
+    }
+    const rows = Array.from(monthMap.values()).sort((a, b) => {
+      const [ya, ma] = (a.name as string).split(" ");
+      const [yb, mb] = (b.name as string).split(" ");
+      if (ya !== yb) return Number(ya) - Number(yb);
+      return MONTH_ORDER.indexOf(ma) - MONTH_ORDER.indexOf(mb);
+    });
+    // ensure each top key exists on each row (Recharts handles missing as gap; we want 0)
+    for (const row of rows) for (const k of top) if (row[k] == null) row[k] = 0;
+    return { rows, keys: top };
+  }
+
+  const salesMonthly = useMemo(
+    () => buildMonthlySeries(filteredForManagers, (c) => c.salesManager, () => 1),
+    [filteredForManagers],
+  );
+  const backOfficeMonthly = useMemo(
+    () => buildMonthlySeries(filteredForBackOffice, (c) => c.backOfficeManager, () => 1),
+    [filteredForBackOffice],
+  );
+  const companyMonthly = useMemo(
+    () => buildMonthlySeries(filteredForCompanies, (c) => c.company, () => 1),
+    [filteredForCompanies],
+  );
+
+
   const debtors = useMemo(() => {
     const today = new Date();
     return filtered
