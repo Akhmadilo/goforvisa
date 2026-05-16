@@ -128,6 +128,7 @@ function daysBetween(a: Date, b: Date): number {
 function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const isAdmin = useIsAdmin();
+  const { can } = useWidgetPermissions();
   const navigate = Route.useNavigate();
 
   useEffect(() => {
