@@ -300,6 +300,7 @@ function Dashboard() {
       totals.set(k, (totals.get(k) ?? 0) + valueOf(c));
     }
     const top = Array.from(totals.entries())
+      .filter(([, v]) => v > 0)
       .sort((a, b) => b[1] - a[1])
       .slice(0, topN)
       .map(([k]) => k);
