@@ -156,8 +156,8 @@ function Dashboard() {
 
   type SkipKey = "manager" | "backOffice" | "company" | "visa";
   const matches = (c: Contract, skip?: SkipKey) => {
-    if (year !== "all" && c.year !== year) return false;
-    if (month !== "all" && c.month !== month) return false;
+    if (years.length > 0 && !years.includes(c.year)) return false;
+    if (months.length > 0 && !months.includes(c.month)) return false;
     if (skip !== "manager" && managers.length > 0 && !managers.includes(c.salesManager)) return false;
     if (skip !== "backOffice" && backOffices.length > 0 && !backOffices.includes(c.backOfficeManager)) return false;
     if (skip !== "visa" && visas.length > 0 && !visas.includes(c.visaResult)) return false;
