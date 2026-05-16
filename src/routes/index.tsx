@@ -261,7 +261,7 @@ function Dashboard() {
 
   const companyData = useMemo(() => {
     const map = new Map<string, { clients: number; revenue: number; profit: number }>();
-    for (const c of filtered) {
+    for (const c of filteredForCompanies) {
       const key = c.company || "—";
       const m = map.get(key) ?? { clients: 0, revenue: 0, profit: 0 };
       m.clients += 1;
@@ -272,7 +272,7 @@ function Dashboard() {
     return Array.from(map.entries())
       .map(([name, v]) => ({ name, ...v }))
       .sort((a, b) => b.clients - a.clients);
-  }, [filtered]);
+  }, [filteredForCompanies]);
 
   const debtors = useMemo(() => {
     const today = new Date();
