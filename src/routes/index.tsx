@@ -631,9 +631,6 @@ function Dashboard() {
         </div>
         )}
 
-        {(can("managers_revenue") || can("contract_types")) && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {can("managers_revenue") && (
 
         {(can("managers_revenue") || can("contract_types")) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
