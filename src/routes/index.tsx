@@ -25,6 +25,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
   Table,
   TableBody,
   TableCell,
@@ -46,6 +52,7 @@ import {
   Search,
   RefreshCw,
   AlertTriangle,
+  ChevronDown,
 } from "lucide-react";
 import { getContracts, type Contract } from "@/lib/contracts.functions";
 
@@ -125,9 +132,10 @@ function Dashboard() {
 
   const [year, setYear] = useState<string>("all");
   const [month, setMonth] = useState<string>("all");
-  const [manager, setManager] = useState<string>("all");
-  const [visa, setVisa] = useState<string>("all");
-  const [company, setCompany] = useState<string>("all");
+  const [managers, setManagers] = useState<string[]>([]);
+  const [backOffices, setBackOffices] = useState<string[]>([]);
+  const [visas, setVisas] = useState<string[]>([]);
+  const [companies, setCompanies] = useState<string[]>([]);
   const [search, setSearch] = useState("");
 
   const all = data ?? [];
@@ -139,18 +147,21 @@ function Dashboard() {
         (a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b),
       ),
       managers: unique(all.map((c) => c.salesManager)),
+      backOffices: unique(all.map((c) => c.backOfficeManager)),
       visas: unique(all.map((c) => c.visaResult)),
       companies: unique(all.map((c) => c.company)),
     }),
     [all],
   );
 
-  const matches = (c: Contract, skip?: "manager" | "company") => {
+  type SkipKey = "manager" | "backOffice" | "company" | "visa";
+  const matches = (c: Contract, skip?: SkipKey) => {
     if (year !== "all" && c.year !== year) return false;
     if (month !== "all" && c.month !== month) return false;
-    if (skip !== "manager" && manager !== "all" && c.salesManager !== manager) return false;
-    if (visa !== "all" && c.visaResult !== visa) return false;
-    if (skip !== "company" && company !== "all" && c.company !== company) return false;
+    if (skip !== "manager" && managers.length > 0 && !managers.includes(c.salesManager)) return false;
+    if (skip !== "backOffice" && backOffices.length > 0 && !backOffices.includes(c.backOfficeManager)) return false;
+    if (skip !== "visa" && visas.length > 0 && !visas.includes(c.visaResult)) return false;
+    if (skip !== "company" && companies.length > 0 && !companies.includes(c.company)) return false;
     if (search) {
       const q = search.toLowerCase();
       if (
@@ -163,9 +174,11 @@ function Dashboard() {
     return true;
   };
 
-  const filtered = useMemo(() => all.filter((c) => matches(c)), [all, year, month, manager, visa, company, search]);
-  const filteredForManagers = useMemo(() => all.filter((c) => matches(c, "manager")), [all, year, month, manager, visa, company, search]);
-  const filteredForCompanies = useMemo(() => all.filter((c) => matches(c, "company")), [all, year, month, manager, visa, company, search]);
+  const deps = [all, year, month, managers, backOffices, visas, companies, search];
+  const filtered = useMemo(() => all.filter((c) => matches(c)), deps);
+  const filteredForManagers = useMemo(() => all.filter((c) => matches(c, "manager")), deps);
+  const filteredForBackOffice = useMemo(() => all.filter((c) => matches(c, "backOffice")), deps);
+  const filteredForCompanies = useMemo(() => all.filter((c) => matches(c, "company")), deps);
 
   const kpis = useMemo(() => {
     const totalUsd = filtered.reduce((s, c) => s + toUsd(c), 0);
@@ -274,6 +287,58 @@ function Dashboard() {
       .sort((a, b) => b.clients - a.clients);
   }, [filteredForCompanies]);
 
+  // Oylik time-series helper: rows = months, columns = each entity (top-N)
+  function buildMonthlySeries(
+    source: Contract[],
+    keyOf: (c: Contract) => string,
+    valueOf: (c: Contract) => number,
+    topN = 8,
+  ) {
+    const totals = new Map<string, number>();
+    for (const c of source) {
+      const k = keyOf(c) || "—";
+      totals.set(k, (totals.get(k) ?? 0) + valueOf(c));
+    }
+    const top = Array.from(totals.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, topN)
+      .map(([k]) => k);
+    const topSet = new Set(top);
+
+    const monthMap = new Map<string, Record<string, number | string>>();
+    for (const c of source) {
+      const k = keyOf(c) || "—";
+      if (!topSet.has(k)) continue;
+      const name = `${c.year} ${c.month}`;
+      const row = monthMap.get(name) ?? { name };
+      row[k] = ((row[k] as number) ?? 0) + valueOf(c);
+      monthMap.set(name, row);
+    }
+    const rows = Array.from(monthMap.values()).sort((a, b) => {
+      const [ya, ma] = (a.name as string).split(" ");
+      const [yb, mb] = (b.name as string).split(" ");
+      if (ya !== yb) return Number(ya) - Number(yb);
+      return MONTH_ORDER.indexOf(ma) - MONTH_ORDER.indexOf(mb);
+    });
+    // ensure each top key exists on each row (Recharts handles missing as gap; we want 0)
+    for (const row of rows) for (const k of top) if (row[k] == null) row[k] = 0;
+    return { rows, keys: top };
+  }
+
+  const salesMonthly = useMemo(
+    () => buildMonthlySeries(filteredForManagers, (c) => c.salesManager, () => 1),
+    [filteredForManagers],
+  );
+  const backOfficeMonthly = useMemo(
+    () => buildMonthlySeries(filteredForBackOffice, (c) => c.backOfficeManager, () => 1),
+    [filteredForBackOffice],
+  );
+  const companyMonthly = useMemo(
+    () => buildMonthlySeries(filteredForCompanies, (c) => c.company, () => 1),
+    [filteredForCompanies],
+  );
+
+
   const debtors = useMemo(() => {
     const today = new Date();
     return filtered
@@ -354,7 +419,7 @@ function Dashboard() {
 
         {/* Filters */}
         <Card className="p-4 shadow-[var(--shadow-card)]">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
             <FilterSelect
               label="Yil"
               value={year}
@@ -367,22 +432,28 @@ function Dashboard() {
               onChange={setMonth}
               options={opts.months}
             />
-            <FilterSelect
-              label="Menejer"
-              value={manager}
-              onChange={setManager}
+            <MultiFilter
+              label="Sotuv menejer"
+              values={managers}
+              onChange={setManagers}
               options={opts.managers}
             />
-            <FilterSelect
+            <MultiFilter
+              label="Back office"
+              values={backOffices}
+              onChange={setBackOffices}
+              options={opts.backOffices}
+            />
+            <MultiFilter
               label="Visa"
-              value={visa}
-              onChange={setVisa}
+              values={visas}
+              onChange={setVisas}
               options={opts.visas}
             />
-            <FilterSelect
+            <MultiFilter
               label="Kompaniya"
-              value={company}
-              onChange={setCompany}
+              values={companies}
+              onChange={setCompanies}
               options={opts.companies}
             />
             <div>
@@ -641,6 +712,22 @@ function Dashboard() {
             </BarChart>
           </ResponsiveContainer>
         </Card>
+
+        <MonthlySeriesCard
+          title="Sotuv menejerlari · oylik sotuvlar (mijoz soni)"
+          data={salesMonthly}
+          colors={PIE_COLORS}
+        />
+        <MonthlySeriesCard
+          title="Back office · oylik hujjat topshirilgan mijozlar"
+          data={backOfficeMonthly}
+          colors={PIE_COLORS}
+        />
+        <MonthlySeriesCard
+          title="Kompaniyalar · oylik sotuvlar (mijoz soni)"
+          data={companyMonthly}
+          colors={PIE_COLORS}
+        />
 
         <Card className="shadow-[var(--shadow-card)] overflow-hidden border-destructive/30">
           <div className="p-5 border-b border-border flex items-center justify-between bg-destructive/5">
@@ -930,4 +1017,130 @@ function VisaBadge({ result }: { result: string }) {
       </Badge>
     );
   return <Badge variant="outline">{result || "—"}</Badge>;
+}
+
+function MultiFilter({
+  label,
+  values,
+  onChange,
+  options,
+}: {
+  label: string;
+  values: string[];
+  onChange: (v: string[]) => void;
+  options: string[];
+}) {
+  const toggle = (o: string) => {
+    if (values.includes(o)) onChange(values.filter((v) => v !== o));
+    else onChange([...values, o]);
+  };
+  const display =
+    values.length === 0
+      ? "Barchasi"
+      : values.length === 1
+        ? values[0]
+        : `${values.length} ta tanlangan`;
+  return (
+    <div>
+      <label className="text-xs text-muted-foreground mb-1 block">{label}</label>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="h-9 w-full px-3 rounded-md border border-input bg-background text-sm flex items-center justify-between gap-2 hover:bg-accent/5"
+          >
+            <span className="truncate">{display}</span>
+            <ChevronDown className="h-4 w-4 opacity-60 shrink-0" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-64 p-2">
+          <div className="flex items-center justify-between px-1 pb-2 border-b border-border mb-2">
+            <span className="text-xs text-muted-foreground">{values.length} tanlangan</span>
+            {values.length > 0 && (
+              <button
+                type="button"
+                onClick={() => onChange([])}
+                className="text-xs text-primary hover:underline"
+              >
+                Tozalash
+              </button>
+            )}
+          </div>
+          <div className="max-h-64 overflow-y-auto space-y-1">
+            {options.map((o) => (
+              <label
+                key={o}
+                className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent/10 cursor-pointer"
+              >
+                <Checkbox
+                  checked={values.includes(o)}
+                  onCheckedChange={() => toggle(o)}
+                />
+                <span className="text-sm truncate">{o}</span>
+              </label>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
+function MonthlySeriesCard({
+  title,
+  data,
+  colors,
+}: {
+  title: string;
+  data: { rows: Array<Record<string, number | string>>; keys: string[] };
+  colors: string[];
+}) {
+  return (
+    <Card className="p-5 shadow-[var(--shadow-card)]">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-semibold">{title}</h3>
+        <Badge variant="secondary">{data.keys.length} ta</Badge>
+      </div>
+      {data.rows.length === 0 ? (
+        <div className="h-[320px] flex items-center justify-center text-sm text-muted-foreground">
+          Ma'lumot yo'q
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={320}>
+          <LineChart data={data.rows}>
+            <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+            <XAxis
+              dataKey="name"
+              stroke="var(--color-muted-foreground)"
+              fontSize={11}
+              angle={-15}
+              textAnchor="end"
+              height={60}
+              interval={0}
+            />
+            <YAxis stroke="var(--color-muted-foreground)" fontSize={11} allowDecimals={false} />
+            <Tooltip
+              contentStyle={{
+                background: "var(--color-card)",
+                border: "1px solid var(--color-border)",
+                borderRadius: "8px",
+              }}
+            />
+            <Legend wrapperStyle={{ fontSize: "12px" }} />
+            {data.keys.map((k, i) => (
+              <Line
+                key={k}
+                type="monotone"
+                dataKey={k}
+                stroke={colors[i % colors.length]}
+                strokeWidth={2}
+                dot={{ r: 2 }}
+                name={k}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      )}
+    </Card>
+  );
 }
