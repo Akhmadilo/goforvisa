@@ -669,7 +669,8 @@ function Dashboard() {
                   <TableHead>Telefon</TableHead>
                   <TableHead>Tur</TableHead>
                   <TableHead className="text-right">Narx</TableHead>
-                  <TableHead className="text-right">Komissiya</TableHead>
+                  <TableHead className="text-right">Doc xarajat</TableHead>
+                  <TableHead className="text-right">Sof daromad</TableHead>
                   <TableHead>Menejer</TableHead>
                   <TableHead>Visa</TableHead>
                   <TableHead>To'lov</TableHead>
