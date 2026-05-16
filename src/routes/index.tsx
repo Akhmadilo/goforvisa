@@ -1068,16 +1068,15 @@ function MultiFilter({
           </div>
           <div className="max-h-64 overflow-y-auto space-y-1">
             {options.map((o) => (
-              <label
+              <div
                 key={o}
-                className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent/10 cursor-pointer"
+                role="button"
+                onClick={() => toggle(o)}
+                className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent/10 cursor-pointer select-none"
               >
-                <Checkbox
-                  checked={values.includes(o)}
-                  onCheckedChange={() => toggle(o)}
-                />
+                <Checkbox checked={values.includes(o)} tabIndex={-1} />
                 <span className="text-sm truncate">{o}</span>
-              </label>
+              </div>
             ))}
           </div>
         </PopoverContent>
