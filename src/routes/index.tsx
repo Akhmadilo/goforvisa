@@ -236,7 +236,7 @@ function Dashboard() {
       const m = map.get(key) ?? { clients: 0, revenue: 0, commission: 0 };
       m.clients += 1;
       m.revenue += toUsd(c);
-      m.commission += c.commission;
+      m.commission += netProfit(c);
       map.set(key, m);
     }
     return Array.from(map.entries())
