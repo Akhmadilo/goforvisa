@@ -174,7 +174,7 @@ function Dashboard() {
     return true;
   };
 
-  const deps = [all, year, month, managers, backOffices, visas, companies, search];
+  const deps = [all, years, months, managers, backOffices, visas, companies, search];
   const filtered = useMemo(() => all.filter((c) => matches(c)), deps);
   const filteredForManagers = useMemo(() => all.filter((c) => matches(c, "manager")), deps);
   const filteredForBackOffice = useMemo(() => all.filter((c) => matches(c, "backOffice")), deps);
