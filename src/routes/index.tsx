@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import {
@@ -55,6 +55,9 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { getContracts, type Contract } from "@/lib/contracts.functions";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
+import { LogOut } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -120,6 +123,15 @@ function daysBetween(a: Date, b: Date): number {
 }
 
 function Dashboard() {
+  const { user, loading: authLoading } = useAuth();
+  const navigate = Route.useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate({ to: "/auth" });
+    }
+  }, [authLoading, user, navigate]);
+
   const fetchContracts = useServerFn(getContracts);
   const { data, isLoading, isFetching, error, dataUpdatedAt, refetch } = useQuery({
     queryKey: ["contracts"],
@@ -406,6 +418,16 @@ function Dashboard() {
               title="Hozir yangilash"
             >
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+            </button>
+            <button
+              onClick={async () => {
+                await supabase.auth.signOut();
+                navigate({ to: "/auth" });
+              }}
+              className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary transition-colors flex items-center justify-center"
+              title="Chiqish"
+            >
+              <LogOut className="h-4 w-4" />
             </button>
           </div>
         </div>
