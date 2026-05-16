@@ -10,6 +10,7 @@ export type AdminUser = {
   created_at: string;
   last_sign_in_at: string | null;
   roles: string[];
+  widgets: string[];
 };
 
 async function assertAdmin(supabase: any, userId: string) {
@@ -33,9 +34,10 @@ export const listUsers = createServerFn({ method: "GET" })
     if (lErr) throw new Error(lErr.message);
 
     const ids = list.users.map((u) => u.id);
-    const [{ data: profiles }, { data: roles }] = await Promise.all([
+    const [{ data: profiles }, { data: roles }, { data: widgets }] = await Promise.all([
       supabaseAdmin.from("profiles").select("id, display_name").in("id", ids),
       supabaseAdmin.from("user_roles").select("user_id, role").in("user_id", ids),
+      supabaseAdmin.from("widget_permissions").select("user_id, widget_key").in("user_id", ids),
     ]);
 
     const pMap = new Map((profiles ?? []).map((p: any) => [p.id, p.display_name]));
@@ -45,6 +47,12 @@ export const listUsers = createServerFn({ method: "GET" })
       arr.push(r.role);
       rMap.set(r.user_id, arr);
     });
+    const wMap = new Map<string, string[]>();
+    (widgets ?? []).forEach((w: any) => {
+      const arr = wMap.get(w.user_id) ?? [];
+      arr.push(w.widget_key);
+      wMap.set(w.user_id, arr);
+    });
 
     return list.users.map((u) => ({
       id: u.id,
@@ -53,7 +61,76 @@ export const listUsers = createServerFn({ method: "GET" })
       created_at: u.created_at,
       last_sign_in_at: u.last_sign_in_at ?? null,
       roles: rMap.get(u.id) ?? [],
+      widgets: wMap.get(u.id) ?? [],
     }));
+  });
+
+export const createUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        email: z.string().email(),
+        password: z.string().min(6).max(72),
+        displayName: z.string().min(1).max(120),
+        widgets: z.array(z.string().min(1).max(80)).max(50).default([]),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+
+    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
+      email: data.email,
+      password: data.password,
+      email_confirm: true,
+      user_metadata: { display_name: data.displayName },
+    });
+    if (error) throw new Error(error.message);
+    const newId = created.user?.id;
+    if (!newId) throw new Error("Yaratib bo'lmadi");
+
+    // Ensure profile name set
+    await supabaseAdmin
+      .from("profiles")
+      .upsert({ id: newId, display_name: data.displayName });
+
+    if (data.widgets.length > 0) {
+      const rows = data.widgets.map((w) => ({ user_id: newId, widget_key: w }));
+      const { error: wErr } = await supabaseAdmin
+        .from("widget_permissions")
+        .insert(rows);
+      if (wErr) throw new Error(wErr.message);
+    }
+
+    return { ok: true, userId: newId };
+  });
+
+export const setUserWidgets = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        userId: z.string().uuid(),
+        widgets: z.array(z.string().min(1).max(80)).max(50),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const { error: dErr } = await supabaseAdmin
+      .from("widget_permissions")
+      .delete()
+      .eq("user_id", data.userId);
+    if (dErr) throw new Error(dErr.message);
+    if (data.widgets.length > 0) {
+      const rows = data.widgets.map((w) => ({ user_id: data.userId, widget_key: w }));
+      const { error } = await supabaseAdmin
+        .from("widget_permissions")
+        .insert(rows);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
   });
 
 export const setUserRole = createServerFn({ method: "POST" })
@@ -75,7 +152,6 @@ export const setUserRole = createServerFn({ method: "POST" })
         .insert({ user_id: data.userId, role: data.role });
       if (error && !error.message.includes("duplicate")) throw new Error(error.message);
     } else {
-      // Prevent removing your own admin
       if (data.userId === context.userId && data.role === "admin") {
         throw new Error("O'zingizdan admin rolini olib tashlay olmaysiz");
       }
