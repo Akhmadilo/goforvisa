@@ -396,15 +396,16 @@ function Dashboard() {
           />
           <Kpi
             icon={<TrendingUp className="h-4 w-4" />}
-            label="Komissiya"
+            label="Sof daromad"
             value={fmtUsd(kpis.commission)}
-            sub={`O'rtacha ${fmtUsd(kpis.avgComm)}`}
+            sub={`${kpis.marginPct.toFixed(1)}% · fee − doc xarajat`}
+            tone="primary"
           />
           <Kpi
-            icon={<TrendingUp className="h-4 w-4" />}
-            label="Gross Margin"
-            value={fmtUsd(kpis.margin)}
-            sub={`${kpis.marginPct.toFixed(1)}% margin`}
+            icon={<DollarSign className="h-4 w-4" />}
+            label="Doc xarajat"
+            value={fmtUsd(kpis.docsTotal)}
+            sub={`O'rtacha sof ${fmtUsd(kpis.avgComm)}`}
             tone="accent"
           />
           <Kpi
