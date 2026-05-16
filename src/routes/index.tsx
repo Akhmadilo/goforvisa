@@ -711,7 +711,9 @@ function Dashboard() {
               </BarChart>
             </ResponsiveContainer>
           </Card>
+          )}
 
+          {can("companies_sales_pie") && (
           <Card className="p-5 shadow-[var(--shadow-card)]">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">Kompaniyalar bo'yicha sotuvlar</h3>
@@ -744,8 +746,11 @@ function Dashboard() {
               </PieChart>
             </ResponsiveContainer>
           </Card>
+          )}
         </div>
+        )}
 
+        {can("companies_revenue") && (
         <Card className="p-5 shadow-[var(--shadow-card)]">
           <h3 className="font-semibold mb-4">Kompaniyalar · daromad va sof foyda</h3>
           <ResponsiveContainer width="100%" height={320}>
@@ -766,23 +771,31 @@ function Dashboard() {
             </BarChart>
           </ResponsiveContainer>
         </Card>
+        )}
 
+        {can("sales_monthly") && (
         <MonthlySeriesCard
           title="Sotuv menejerlari · oylik sotuvlar (mijoz soni)"
           data={salesMonthly}
           colors={PIE_COLORS}
         />
+        )}
+        {can("backoffice_monthly") && (
         <MonthlySeriesCard
           title="Back office · oylik hujjat topshirilgan mijozlar"
           data={backOfficeMonthly}
           colors={PIE_COLORS}
         />
+        )}
+        {can("companies_monthly") && (
         <MonthlySeriesCard
           title="Kompaniyalar · oylik sotuvlar (mijoz soni)"
           data={companyMonthly}
           colors={PIE_COLORS}
         />
+        )}
 
+        {can("debtors") && (
         <Card className="shadow-[var(--shadow-card)] overflow-hidden border-destructive/30">
           <div className="p-5 border-b border-border flex items-center justify-between bg-destructive/5">
             <div className="flex items-center gap-3">
