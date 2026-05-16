@@ -212,9 +212,7 @@ function Dashboard() {
       (c) => c.visaResult === "In process" || c.visaResult === "In Process",
     ).length;
     const successRate =
-      visaTaken + visaRejected > 0
-        ? (visaTaken / (visaTaken + visaRejected)) * 100
-        : 0;
+      filtered.length > 0 ? (visaTaken / filtered.length) * 100 : 0;
     return {
       totalUsd,
       docsTotal,
