@@ -56,8 +56,10 @@ import {
 } from "lucide-react";
 import { getContracts, type Contract } from "@/lib/contracts.functions";
 import { useAuth } from "@/hooks/use-auth";
+import { useIsAdmin } from "@/hooks/use-is-admin";
 import { supabase } from "@/integrations/supabase/client";
-import { LogOut } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { LogOut, Shield } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -124,6 +126,7 @@ function daysBetween(a: Date, b: Date): number {
 
 function Dashboard() {
   const { user, loading: authLoading } = useAuth();
+  const isAdmin = useIsAdmin();
   const navigate = Route.useNavigate();
 
   useEffect(() => {
@@ -419,6 +422,15 @@ function Dashboard() {
             >
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
             </button>
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary transition-colors flex items-center justify-center"
+                title="Admin Panel"
+              >
+                <Shield className="h-4 w-4" />
+              </Link>
+            )}
             <button
               onClick={async () => {
                 await supabase.auth.signOut();
