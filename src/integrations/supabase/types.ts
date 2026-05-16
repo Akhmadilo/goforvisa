@@ -59,6 +59,27 @@ export type Database = {
         }
         Relationships: []
       }
+      widget_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          user_id: string
+          widget_key: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          user_id: string
+          widget_key: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          user_id?: string
+          widget_key?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
