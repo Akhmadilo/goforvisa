@@ -976,6 +976,7 @@ function Dashboard() {
             </div>
           )}
         </Card>
+        )}
       </main>
     </div>
   );
