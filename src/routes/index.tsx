@@ -515,7 +515,7 @@ function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <Card className="p-5 shadow-[var(--shadow-card)]">
-            <h3 className="font-semibold mb-4">Top menejerlar (daromad)</h3>
+            <h3 className="font-semibold mb-4">Sotuv menejerlari · daromad va sof foyda</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={managerData} layout="vertical">
                 <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
@@ -534,7 +534,9 @@ function Dashboard() {
                     borderRadius: "8px",
                   }}
                 />
+                <Legend wrapperStyle={{ fontSize: "12px" }} />
                 <Bar dataKey="revenue" fill="var(--color-chart-1)" name="Daromad $" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="commission" fill="var(--color-chart-3)" name="Sof daromad $" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
