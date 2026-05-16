@@ -130,8 +130,8 @@ function Dashboard() {
     staleTime: 15_000,
   });
 
-  const [year, setYear] = useState<string>("all");
-  const [month, setMonth] = useState<string>("all");
+  const [years, setYears] = useState<string[]>([]);
+  const [months, setMonths] = useState<string[]>([]);
   const [managers, setManagers] = useState<string[]>([]);
   const [backOffices, setBackOffices] = useState<string[]>([]);
   const [visas, setVisas] = useState<string[]>([]);
