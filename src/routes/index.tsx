@@ -212,9 +212,7 @@ function Dashboard() {
       (c) => c.visaResult === "In process" || c.visaResult === "In Process",
     ).length;
     const successRate =
-      visaTaken + visaRejected > 0
-        ? (visaTaken / (visaTaken + visaRejected)) * 100
-        : 0;
+      filtered.length > 0 ? (visaTaken / filtered.length) * 100 : 0;
     return {
       totalUsd,
       docsTotal,
@@ -544,7 +542,7 @@ function Dashboard() {
             icon={<CheckCircle2 className="h-4 w-4" />}
             label="Visa Success"
             value={kpis.successRate.toFixed(1) + "%"}
-            sub={`${kpis.visaRejected} rejected · ${kpis.visaInProcess} jarayonda`}
+            sub={`${kpis.visaTaken} / ${kpis.clients} · ${kpis.visaRejected} rejected · ${kpis.visaInProcess} jarayonda`}
           />
           <Kpi
             icon={<AlertTriangle className="h-4 w-4" />}
