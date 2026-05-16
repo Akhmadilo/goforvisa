@@ -713,6 +713,22 @@ function Dashboard() {
           </ResponsiveContainer>
         </Card>
 
+        <MonthlySeriesCard
+          title="Sotuv menejerlari · oylik sotuvlar (mijoz soni)"
+          data={salesMonthly}
+          colors={PIE_COLORS}
+        />
+        <MonthlySeriesCard
+          title="Back office · oylik hujjat topshirilgan mijozlar"
+          data={backOfficeMonthly}
+          colors={PIE_COLORS}
+        />
+        <MonthlySeriesCard
+          title="Kompaniyalar · oylik sotuvlar (mijoz soni)"
+          data={companyMonthly}
+          colors={PIE_COLORS}
+        />
+
         <Card className="shadow-[var(--shadow-card)] overflow-hidden border-destructive/30">
           <div className="p-5 border-b border-border flex items-center justify-between bg-destructive/5">
             <div className="flex items-center gap-3">
