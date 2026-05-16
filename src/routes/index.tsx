@@ -511,6 +511,7 @@ function Dashboard() {
         </Card>
 
         {/* KPIs */}
+        {can("kpi") && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <Kpi
             icon={<DollarSign className="h-4 w-4" />}
@@ -553,6 +554,7 @@ function Dashboard() {
             tone="danger"
           />
         </div>
+        )}
 
         {/* Charts row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
