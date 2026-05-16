@@ -433,7 +433,7 @@ function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <Card className="p-5 lg:col-span-2 shadow-[var(--shadow-card)]">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Oylik daromad va komissiya</h3>
+              <h3 className="font-semibold">Oylik daromad va sof foyda</h3>
               <Badge variant="secondary">{monthlyData.length} oy</Badge>
             </div>
             <ResponsiveContainer width="100%" height={280}>
