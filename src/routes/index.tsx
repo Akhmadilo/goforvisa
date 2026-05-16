@@ -894,8 +894,10 @@ function Dashboard() {
             )}
           </div>
         </Card>
+        )}
 
         {/* Table */}
+        {can("contracts_table") && (
         <Card className="shadow-[var(--shadow-card)] overflow-hidden">
           <div className="p-5 border-b border-border flex items-center justify-between">
             <h3 className="font-semibold">
