@@ -420,16 +420,16 @@ function Dashboard() {
         {/* Filters */}
         <Card className="p-4 shadow-[var(--shadow-card)]">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
-            <FilterSelect
+            <MultiFilter
               label="Yil"
-              value={year}
-              onChange={setYear}
+              values={years}
+              onChange={setYears}
               options={opts.years}
             />
-            <FilterSelect
+            <MultiFilter
               label="Oy"
-              value={month}
-              onChange={setMonth}
+              values={months}
+              onChange={setMonths}
               options={opts.months}
             />
             <MultiFilter
