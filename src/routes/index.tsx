@@ -167,9 +167,9 @@ function Dashboard() {
 
   const kpis = useMemo(() => {
     const totalUsd = filtered.reduce((s, c) => s + toUsd(c), 0);
-    const commission = filtered.reduce((s, c) => s + c.commission, 0);
-    const margin = totalUsd - commission;
-    const marginPct = totalUsd > 0 ? (margin / totalUsd) * 100 : 0;
+    const docsTotal = filtered.reduce((s, c) => s + (c.docsUsd || 0), 0);
+    const commission = totalUsd - docsTotal; // Sof daromad
+    const marginPct = totalUsd > 0 ? (commission / totalUsd) * 100 : 0;
     const clients = filtered.length;
     const avgComm = clients > 0 ? commission / clients : 0;
     const visaTaken = filtered.filter((c) => c.visaResult === "Taken").length;
@@ -185,8 +185,8 @@ function Dashboard() {
         : 0;
     return {
       totalUsd,
+      docsTotal,
       commission,
-      margin,
       marginPct,
       clients,
       avgComm,
