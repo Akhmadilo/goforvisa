@@ -561,7 +561,85 @@ function Dashboard() {
           </Card>
         </div>
 
-        {/* Debtors */}
+        {/* Managers clients + Companies */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Card className="p-5 shadow-[var(--shadow-card)]">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">Menejerlar bo'yicha mijozlar soni</h3>
+              <Badge variant="secondary">{managerData.length}</Badge>
+            </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={managerData}>
+                <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+                <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} angle={-20} textAnchor="end" height={60} interval={0} />
+                <YAxis stroke="var(--color-muted-foreground)" fontSize={11} allowDecimals={false} />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--color-card)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: "8px",
+                  }}
+                />
+                <Bar dataKey="clients" fill="var(--color-chart-2)" name="Mijozlar" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+
+          <Card className="p-5 shadow-[var(--shadow-card)]">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">Kompaniyalar bo'yicha sotuvlar</h3>
+              <Badge variant="secondary">{companyData.length}</Badge>
+            </div>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={companyData}
+                  dataKey="clients"
+                  nameKey="name"
+                  innerRadius={50}
+                  outerRadius={100}
+                  paddingAngle={2}
+                  label={(e: { name: string; clients: number }) => `${e.name} (${e.clients})`}
+                  labelLine={false}
+                >
+                  {companyData.map((_, i) => (
+                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--color-card)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: "8px",
+                  }}
+                />
+                <Legend wrapperStyle={{ fontSize: "12px" }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </Card>
+        </div>
+
+        <Card className="p-5 shadow-[var(--shadow-card)]">
+          <h3 className="font-semibold mb-4">Kompaniyalar · daromad va sof foyda</h3>
+          <ResponsiveContainer width="100%" height={320}>
+            <BarChart data={companyData}>
+              <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+              <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} angle={-15} textAnchor="end" height={60} interval={0} />
+              <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
+              <Tooltip
+                contentStyle={{
+                  background: "var(--color-card)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "8px",
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: "12px" }} />
+              <Bar dataKey="revenue" fill="var(--color-chart-1)" name="Daromad $" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="profit" fill="var(--color-chart-3)" name="Sof daromad $" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </Card>
+
         <Card className="shadow-[var(--shadow-card)] overflow-hidden border-destructive/30">
           <div className="p-5 border-b border-border flex items-center justify-between bg-destructive/5">
             <div className="flex items-center gap-3">
