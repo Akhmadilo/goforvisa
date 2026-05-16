@@ -233,7 +233,7 @@ function Dashboard() {
       string,
       { clients: number; revenue: number; commission: number }
     >();
-    for (const c of filtered) {
+    for (const c of filteredForManagers) {
       const key = c.salesManager || "—";
       const m = map.get(key) ?? { clients: 0, revenue: 0, commission: 0 };
       m.clients += 1;
@@ -245,7 +245,7 @@ function Dashboard() {
       .map(([name, v]) => ({ name, ...v }))
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 8);
-  }, [filtered]);
+  }, [filteredForManagers]);
 
   const typeData = useMemo(() => {
     const map = new Map<string, number>();
