@@ -61,6 +61,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { Link } from "@tanstack/react-router";
 import { LogOut, Shield } from "lucide-react";
+import logoUrl from "@/assets/logo.png";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -380,8 +381,32 @@ function Dashboard() {
     "var(--color-chart-5)",
   ];
 
+  const displayName =
+    (user?.user_metadata as any)?.full_name ||
+    (user?.user_metadata as any)?.name ||
+    user?.email?.split("@")[0] ||
+    "";
+  const initials = displayName
+    .split(/[\s.@_-]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((s: string) => s[0]?.toUpperCase())
+    .join("");
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="relative min-h-screen bg-background text-foreground overflow-hidden">
+      {/* GoForVisa watermark */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0 flex items-center justify-center"
+      >
+        <img
+          src={logoUrl}
+          alt=""
+          className="w-[min(70vw,720px)] opacity-[0.05] select-none"
+        />
+      </div>
+      <div className="relative z-10">
       <header className="border-b border-border bg-card/40 backdrop-blur sticky top-0 z-20">
         <div className="mx-auto max-w-[1500px] px-6 py-4 flex items-center justify-between">
           <div>
@@ -414,6 +439,23 @@ function Dashboard() {
                   : "—"}
               </div>
             </div>
+            {displayName && (
+              <div className="flex items-center gap-2 pl-2 border-l border-border">
+                <div
+                  className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold text-primary-foreground"
+                  style={{ background: "var(--gradient-primary)" }}
+                  title={user?.email ?? ""}
+                >
+                  {initials || "U"}
+                </div>
+                <div className="hidden md:block leading-tight">
+                  <div className="text-sm font-medium">{displayName}</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    {isAdmin ? "Admin" : "Foydalanuvchi"}
+                  </div>
+                </div>
+              </div>
+            )}
             <button
               onClick={() => refetch()}
               disabled={isFetching}
@@ -976,6 +1018,7 @@ function Dashboard() {
         </Card>
         )}
       </main>
+      </div>
     </div>
   );
 }
