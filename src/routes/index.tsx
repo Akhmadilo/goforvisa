@@ -381,10 +381,18 @@ function Dashboard() {
     "var(--color-chart-5)",
   ];
 
+  const [profileName, setProfileName] = useState<string>("");
+  useEffect(() => {
+    if (!user) { setProfileName(""); return; }
+    supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle()
+      .then(({ data }) => setProfileName((data as any)?.display_name ?? ""));
+  }, [user]);
+
   const displayName =
+    profileName ||
+    (user?.user_metadata as any)?.display_name ||
     (user?.user_metadata as any)?.full_name ||
     (user?.user_metadata as any)?.name ||
-    user?.email?.split("@")[0] ||
     "";
   const initials = displayName
     .split(/[\s.@_-]+/)
