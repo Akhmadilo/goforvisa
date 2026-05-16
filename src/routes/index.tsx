@@ -419,6 +419,16 @@ function Dashboard() {
             >
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
             </button>
+            <button
+              onClick={async () => {
+                await supabase.auth.signOut();
+                navigate({ to: "/auth" });
+              }}
+              className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary transition-colors flex items-center justify-center"
+              title="Chiqish"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
         </div>
       </header>
