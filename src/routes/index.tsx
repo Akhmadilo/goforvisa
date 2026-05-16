@@ -87,7 +87,13 @@ function toUsd(c: Contract): number {
 }
 
 function fmtUsd(n: number): string {
-  return "$" + Math.round(n).toLocaleString("en-US");
+  const v = Math.round(n);
+  return (v < 0 ? "-$" : "$") + Math.abs(v).toLocaleString("en-US");
+}
+
+// Sof daromad = Contract fee (USD) - Doc costs (USD)
+function netProfit(c: Contract): number {
+  return toUsd(c) - (c.docsUsd || 0);
 }
 
 function unique(arr: string[]): string[] {
@@ -161,9 +167,9 @@ function Dashboard() {
 
   const kpis = useMemo(() => {
     const totalUsd = filtered.reduce((s, c) => s + toUsd(c), 0);
-    const commission = filtered.reduce((s, c) => s + c.commission, 0);
-    const margin = totalUsd - commission;
-    const marginPct = totalUsd > 0 ? (margin / totalUsd) * 100 : 0;
+    const docsTotal = filtered.reduce((s, c) => s + (c.docsUsd || 0), 0);
+    const commission = totalUsd - docsTotal; // Sof daromad
+    const marginPct = totalUsd > 0 ? (commission / totalUsd) * 100 : 0;
     const clients = filtered.length;
     const avgComm = clients > 0 ? commission / clients : 0;
     const visaTaken = filtered.filter((c) => c.visaResult === "Taken").length;
@@ -179,8 +185,8 @@ function Dashboard() {
         : 0;
     return {
       totalUsd,
+      docsTotal,
       commission,
-      margin,
       marginPct,
       clients,
       avgComm,
@@ -197,7 +203,7 @@ function Dashboard() {
       const key = `${c.year} ${c.month}`;
       const b = buckets.get(key) ?? { revenue: 0, commission: 0, clients: 0 };
       b.revenue += toUsd(c);
-      b.commission += c.commission;
+      b.commission += netProfit(c);
       b.clients += 1;
       buckets.set(key, b);
     }
@@ -230,7 +236,7 @@ function Dashboard() {
       const m = map.get(key) ?? { clients: 0, revenue: 0, commission: 0 };
       m.clients += 1;
       m.revenue += toUsd(c);
-      m.commission += c.commission;
+      m.commission += netProfit(c);
       map.set(key, m);
     }
     return Array.from(map.entries())
@@ -390,15 +396,16 @@ function Dashboard() {
           />
           <Kpi
             icon={<TrendingUp className="h-4 w-4" />}
-            label="Komissiya"
+            label="Sof daromad"
             value={fmtUsd(kpis.commission)}
-            sub={`O'rtacha ${fmtUsd(kpis.avgComm)}`}
+            sub={`${kpis.marginPct.toFixed(1)}% · fee − doc xarajat`}
+            tone="primary"
           />
           <Kpi
-            icon={<TrendingUp className="h-4 w-4" />}
-            label="Gross Margin"
-            value={fmtUsd(kpis.margin)}
-            sub={`${kpis.marginPct.toFixed(1)}% margin`}
+            icon={<DollarSign className="h-4 w-4" />}
+            label="Doc xarajat"
+            value={fmtUsd(kpis.docsTotal)}
+            sub={`O'rtacha sof ${fmtUsd(kpis.avgComm)}`}
             tone="accent"
           />
           <Kpi
@@ -426,7 +433,7 @@ function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <Card className="p-5 lg:col-span-2 shadow-[var(--shadow-card)]">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Oylik daromad va komissiya</h3>
+              <h3 className="font-semibold">Oylik daromad va sof foyda</h3>
               <Badge variant="secondary">{monthlyData.length} oy</Badge>
             </div>
             <ResponsiveContainer width="100%" height={280}>
@@ -455,7 +462,7 @@ function Dashboard() {
                   dataKey="commission"
                   stroke="var(--color-chart-3)"
                   strokeWidth={2.5}
-                  name="Komissiya $"
+                  name="Sof daromad $"
                   dot={{ r: 3 }}
                 />
               </LineChart>
@@ -662,7 +669,8 @@ function Dashboard() {
                   <TableHead>Telefon</TableHead>
                   <TableHead>Tur</TableHead>
                   <TableHead className="text-right">Narx</TableHead>
-                  <TableHead className="text-right">Komissiya</TableHead>
+                  <TableHead className="text-right">Doc xarajat</TableHead>
+                  <TableHead className="text-right">Sof daromad</TableHead>
                   <TableHead>Menejer</TableHead>
                   <TableHead>Visa</TableHead>
                   <TableHead>To'lov</TableHead>
@@ -693,8 +701,11 @@ function Dashboard() {
                           ? `${(c.priceUzs / 1000).toLocaleString()}k UZS`
                           : "—"}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-xs">
-                      {c.commission > 0 ? `$${c.commission.toLocaleString()}` : "—"}
+                    <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                      {c.docsUsd > 0 ? `$${c.docsUsd.toLocaleString()}` : "—"}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-xs font-semibold text-primary">
+                      {fmtUsd(netProfit(c))}
                     </TableCell>
                     <TableCell className="text-xs">{c.salesManager}</TableCell>
                     <TableCell>
