@@ -271,6 +271,8 @@ function Dashboard() {
       .map(([name, v]) => ({ name, ...v }))
       .sort((a, b) => b.clients - a.clients);
   }, [filtered]);
+
+  const debtors = useMemo(() => {
     const today = new Date();
     return filtered
       .filter((c) => c.payment === "Partially" || c.payment === "No payment")
