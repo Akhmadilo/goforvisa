@@ -1001,6 +1001,7 @@ function Dashboard() {
         </Card>
         )}
       </main>
+      </div>
     </div>
   );
 }
