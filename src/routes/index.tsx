@@ -701,8 +701,11 @@ function Dashboard() {
                           ? `${(c.priceUzs / 1000).toLocaleString()}k UZS`
                           : "—"}
                     </TableCell>
-                    <TableCell className="text-right font-mono text-xs">
-                      {c.commission > 0 ? `$${c.commission.toLocaleString()}` : "—"}
+                    <TableCell className="text-right font-mono text-xs text-muted-foreground">
+                      {c.docsUsd > 0 ? `$${c.docsUsd.toLocaleString()}` : "—"}
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-xs font-semibold text-primary">
+                      {fmtUsd(netProfit(c))}
                     </TableCell>
                     <TableCell className="text-xs">{c.salesManager}</TableCell>
                     <TableCell>
