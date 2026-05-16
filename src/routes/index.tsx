@@ -542,7 +542,7 @@ function Dashboard() {
             icon={<CheckCircle2 className="h-4 w-4" />}
             label="Visa Success"
             value={kpis.successRate.toFixed(1) + "%"}
-            sub={`${kpis.visaRejected} rejected · ${kpis.visaInProcess} jarayonda`}
+            sub={`${kpis.visaTaken} / ${kpis.clients} · ${kpis.visaRejected} rejected · ${kpis.visaInProcess} jarayonda`}
           />
           <Kpi
             icon={<AlertTriangle className="h-4 w-4" />}
