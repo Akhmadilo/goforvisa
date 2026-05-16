@@ -25,6 +25,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
   Table,
   TableBody,
   TableCell,
@@ -46,6 +52,7 @@ import {
   Search,
   RefreshCw,
   AlertTriangle,
+  ChevronDown,
 } from "lucide-react";
 import { getContracts, type Contract } from "@/lib/contracts.functions";
 
