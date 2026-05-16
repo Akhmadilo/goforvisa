@@ -367,7 +367,7 @@ function Dashboard() {
 
         {/* Filters */}
         <Card className="p-4 shadow-[var(--shadow-card)]">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
             <FilterSelect
               label="Yil"
               value={year}
@@ -380,22 +380,28 @@ function Dashboard() {
               onChange={setMonth}
               options={opts.months}
             />
-            <FilterSelect
-              label="Menejer"
-              value={manager}
-              onChange={setManager}
+            <MultiFilter
+              label="Sotuv menejer"
+              values={managers}
+              onChange={setManagers}
               options={opts.managers}
             />
-            <FilterSelect
+            <MultiFilter
+              label="Back office"
+              values={backOffices}
+              onChange={setBackOffices}
+              options={opts.backOffices}
+            />
+            <MultiFilter
               label="Visa"
-              value={visa}
-              onChange={setVisa}
+              values={visas}
+              onChange={setVisas}
               options={opts.visas}
             />
-            <FilterSelect
+            <MultiFilter
               label="Kompaniya"
-              value={company}
-              onChange={setCompany}
+              values={companies}
+              onChange={setCompanies}
               options={opts.companies}
             />
             <div>
