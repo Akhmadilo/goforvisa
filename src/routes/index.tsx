@@ -132,9 +132,10 @@ function Dashboard() {
 
   const [year, setYear] = useState<string>("all");
   const [month, setMonth] = useState<string>("all");
-  const [manager, setManager] = useState<string>("all");
-  const [visa, setVisa] = useState<string>("all");
-  const [company, setCompany] = useState<string>("all");
+  const [managers, setManagers] = useState<string[]>([]);
+  const [backOffices, setBackOffices] = useState<string[]>([]);
+  const [visas, setVisas] = useState<string[]>([]);
+  const [companies, setCompanies] = useState<string[]>([]);
   const [search, setSearch] = useState("");
 
   const all = data ?? [];
@@ -146,18 +147,21 @@ function Dashboard() {
         (a, b) => MONTH_ORDER.indexOf(a) - MONTH_ORDER.indexOf(b),
       ),
       managers: unique(all.map((c) => c.salesManager)),
+      backOffices: unique(all.map((c) => c.backOfficeManager)),
       visas: unique(all.map((c) => c.visaResult)),
       companies: unique(all.map((c) => c.company)),
     }),
     [all],
   );
 
-  const matches = (c: Contract, skip?: "manager" | "company") => {
+  type SkipKey = "manager" | "backOffice" | "company" | "visa";
+  const matches = (c: Contract, skip?: SkipKey) => {
     if (year !== "all" && c.year !== year) return false;
     if (month !== "all" && c.month !== month) return false;
-    if (skip !== "manager" && manager !== "all" && c.salesManager !== manager) return false;
-    if (visa !== "all" && c.visaResult !== visa) return false;
-    if (skip !== "company" && company !== "all" && c.company !== company) return false;
+    if (skip !== "manager" && managers.length > 0 && !managers.includes(c.salesManager)) return false;
+    if (skip !== "backOffice" && backOffices.length > 0 && !backOffices.includes(c.backOfficeManager)) return false;
+    if (skip !== "visa" && visas.length > 0 && !visas.includes(c.visaResult)) return false;
+    if (skip !== "company" && companies.length > 0 && !companies.includes(c.company)) return false;
     if (search) {
       const q = search.toLowerCase();
       if (
@@ -170,9 +174,11 @@ function Dashboard() {
     return true;
   };
 
-  const filtered = useMemo(() => all.filter((c) => matches(c)), [all, year, month, manager, visa, company, search]);
-  const filteredForManagers = useMemo(() => all.filter((c) => matches(c, "manager")), [all, year, month, manager, visa, company, search]);
-  const filteredForCompanies = useMemo(() => all.filter((c) => matches(c, "company")), [all, year, month, manager, visa, company, search]);
+  const deps = [all, year, month, managers, backOffices, visas, companies, search];
+  const filtered = useMemo(() => all.filter((c) => matches(c)), deps);
+  const filteredForManagers = useMemo(() => all.filter((c) => matches(c, "manager")), deps);
+  const filteredForBackOffice = useMemo(() => all.filter((c) => matches(c, "backOffice")), deps);
+  const filteredForCompanies = useMemo(() => all.filter((c) => matches(c, "company")), deps);
 
   const kpis = useMemo(() => {
     const totalUsd = filtered.reduce((s, c) => s + toUsd(c), 0);
