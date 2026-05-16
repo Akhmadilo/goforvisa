@@ -130,7 +130,7 @@ function Dashboard() {
     staleTime: 15_000,
   });
 
-  const [years, setYears] = useState<string[]>([]);
+  const [year, setYear] = useState<string>("all");
   const [months, setMonths] = useState<string[]>([]);
   const [managers, setManagers] = useState<string[]>([]);
   const [backOffices, setBackOffices] = useState<string[]>([]);
@@ -156,7 +156,7 @@ function Dashboard() {
 
   type SkipKey = "manager" | "backOffice" | "company" | "visa";
   const matches = (c: Contract, skip?: SkipKey) => {
-    if (years.length > 0 && !years.includes(c.year)) return false;
+    if (year !== "all" && c.year !== year) return false;
     if (months.length > 0 && !months.includes(c.month)) return false;
     if (skip !== "manager" && managers.length > 0 && !managers.includes(c.salesManager)) return false;
     if (skip !== "backOffice" && backOffices.length > 0 && !backOffices.includes(c.backOfficeManager)) return false;
@@ -174,7 +174,7 @@ function Dashboard() {
     return true;
   };
 
-  const deps = [all, years, months, managers, backOffices, visas, companies, search];
+  const deps = [all, year, months, managers, backOffices, visas, companies, search];
   const filtered = useMemo(() => all.filter((c) => matches(c)), deps);
   const filteredForManagers = useMemo(() => all.filter((c) => matches(c, "manager")), deps);
   const filteredForBackOffice = useMemo(() => all.filter((c) => matches(c, "backOffice")), deps);
@@ -421,10 +421,10 @@ function Dashboard() {
         {/* Filters */}
         <Card className="p-4 shadow-[var(--shadow-card)]">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
-            <MultiFilter
+            <FilterSelect
               label="Yil"
-              values={years}
-              onChange={setYears}
+              value={year}
+              onChange={setYear}
               options={opts.years}
             />
             <MultiFilter
@@ -1124,6 +1124,30 @@ function MonthlySeriesCard({
                 background: "var(--color-card)",
                 border: "1px solid var(--color-border)",
                 borderRadius: "8px",
+              }}
+              filterNull
+              content={({ active, payload, label }) => {
+                if (!active || !payload) return null;
+                const items = payload.filter((p) => Number(p.value) > 0);
+                if (items.length === 0) return null;
+                return (
+                  <div
+                    style={{
+                      background: "var(--color-card)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: 8,
+                      padding: "8px 12px",
+                      fontSize: 12,
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
+                    {items.map((p) => (
+                      <div key={String(p.dataKey)} style={{ color: p.color }}>
+                        {p.name} : {p.value}
+                      </div>
+                    ))}
+                  </div>
+                );
               }}
             />
             <Legend wrapperStyle={{ fontSize: "12px" }} />
