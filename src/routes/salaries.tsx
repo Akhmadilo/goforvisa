@@ -5,13 +5,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -19,13 +12,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Wallet, LogOut, Shield, Search } from "lucide-react";
+import { Wallet, LogOut, Shield, Search, ArrowLeft, User as UserIcon } from "lucide-react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { supabase } from "@/integrations/supabase/client";
-import { getWages } from "@/lib/wages.functions";
+import { getWages, type WageRow } from "@/lib/wages.functions";
 import logoUrl from "@/assets/logo.png";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/salaries")({
   component: SalariesPage,
@@ -38,26 +32,22 @@ export const Route = createFileRoute("/salaries")({
 });
 
 const MONTH_ORDER = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
 ];
+const MONTH_SHORT: Record<string, string> = {
+  January: "Yan", February: "Fev", March: "Mar", April: "Apr",
+  May: "May", June: "Iyn", July: "Iyl", August: "Avg",
+  September: "Sen", October: "Okt", November: "Noy", December: "Dek",
+};
 
 function SalariesPage() {
   const { user, loading } = useAuth();
   const isAdmin = useIsAdmin();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const [month, setMonth] = useState<string>("all");
+  const [month, setMonth] = useState<string | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -75,30 +65,14 @@ function SalariesPage() {
     return MONTH_ORDER.filter((m) => set.has(m));
   }, [wages]);
 
-  // Default to latest available month
   useEffect(() => {
-    if (month === "all" && months.length > 0) {
+    if (month === null && months.length > 0) {
       setMonth(months[months.length - 1]);
     }
   }, [months, month]);
 
-  const rows = wages
-    .filter((w) => (month === "all" ? true : w.month === month))
-    .filter((w) => w.name.toLowerCase().includes(query.toLowerCase()));
-
   const fmt = (n: number) =>
     new Intl.NumberFormat("uz-UZ").format(Math.round(n)) + " so'm";
-
-  const totals = rows.reduce(
-    (acc, e) => {
-      acc.fixed += e.fixed;
-      acc.kpi += e.kpi;
-      acc.penalty += e.penalty;
-      acc.total += e.total;
-      return acc;
-    },
-    { fixed: 0, kpi: 0, penalty: 0, total: 0 },
-  );
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
@@ -158,114 +132,238 @@ function SalariesPage() {
         </header>
 
         <main className="mx-auto max-w-[1500px] px-6 py-6 space-y-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <Card className="p-4">
-              <div className="text-xs text-muted-foreground">Jami o'zgarmas</div>
-              <div className="text-lg font-semibold mt-1">{fmt(totals.fixed)}</div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-xs text-muted-foreground">Jami KPI</div>
-              <div className="text-lg font-semibold mt-1 text-primary">
-                +{fmt(totals.kpi)}
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-xs text-muted-foreground">Jami jarima</div>
-              <div className="text-lg font-semibold mt-1 text-destructive">
-                −{fmt(totals.penalty)}
-              </div>
-            </Card>
-            <Card className="p-4">
-              <div className="text-xs text-muted-foreground">Jami to'lanadigan</div>
-              <div className="text-lg font-bold mt-1 text-primary">
-                {fmt(totals.total)}
-              </div>
-            </Card>
+          {/* Month tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            {months.map((m) => (
+              <button
+                key={m}
+                onClick={() => setMonth(m)}
+                className={cn(
+                  "px-3 py-1.5 rounded-md text-sm font-medium border whitespace-nowrap transition",
+                  month === m
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card border-border hover:bg-secondary",
+                )}
+              >
+                {MONTH_SHORT[m] ?? m}
+              </button>
+            ))}
           </div>
 
-          <Card className="p-4">
-            <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-              <div className="flex items-center gap-2">
-                <Select value={month} onValueChange={setMonth}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Oy tanlang" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Barcha oylar</SelectItem>
-                    {months.map((m) => (
-                      <SelectItem key={m} value={m}>
-                        {m}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <div className="relative w-[220px]">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Ishchini izlash..."
-                    className="pl-8"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {rows.length} ishchi
-              </div>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Oy</TableHead>
-                  <TableHead>Ishchi</TableHead>
-                  <TableHead className="text-right">O'zgarmas</TableHead>
-                  <TableHead className="text-right">KPI</TableHead>
-                  <TableHead className="text-right">Jarima</TableHead>
-                  <TableHead className="text-right">Oylik</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
-                      Yuklanmoqda...
-                    </TableCell>
-                  </TableRow>
-                ) : error ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-destructive py-10">
-                      Xato: {(error as Error).message}
-                    </TableCell>
-                  </TableRow>
-                ) : rows.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
-                      Ma'lumot topilmadi.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  rows.map((e, i) => (
-                    <TableRow key={`${e.month}-${e.name}-${i}`}>
-                      <TableCell className="text-muted-foreground">{e.month}</TableCell>
-                      <TableCell className="font-medium">{e.name}</TableCell>
-                      <TableCell className="text-right">{fmt(e.fixed)}</TableCell>
-                      <TableCell className="text-right text-primary">
-                        +{fmt(e.kpi)}
-                      </TableCell>
-                      <TableCell className="text-right text-destructive">
-                        −{fmt(e.penalty)}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold">
-                        {fmt(e.total)}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </Card>
+          {selectedEmployee ? (
+            <EmployeeDetail
+              name={selectedEmployee}
+              wages={wages}
+              onBack={() => setSelectedEmployee(null)}
+              fmt={fmt}
+            />
+          ) : (
+            <MonthView
+              wages={wages}
+              month={month}
+              isLoading={isLoading}
+              error={error as Error | null}
+              query={query}
+              setQuery={setQuery}
+              onSelectEmployee={setSelectedEmployee}
+              fmt={fmt}
+            />
+          )}
         </main>
       </div>
     </div>
+  );
+}
+
+function MonthView({
+  wages, month, isLoading, error, query, setQuery, onSelectEmployee, fmt,
+}: {
+  wages: WageRow[];
+  month: string | null;
+  isLoading: boolean;
+  error: Error | null;
+  query: string;
+  setQuery: (v: string) => void;
+  onSelectEmployee: (name: string) => void;
+  fmt: (n: number) => string;
+}) {
+  const rows = wages
+    .filter((w) => (month ? w.month === month : true))
+    .filter((w) => w.name.toLowerCase().includes(query.toLowerCase()));
+
+  const totals = rows.reduce(
+    (acc, e) => {
+      acc.fixed += e.fixed; acc.kpi += e.kpi;
+      acc.penalty += e.penalty; acc.total += e.total;
+      return acc;
+    },
+    { fixed: 0, kpi: 0, penalty: 0, total: 0 },
+  );
+
+  return (
+    <>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <SumCard label="Jami o'zgarmas" value={fmt(totals.fixed)} />
+        <SumCard label="Jami KPI" value={`+${fmt(totals.kpi)}`} accent="primary" />
+        <SumCard label="Jami jarima" value={`−${fmt(totals.penalty)}`} accent="destructive" />
+        <SumCard label="Jami to'lanadigan" value={fmt(totals.total)} accent="primary" bold />
+      </div>
+
+      <Card className="p-4">
+        <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+          <div className="relative w-[220px]">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Ishchini izlash..."
+              className="pl-8"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <div className="text-xs text-muted-foreground">{rows.length} ishchi</div>
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Ishchi</TableHead>
+              <TableHead className="text-right">O'zgarmas</TableHead>
+              <TableHead className="text-right">KPI</TableHead>
+              <TableHead className="text-right">Jarima</TableHead>
+              <TableHead className="text-right">Oylik</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-10">Yuklanmoqda...</TableCell></TableRow>
+            ) : error ? (
+              <TableRow><TableCell colSpan={5} className="text-center text-destructive py-10">Xato: {error.message}</TableCell></TableRow>
+            ) : rows.length === 0 ? (
+              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-10">Ma'lumot topilmadi.</TableCell></TableRow>
+            ) : (
+              rows.map((e, i) => (
+                <TableRow
+                  key={`${e.month}-${e.name}-${i}`}
+                  className="cursor-pointer"
+                  onClick={() => onSelectEmployee(e.name)}
+                >
+                  <TableCell className="font-medium flex items-center gap-2">
+                    <UserIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                    {e.name}
+                  </TableCell>
+                  <TableCell className="text-right">{fmt(e.fixed)}</TableCell>
+                  <TableCell className="text-right text-primary">+{fmt(e.kpi)}</TableCell>
+                  <TableCell className="text-right text-destructive">−{fmt(e.penalty)}</TableCell>
+                  <TableCell className="text-right font-semibold">{fmt(e.total)}</TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </Card>
+    </>
+  );
+}
+
+function EmployeeDetail({
+  name, wages, onBack, fmt,
+}: {
+  name: string;
+  wages: WageRow[];
+  onBack: () => void;
+  fmt: (n: number) => string;
+}) {
+  const rows = wages
+    .filter((w) => w.name === name)
+    .sort(
+      (a, b) =>
+        MONTH_ORDER.indexOf(a.month) - MONTH_ORDER.indexOf(b.month),
+    );
+
+  const totals = rows.reduce(
+    (acc, e) => {
+      acc.fixed += e.fixed; acc.kpi += e.kpi;
+      acc.penalty += e.penalty; acc.total += e.total;
+      return acc;
+    },
+    { fixed: 0, kpi: 0, penalty: 0, total: 0 },
+  );
+
+  return (
+    <>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onBack}
+          className="h-9 px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-2 text-sm"
+        >
+          <ArrowLeft className="h-4 w-4" /> Orqaga
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="h-9 w-9 rounded-full bg-primary/15 text-primary flex items-center justify-center font-semibold">
+            {name.slice(0, 1).toUpperCase()}
+          </div>
+          <div>
+            <div className="text-lg font-semibold leading-tight">{name}</div>
+            <div className="text-xs text-muted-foreground">{rows.length} oylik yozuvi</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <SumCard label="Jami o'zgarmas" value={fmt(totals.fixed)} />
+        <SumCard label="Jami KPI" value={`+${fmt(totals.kpi)}`} accent="primary" />
+        <SumCard label="Jami jarima" value={`−${fmt(totals.penalty)}`} accent="destructive" />
+        <SumCard label="Jami olgan" value={fmt(totals.total)} accent="primary" bold />
+      </div>
+
+      <Card className="p-4">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Oy</TableHead>
+              <TableHead className="text-right">O'zgarmas</TableHead>
+              <TableHead className="text-right">KPI (bonus)</TableHead>
+              <TableHead className="text-right">Jarima (shtraf)</TableHead>
+              <TableHead className="text-right">Oylik</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map((e, i) => (
+              <TableRow key={`${e.month}-${i}`}>
+                <TableCell className="font-medium">{e.month}</TableCell>
+                <TableCell className="text-right">{fmt(e.fixed)}</TableCell>
+                <TableCell className="text-right text-primary">+{fmt(e.kpi)}</TableCell>
+                <TableCell className="text-right text-destructive">−{fmt(e.penalty)}</TableCell>
+                <TableCell className="text-right font-semibold">{fmt(e.total)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Card>
+    </>
+  );
+}
+
+function SumCard({
+  label, value, accent, bold,
+}: {
+  label: string;
+  value: string;
+  accent?: "primary" | "destructive";
+  bold?: boolean;
+}) {
+  return (
+    <Card className="p-4">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div
+        className={cn(
+          "mt-1",
+          bold ? "text-lg font-bold" : "text-lg font-semibold",
+          accent === "primary" && "text-primary",
+          accent === "destructive" && "text-destructive",
+        )}
+      >
+        {value}
+      </div>
+    </Card>
   );
 }
