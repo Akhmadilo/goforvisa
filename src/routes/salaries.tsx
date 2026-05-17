@@ -5,14 +5,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Wallet, LogOut, Shield, Search, ArrowLeft, User as UserIcon } from "lucide-react";
+import { Wallet, LogOut, Shield, Search } from "lucide-react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
@@ -35,19 +33,22 @@ const MONTH_ORDER = [
   "January", "February", "March", "April", "May", "June",
   "July", "August", "September", "October", "November", "December",
 ];
-const MONTH_SHORT: Record<string, string> = {
-  January: "Yan", February: "Fev", March: "Mar", April: "Apr",
-  May: "May", June: "Iyn", July: "Iyl", August: "Avg",
-  September: "Sen", October: "Okt", November: "Noy", December: "Dek",
-};
+
+// Sheet covers June → April crossing calendar year.
+// Heuristic: June–December = 2024, January–May = 2025.
+function inferYear(month: string): number {
+  const idx = MONTH_ORDER.indexOf(month);
+  return idx >= 5 ? 2024 : 2025;
+}
 
 function SalariesPage() {
   const { user, loading } = useAuth();
   const isAdmin = useIsAdmin();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
-  const [month, setMonth] = useState<string | null>(null);
-  const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
+  const [year, setYear] = useState<string>("all");
+  const [month, setMonth] = useState<string>("all");
+  const [employee, setEmployee] = useState<string>("all");
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -60,16 +61,46 @@ function SalariesPage() {
     enabled: !!user,
   });
 
-  const months = useMemo(() => {
-    const set = new Set(wages.map((w) => w.month));
-    return MONTH_ORDER.filter((m) => set.has(m));
-  }, [wages]);
+  const enriched = useMemo(
+    () => wages.map((w) => ({ ...w, year: inferYear(w.month) })),
+    [wages],
+  );
 
-  useEffect(() => {
-    if (month === null && months.length > 0) {
-      setMonth(months[months.length - 1]);
-    }
-  }, [months, month]);
+  const years = useMemo(
+    () => Array.from(new Set(enriched.map((w) => w.year))).sort(),
+    [enriched],
+  );
+  const months = useMemo(() => {
+    const set = new Set(
+      enriched
+        .filter((w) => year === "all" || String(w.year) === year)
+        .map((w) => w.month),
+    );
+    return MONTH_ORDER.filter((m) => set.has(m));
+  }, [enriched, year]);
+  const employees = useMemo(
+    () => Array.from(new Set(enriched.map((w) => w.name))).sort(),
+    [enriched],
+  );
+
+  const rows = enriched
+    .filter((w) => year === "all" || String(w.year) === year)
+    .filter((w) => month === "all" || w.month === month)
+    .filter((w) => employee === "all" || w.name === employee)
+    .filter((w) => w.name.toLowerCase().includes(query.toLowerCase()))
+    .sort((a, b) => {
+      if (a.year !== b.year) return a.year - b.year;
+      return MONTH_ORDER.indexOf(a.month) - MONTH_ORDER.indexOf(b.month);
+    });
+
+  const totals = rows.reduce(
+    (acc, e) => {
+      acc.fixed += e.fixed; acc.kpi += e.kpi;
+      acc.penalty += e.penalty; acc.total += e.total;
+      return acc;
+    },
+    { fixed: 0, kpi: 0, penalty: 0, total: 0 },
+  );
 
   const fmt = (n: number) =>
     new Intl.NumberFormat("uz-UZ").format(Math.round(n)) + " so'm";
@@ -99,9 +130,7 @@ function SalariesPage() {
                 <Wallet className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold tracking-tight">
-                  Ishchilar oyliklari
-                </h1>
+                <h1 className="text-xl font-bold tracking-tight">Ishchilar oyliklari</h1>
                 <p className="text-xs text-muted-foreground">
                   Oylik = O'zgarmas + KPI − Jarima
                 </p>
@@ -132,214 +161,119 @@ function SalariesPage() {
         </header>
 
         <main className="mx-auto max-w-[1500px] px-6 py-6 space-y-6">
-          {/* Month tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-1">
-            {months.map((m) => (
-              <button
-                key={m}
-                onClick={() => setMonth(m)}
-                className={cn(
-                  "px-3 py-1.5 rounded-md text-sm font-medium border whitespace-nowrap transition",
-                  month === m
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-card border-border hover:bg-secondary",
-                )}
-              >
-                {MONTH_SHORT[m] ?? m}
-              </button>
-            ))}
+          {/* Filters */}
+          <Card className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Yil</label>
+                <Select value={year} onValueChange={(v) => { setYear(v); setMonth("all"); }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Barcha yillar</SelectItem>
+                    {years.map((y) => (
+                      <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Oy</label>
+                <Select value={month} onValueChange={setMonth}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Barcha oylar</SelectItem>
+                    {months.map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Ishchi</label>
+                <Select value={employee} onValueChange={setEmployee}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Barcha ishchilar</SelectItem>
+                    {employees.map((n) => (
+                      <SelectItem key={n} value={n}>{n}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Qidiruv</label>
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Ism..."
+                    className="pl-8"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Totals */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <SumCard label="Jami o'zgarmas" value={fmt(totals.fixed)} />
+            <SumCard label="Jami KPI" value={`+${fmt(totals.kpi)}`} accent="primary" />
+            <SumCard label="Jami jarima" value={`−${fmt(totals.penalty)}`} accent="destructive" />
+            <SumCard label="Jami to'lanadigan" value={fmt(totals.total)} accent="primary" bold />
           </div>
 
-          {selectedEmployee ? (
-            <EmployeeDetail
-              name={selectedEmployee}
-              wages={wages}
-              onBack={() => setSelectedEmployee(null)}
-              fmt={fmt}
-            />
-          ) : (
-            <MonthView
-              wages={wages}
-              month={month}
-              isLoading={isLoading}
-              error={error as Error | null}
-              query={query}
-              setQuery={setQuery}
-              onSelectEmployee={setSelectedEmployee}
-              fmt={fmt}
-            />
-          )}
+          {/* Unified table — all months × all employees */}
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm font-semibold">Oylik to'lovlar</div>
+              <div className="text-xs text-muted-foreground">{rows.length} yozuv</div>
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Yil</TableHead>
+                  <TableHead>Oy</TableHead>
+                  <TableHead>Ishchi</TableHead>
+                  <TableHead className="text-right">O'zgarmas</TableHead>
+                  <TableHead className="text-right">KPI</TableHead>
+                  <TableHead className="text-right">Jarima</TableHead>
+                  <TableHead className="text-right">Oylik</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-10">Yuklanmoqda...</TableCell></TableRow>
+                ) : error ? (
+                  <TableRow><TableCell colSpan={7} className="text-center text-destructive py-10">Xato: {(error as Error).message}</TableCell></TableRow>
+                ) : rows.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-10">Ma'lumot topilmadi.</TableCell></TableRow>
+                ) : (
+                  rows.map((e, i) => (
+                    <TableRow key={`${e.year}-${e.month}-${e.name}-${i}`}>
+                      <TableCell className="text-muted-foreground">{e.year}</TableCell>
+                      <TableCell>{e.month}</TableCell>
+                      <TableCell className="font-medium">
+                        <button
+                          className="hover:underline"
+                          onClick={() => setEmployee(e.name)}
+                        >
+                          {e.name}
+                        </button>
+                      </TableCell>
+                      <TableCell className="text-right">{fmt(e.fixed)}</TableCell>
+                      <TableCell className="text-right text-primary">+{fmt(e.kpi)}</TableCell>
+                      <TableCell className="text-right text-destructive">−{fmt(e.penalty)}</TableCell>
+                      <TableCell className="text-right font-semibold">{fmt(e.total)}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </Card>
         </main>
       </div>
     </div>
-  );
-}
-
-function MonthView({
-  wages, month, isLoading, error, query, setQuery, onSelectEmployee, fmt,
-}: {
-  wages: WageRow[];
-  month: string | null;
-  isLoading: boolean;
-  error: Error | null;
-  query: string;
-  setQuery: (v: string) => void;
-  onSelectEmployee: (name: string) => void;
-  fmt: (n: number) => string;
-}) {
-  const rows = wages
-    .filter((w) => (month ? w.month === month : true))
-    .filter((w) => w.name.toLowerCase().includes(query.toLowerCase()));
-
-  const totals = rows.reduce(
-    (acc, e) => {
-      acc.fixed += e.fixed; acc.kpi += e.kpi;
-      acc.penalty += e.penalty; acc.total += e.total;
-      return acc;
-    },
-    { fixed: 0, kpi: 0, penalty: 0, total: 0 },
-  );
-
-  return (
-    <>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <SumCard label="Jami o'zgarmas" value={fmt(totals.fixed)} />
-        <SumCard label="Jami KPI" value={`+${fmt(totals.kpi)}`} accent="primary" />
-        <SumCard label="Jami jarima" value={`−${fmt(totals.penalty)}`} accent="destructive" />
-        <SumCard label="Jami to'lanadigan" value={fmt(totals.total)} accent="primary" bold />
-      </div>
-
-      <Card className="p-4">
-        <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
-          <div className="relative w-[220px]">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Ishchini izlash..."
-              className="pl-8"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-            />
-          </div>
-          <div className="text-xs text-muted-foreground">{rows.length} ishchi</div>
-        </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Ishchi</TableHead>
-              <TableHead className="text-right">O'zgarmas</TableHead>
-              <TableHead className="text-right">KPI</TableHead>
-              <TableHead className="text-right">Jarima</TableHead>
-              <TableHead className="text-right">Oylik</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-10">Yuklanmoqda...</TableCell></TableRow>
-            ) : error ? (
-              <TableRow><TableCell colSpan={5} className="text-center text-destructive py-10">Xato: {error.message}</TableCell></TableRow>
-            ) : rows.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-10">Ma'lumot topilmadi.</TableCell></TableRow>
-            ) : (
-              rows.map((e, i) => (
-                <TableRow
-                  key={`${e.month}-${e.name}-${i}`}
-                  className="cursor-pointer"
-                  onClick={() => onSelectEmployee(e.name)}
-                >
-                  <TableCell className="font-medium flex items-center gap-2">
-                    <UserIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                    {e.name}
-                  </TableCell>
-                  <TableCell className="text-right">{fmt(e.fixed)}</TableCell>
-                  <TableCell className="text-right text-primary">+{fmt(e.kpi)}</TableCell>
-                  <TableCell className="text-right text-destructive">−{fmt(e.penalty)}</TableCell>
-                  <TableCell className="text-right font-semibold">{fmt(e.total)}</TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </Card>
-    </>
-  );
-}
-
-function EmployeeDetail({
-  name, wages, onBack, fmt,
-}: {
-  name: string;
-  wages: WageRow[];
-  onBack: () => void;
-  fmt: (n: number) => string;
-}) {
-  const rows = wages
-    .filter((w) => w.name === name)
-    .sort(
-      (a, b) =>
-        MONTH_ORDER.indexOf(a.month) - MONTH_ORDER.indexOf(b.month),
-    );
-
-  const totals = rows.reduce(
-    (acc, e) => {
-      acc.fixed += e.fixed; acc.kpi += e.kpi;
-      acc.penalty += e.penalty; acc.total += e.total;
-      return acc;
-    },
-    { fixed: 0, kpi: 0, penalty: 0, total: 0 },
-  );
-
-  return (
-    <>
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onBack}
-          className="h-9 px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-2 text-sm"
-        >
-          <ArrowLeft className="h-4 w-4" /> Orqaga
-        </button>
-        <div className="flex items-center gap-2">
-          <div className="h-9 w-9 rounded-full bg-primary/15 text-primary flex items-center justify-center font-semibold">
-            {name.slice(0, 1).toUpperCase()}
-          </div>
-          <div>
-            <div className="text-lg font-semibold leading-tight">{name}</div>
-            <div className="text-xs text-muted-foreground">{rows.length} oylik yozuvi</div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <SumCard label="Jami o'zgarmas" value={fmt(totals.fixed)} />
-        <SumCard label="Jami KPI" value={`+${fmt(totals.kpi)}`} accent="primary" />
-        <SumCard label="Jami jarima" value={`−${fmt(totals.penalty)}`} accent="destructive" />
-        <SumCard label="Jami olgan" value={fmt(totals.total)} accent="primary" bold />
-      </div>
-
-      <Card className="p-4">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Oy</TableHead>
-              <TableHead className="text-right">O'zgarmas</TableHead>
-              <TableHead className="text-right">KPI (bonus)</TableHead>
-              <TableHead className="text-right">Jarima (shtraf)</TableHead>
-              <TableHead className="text-right">Oylik</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.map((e, i) => (
-              <TableRow key={`${e.month}-${i}`}>
-                <TableCell className="font-medium">{e.month}</TableCell>
-                <TableCell className="text-right">{fmt(e.fixed)}</TableCell>
-                <TableCell className="text-right text-primary">+{fmt(e.kpi)}</TableCell>
-                <TableCell className="text-right text-destructive">−{fmt(e.penalty)}</TableCell>
-                <TableCell className="text-right font-semibold">{fmt(e.total)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
-    </>
   );
 }
 
@@ -367,3 +301,6 @@ function SumCard({
     </Card>
   );
 }
+
+// Keep WageRow used by import linter
+export type _W = WageRow;
