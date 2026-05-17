@@ -62,6 +62,7 @@ import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { Link } from "@tanstack/react-router";
 import { LogOut, Shield } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
+import { AppSidebar } from "@/components/app-sidebar";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -403,6 +404,7 @@ function Dashboard() {
 
   return (
     <div className="relative min-h-screen bg-background text-foreground overflow-hidden">
+      <AppSidebar />
       {/* GoForVisa watermark */}
       <div
         aria-hidden
@@ -414,7 +416,7 @@ function Dashboard() {
           className="w-[min(70vw,720px)] opacity-[0.05] select-none"
         />
       </div>
-      <div className="relative z-10">
+      <div className="relative z-10 md:pl-56">
       <header className="border-b border-border bg-card/40 backdrop-blur sticky top-0 z-20">
         <div className="mx-auto max-w-[1500px] px-6 py-4 flex items-center justify-between">
           <div>
