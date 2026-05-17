@@ -1,7 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -15,6 +24,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { supabase } from "@/integrations/supabase/client";
+import { getWages } from "@/lib/wages.functions";
 import logoUrl from "@/assets/logo.png";
 
 export const Route = createFileRoute("/salaries")({
@@ -27,31 +37,54 @@ export const Route = createFileRoute("/salaries")({
   }),
 });
 
-type Employee = {
-  id: string;
-  name: string;
-  role?: string;
-  fixed: number;
-  bonus: number;
-  fine: number;
-};
-
-// Placeholder data — Google Sheets integratsiyasi keyinroq ulanadi
-const PLACEHOLDER: Employee[] = [];
+const MONTH_ORDER = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
 
 function SalariesPage() {
   const { user, loading } = useAuth();
   const isAdmin = useIsAdmin();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
+  const [month, setMonth] = useState<string>("all");
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
   }, [user, loading, navigate]);
 
-  const rows = PLACEHOLDER.filter((e) =>
-    e.name.toLowerCase().includes(query.toLowerCase()),
-  );
+  const fetchWages = useServerFn(getWages);
+  const { data: wages = [], isLoading, error } = useQuery({
+    queryKey: ["wages"],
+    queryFn: () => fetchWages(),
+    enabled: !!user,
+  });
+
+  const months = useMemo(() => {
+    const set = new Set(wages.map((w) => w.month));
+    return MONTH_ORDER.filter((m) => set.has(m));
+  }, [wages]);
+
+  // Default to latest available month
+  useEffect(() => {
+    if (month === "all" && months.length > 0) {
+      setMonth(months[months.length - 1]);
+    }
+  }, [months, month]);
+
+  const rows = wages
+    .filter((w) => (month === "all" ? true : w.month === month))
+    .filter((w) => w.name.toLowerCase().includes(query.toLowerCase()));
 
   const fmt = (n: number) =>
     new Intl.NumberFormat("uz-UZ").format(Math.round(n)) + " so'm";
@@ -59,12 +92,12 @@ function SalariesPage() {
   const totals = rows.reduce(
     (acc, e) => {
       acc.fixed += e.fixed;
-      acc.bonus += e.bonus;
-      acc.fine += e.fine;
-      acc.total += e.fixed + e.bonus - e.fine;
+      acc.kpi += e.kpi;
+      acc.penalty += e.penalty;
+      acc.total += e.total;
       return acc;
     },
-    { fixed: 0, bonus: 0, fine: 0, total: 0 },
+    { fixed: 0, kpi: 0, penalty: 0, total: 0 },
   );
 
   return (
@@ -96,7 +129,7 @@ function SalariesPage() {
                   Ishchilar oyliklari
                 </h1>
                 <p className="text-xs text-muted-foreground">
-                  Oylik = O'zgarmas oylik + Bonus − Jarima
+                  Oylik = O'zgarmas + KPI − Jarima
                 </p>
               </div>
             </div>
@@ -125,27 +158,21 @@ function SalariesPage() {
         </header>
 
         <main className="mx-auto max-w-[1500px] px-6 py-6 space-y-6">
-          <Card className="p-4 border-dashed border-accent/40 bg-accent/5">
-            <div className="text-sm">
-              <span className="font-semibold">Eslatma:</span> Bu yerga
-              ma'lumotlar Google Sheets'dan tortiladi. Linkni bering — manba
-              ulanadi va jadval real vaqtda yangilanadi.
-            </div>
-          </Card>
-
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Card className="p-4">
               <div className="text-xs text-muted-foreground">Jami o'zgarmas</div>
               <div className="text-lg font-semibold mt-1">{fmt(totals.fixed)}</div>
             </Card>
             <Card className="p-4">
-              <div className="text-xs text-muted-foreground">Jami bonus</div>
-              <div className="text-lg font-semibold mt-1">{fmt(totals.bonus)}</div>
+              <div className="text-xs text-muted-foreground">Jami KPI</div>
+              <div className="text-lg font-semibold mt-1 text-primary">
+                +{fmt(totals.kpi)}
+              </div>
             </Card>
             <Card className="p-4">
               <div className="text-xs text-muted-foreground">Jami jarima</div>
               <div className="text-lg font-semibold mt-1 text-destructive">
-                −{fmt(totals.fine)}
+                −{fmt(totals.penalty)}
               </div>
             </Card>
             <Card className="p-4">
@@ -157,15 +184,30 @@ function SalariesPage() {
           </div>
 
           <Card className="p-4">
-            <div className="flex items-center justify-between mb-3 gap-3">
-              <div className="relative flex-1 max-w-xs">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Ishchini izlash..."
-                  className="pl-8"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
+            <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Select value={month} onValueChange={setMonth}>
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Oy tanlang" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Barcha oylar</SelectItem>
+                    {months.map((m) => (
+                      <SelectItem key={m} value={m}>
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <div className="relative w-[220px]">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Ishchini izlash..."
+                    className="pl-8"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                  />
+                </div>
               </div>
               <div className="text-xs text-muted-foreground">
                 {rows.length} ishchi
@@ -174,43 +216,50 @@ function SalariesPage() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Oy</TableHead>
                   <TableHead>Ishchi</TableHead>
-                  <TableHead>Lavozim</TableHead>
                   <TableHead className="text-right">O'zgarmas</TableHead>
-                  <TableHead className="text-right">Bonus</TableHead>
+                  <TableHead className="text-right">KPI</TableHead>
                   <TableHead className="text-right">Jarima</TableHead>
                   <TableHead className="text-right">Oylik</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.length === 0 ? (
+                {isLoading ? (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
-                      Hozircha ma'lumot yo'q. Google Sheets manbasini ulang.
+                      Yuklanmoqda...
+                    </TableCell>
+                  </TableRow>
+                ) : error ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-destructive py-10">
+                      Xato: {(error as Error).message}
+                    </TableCell>
+                  </TableRow>
+                ) : rows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-10">
+                      Ma'lumot topilmadi.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  rows.map((e) => {
-                    const total = e.fixed + e.bonus - e.fine;
-                    return (
-                      <TableRow key={e.id}>
-                        <TableCell className="font-medium">{e.name}</TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {e.role ?? "—"}
-                        </TableCell>
-                        <TableCell className="text-right">{fmt(e.fixed)}</TableCell>
-                        <TableCell className="text-right text-primary">
-                          +{fmt(e.bonus)}
-                        </TableCell>
-                        <TableCell className="text-right text-destructive">
-                          −{fmt(e.fine)}
-                        </TableCell>
-                        <TableCell className="text-right font-semibold">
-                          {fmt(total)}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
+                  rows.map((e, i) => (
+                    <TableRow key={`${e.month}-${e.name}-${i}`}>
+                      <TableCell className="text-muted-foreground">{e.month}</TableCell>
+                      <TableCell className="font-medium">{e.name}</TableCell>
+                      <TableCell className="text-right">{fmt(e.fixed)}</TableCell>
+                      <TableCell className="text-right text-primary">
+                        +{fmt(e.kpi)}
+                      </TableCell>
+                      <TableCell className="text-right text-destructive">
+                        −{fmt(e.penalty)}
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">
+                        {fmt(e.total)}
+                      </TableCell>
+                    </TableRow>
+                  ))
                 )}
               </TableBody>
             </Table>
