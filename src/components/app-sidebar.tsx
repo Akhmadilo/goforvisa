@@ -1,14 +1,16 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, Wallet } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
+import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 
 const items = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/salaries", label: "Ishchilar oyliklari", icon: Wallet },
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, widget: null as string | null },
+  { to: "/salaries", label: "Ishchilar oyliklari", icon: Wallet, widget: "salaries_section" },
 ] as const;
 
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { can, loading } = useWidgetPermissions();
 
   return (
     <aside className="hidden md:flex fixed inset-y-0 left-0 z-30 w-56 flex-col border-r border-border bg-card/60 backdrop-blur">
@@ -20,7 +22,8 @@ export function AppSidebar() {
         </div>
       </div>
       <nav className="flex-1 p-3 space-y-1">
-        {items.map(({ to, label, icon: Icon }) => {
+        {items.map(({ to, label, icon: Icon, widget }) => {
+          if (widget && !loading && !can(widget)) return null;
           const active = pathname === to;
           return (
             <Link
