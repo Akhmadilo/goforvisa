@@ -91,8 +91,8 @@ function SalariesPage() {
 
   const rows = enriched
     .filter((w) => year === "all" || String(w.year) === year)
-    .filter((w) => month === "all" || w.month === month)
-    .filter((w) => employee === "all" || w.name === employee)
+    .filter((w) => selectedMonths.length === 0 || selectedMonths.includes(w.month))
+    .filter((w) => selectedEmployees.length === 0 || selectedEmployees.includes(w.name))
     .filter((w) => w.name.toLowerCase().includes(query.toLowerCase()))
     .sort((a, b) => {
       if (a.year !== b.year) return a.year - b.year;
