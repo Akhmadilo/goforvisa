@@ -8,6 +8,7 @@ import {
   deleteUser,
   createUser,
   setUserWidgets,
+  resetUserPassword,
   type AdminUser,
 } from "@/lib/admin.functions";
 import { WIDGETS, WIDGET_GROUPS, type WidgetGroup } from "@/lib/widgets";
@@ -43,6 +44,7 @@ import {
   Trash2,
   UserPlus,
   Settings2,
+  KeyRound,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -61,6 +63,7 @@ function AdminPage() {
   const deleteFn = useServerFn(deleteUser);
   const createFn = useServerFn(createUser);
   const setWidgetsFn = useServerFn(setUserWidgets);
+  const resetPwFn = useServerFn(resetUserPassword);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-users"],
@@ -135,6 +138,21 @@ function AdminPage() {
       qc.invalidateQueries({ queryKey: ["admin-users"] });
       toast.success("Ruxsatlar saqlandi");
       setEditUser(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  // Reset-password dialog state
+  const [pwUser, setPwUser] = useState<AdminUser | null>(null);
+  const [pwValue, setPwValue] = useState("");
+
+  const pwMut = useMutation({
+    mutationFn: () =>
+      resetPwFn({ data: { userId: pwUser!.id, password: pwValue } }),
+    onSuccess: () => {
+      toast.success("Parol yangilandi");
+      setPwUser(null);
+      setPwValue("");
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -275,6 +293,17 @@ function AdminPage() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            title="Parolni yangilash"
+                            onClick={() => {
+                              setPwUser(u);
+                              setPwValue("");
+                            }}
+                          >
+                            <KeyRound className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             disabled={isSelf || delMut.isPending}
                             onClick={() => {
                               if (
@@ -377,6 +406,39 @@ function AdminPage() {
               onClick={() => widgetsMut.mutate()}
             >
               {widgetsMut.isPending ? "..." : "Saqlash"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset password dialog */}
+      <Dialog open={!!pwUser} onOpenChange={(o) => !o && setPwUser(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Parolni yangilash</DialogTitle>
+            <DialogDescription>
+              {pwUser?.email} uchun yangi parol o'rnating. Foydalanuvchi shu
+              parol bilan tizimga kira oladi.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label>Yangi parol (kamida 6 belgi)</Label>
+            <Input
+              type="text"
+              value={pwValue}
+              onChange={(e) => setPwValue(e.target.value)}
+              placeholder="Masalan: Visa2026!"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPwUser(null)}>
+              Bekor qilish
+            </Button>
+            <Button
+              onClick={() => pwMut.mutate()}
+              disabled={pwValue.length < 6 || pwMut.isPending}
+            >
+              {pwMut.isPending ? "..." : "Yangilash"}
             </Button>
           </DialogFooter>
         </DialogContent>
