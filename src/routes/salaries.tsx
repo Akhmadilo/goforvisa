@@ -10,7 +10,9 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Wallet, LogOut, Shield, Search, RefreshCw } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Wallet, LogOut, Shield, Search, RefreshCw, ChevronDown } from "lucide-react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
@@ -47,8 +49,8 @@ function SalariesPage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [year, setYear] = useState<string>("all");
-  const [month, setMonth] = useState<string>("all");
-  const [employee, setEmployee] = useState<string>("all");
+  const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -89,8 +91,8 @@ function SalariesPage() {
 
   const rows = enriched
     .filter((w) => year === "all" || String(w.year) === year)
-    .filter((w) => month === "all" || w.month === month)
-    .filter((w) => employee === "all" || w.name === employee)
+    .filter((w) => selectedMonths.length === 0 || selectedMonths.includes(w.month))
+    .filter((w) => selectedEmployees.length === 0 || selectedEmployees.includes(w.name))
     .filter((w) => w.name.toLowerCase().includes(query.toLowerCase()))
     .sort((a, b) => {
       if (a.year !== b.year) return a.year - b.year;
@@ -183,7 +185,7 @@ function SalariesPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Yil</label>
-                <Select value={year} onValueChange={(v) => { setYear(v); setMonth("all"); }}>
+                <Select value={year} onValueChange={(v) => { setYear(v); setSelectedMonths([]); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Barcha yillar</SelectItem>
@@ -194,28 +196,22 @@ function SalariesPage() {
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Oy</label>
-                <Select value={month} onValueChange={setMonth}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Barcha oylar</SelectItem>
-                    {months.map((m) => (
-                      <SelectItem key={m} value={m}>{m}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <label className="text-xs text-muted-foreground mb-1 block">Oylar</label>
+                <MultiSelect
+                  options={months}
+                  selected={selectedMonths}
+                  onChange={setSelectedMonths}
+                  placeholder="Barcha oylar"
+                />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Ishchi</label>
-                <Select value={employee} onValueChange={setEmployee}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Barcha ishchilar</SelectItem>
-                    {employees.map((n) => (
-                      <SelectItem key={n} value={n}>{n}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <label className="text-xs text-muted-foreground mb-1 block">Ishchilar</label>
+                <MultiSelect
+                  options={employees}
+                  selected={selectedEmployees}
+                  onChange={setSelectedEmployees}
+                  placeholder="Barcha ishchilar"
+                />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Qidiruv</label>
@@ -276,7 +272,7 @@ function SalariesPage() {
                       <TableCell className="font-medium">
                         <button
                           className="hover:underline"
-                          onClick={() => setEmployee(e.name)}
+                          onClick={() => setSelectedEmployees([e.name])}
                         >
                           {e.name}
                         </button>
@@ -294,6 +290,74 @@ function SalariesPage() {
         </main>
       </div>
     </div>
+  );
+}
+
+function MultiSelect({
+  options, selected, onChange, placeholder,
+}: {
+  options: string[];
+  selected: string[];
+  onChange: (v: string[]) => void;
+  placeholder: string;
+}) {
+  const toggle = (v: string) =>
+    onChange(selected.includes(v) ? selected.filter((s) => s !== v) : [...selected, v]);
+  const label =
+    selected.length === 0
+      ? placeholder
+      : selected.length === 1
+      ? selected[0]
+      : `${selected.length} tanlangan`;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex w-full items-center justify-between rounded-md border border-input bg-background px-3 h-9 text-sm hover:bg-accent/30"
+        >
+          <span className={cn("truncate", selected.length === 0 && "text-muted-foreground")}>
+            {label}
+          </span>
+          <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-2" align="start">
+        <div className="flex items-center justify-between px-2 py-1 mb-1">
+          <button
+            type="button"
+            className="text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => onChange([])}
+          >
+            Tozalash
+          </button>
+          <button
+            type="button"
+            className="text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => onChange([...options])}
+          >
+            Hammasi
+          </button>
+        </div>
+        <div className="max-h-64 overflow-auto space-y-1">
+          {options.map((o) => (
+            <label
+              key={o}
+              className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm"
+            >
+              <Checkbox
+                checked={selected.includes(o)}
+                onCheckedChange={() => toggle(o)}
+              />
+              <span className="truncate">{o}</span>
+            </label>
+          ))}
+          {options.length === 0 && (
+            <div className="text-xs text-muted-foreground px-2 py-3 text-center">Bo'sh</div>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
