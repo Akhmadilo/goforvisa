@@ -55,10 +55,14 @@ function SalariesPage() {
   }, [user, loading, navigate]);
 
   const fetchWages = useServerFn(getWages);
-  const { data: wages = [], isLoading, error } = useQuery({
+  const { data: wages = [], isLoading, isFetching, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ["wages"],
     queryFn: () => fetchWages(),
     enabled: !!user,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
+    refetchInterval: 60_000, // auto-refresh every minute
   });
 
   const enriched = useMemo(
