@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 const SHEET_ID = "1xRKmp5jkYN3hOdcSM6SEDZuG0a_2FaIPi-lQ2nL0IVc";
-const RANGE = "Wages!A1:G500";
+const RANGE = "Wages!A1:G500?valueRenderOption=UNFORMATTED_VALUE";
 const GATEWAY = "https://connector-gateway.lovable.dev/google_sheets/v4";
 
 export interface WageRow {
