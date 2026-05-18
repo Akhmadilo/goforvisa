@@ -305,5 +305,111 @@ function SumCard({
   );
 }
 
+type PivotRow = WageRow & { year: number };
+
+function PivotTable({ rows, fmt }: { rows: PivotRow[]; fmt: (n: number) => string }) {
+  // Unique sorted month columns (year + month)
+  const cols = Array.from(
+    new Map(
+      rows.map((r) => [`${r.year}-${r.month}`, { year: r.year, month: r.month }]),
+    ).values(),
+  ).sort((a, b) =>
+    a.year !== b.year ? a.year - b.year : MONTH_ORDER.indexOf(a.month) - MONTH_ORDER.indexOf(b.month),
+  );
+
+  const names = Array.from(new Set(rows.map((r) => r.name))).sort();
+
+  // name -> "year-month" -> total
+  const grid = new Map<string, Map<string, number>>();
+  for (const r of rows) {
+    const k = `${r.year}-${r.month}`;
+    if (!grid.has(r.name)) grid.set(r.name, new Map());
+    grid.get(r.name)!.set(k, (grid.get(r.name)!.get(k) ?? 0) + r.total);
+  }
+
+  const colTotals = cols.map((c) =>
+    names.reduce((s, n) => s + (grid.get(n)?.get(`${c.year}-${c.month}`) ?? 0), 0),
+  );
+  const grandTotal = colTotals.reduce((a, b) => a + b, 0);
+
+  const short = (m: string) => m.slice(0, 3);
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-sm font-semibold">Ishchilar bo'yicha oylik to'lovlar (jadval)</div>
+        <div className="text-xs text-muted-foreground">{names.length} ishchi × {cols.length} oy</div>
+      </div>
+      <div className="overflow-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="sticky left-0 bg-card z-10 min-w-[140px]">Ishchi</TableHead>
+              {cols.map((c) => (
+                <TableHead key={`${c.year}-${c.month}`} className="text-right whitespace-nowrap">
+                  <div>{short(c.month)}</div>
+                  <div className="text-[10px] text-muted-foreground font-normal">{c.year}</div>
+                </TableHead>
+              ))}
+              <TableHead className="text-right whitespace-nowrap">Jami</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {names.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={cols.length + 2} className="text-center text-muted-foreground py-10">
+                  Ma'lumot topilmadi.
+                </TableCell>
+              </TableRow>
+            ) : (
+              names.map((name) => {
+                const rowTotal = cols.reduce(
+                  (s, c) => s + (grid.get(name)?.get(`${c.year}-${c.month}`) ?? 0),
+                  0,
+                );
+                return (
+                  <TableRow key={name}>
+                    <TableCell className="sticky left-0 bg-card z-10 font-medium">{name}</TableCell>
+                    {cols.map((c) => {
+                      const v = grid.get(name)?.get(`${c.year}-${c.month}`) ?? 0;
+                      return (
+                        <TableCell
+                          key={`${name}-${c.year}-${c.month}`}
+                          className={cn(
+                            "text-right whitespace-nowrap tabular-nums",
+                            v === 0 && "text-muted-foreground/40",
+                          )}
+                        >
+                          {v === 0 ? "—" : fmt(v)}
+                        </TableCell>
+                      );
+                    })}
+                    <TableCell className="text-right font-semibold whitespace-nowrap tabular-nums">
+                      {fmt(rowTotal)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+          {names.length > 0 && (
+            <TableRow className="border-t-2 bg-muted/30">
+              <TableCell className="sticky left-0 bg-muted/30 z-10 font-semibold">Jami</TableCell>
+              {colTotals.map((t, i) => (
+                <TableCell key={i} className="text-right font-semibold whitespace-nowrap tabular-nums">
+                  {t === 0 ? "—" : fmt(t)}
+                </TableCell>
+              ))}
+              <TableCell className="text-right font-bold whitespace-nowrap tabular-nums text-primary">
+                {fmt(grandTotal)}
+              </TableCell>
+            </TableRow>
+          )}
+        </Table>
+      </div>
+    </Card>
+  );
+}
+
 // Keep WageRow used by import linter
 export type _W = WageRow;
