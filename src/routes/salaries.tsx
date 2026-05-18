@@ -141,6 +141,19 @@ function SalariesPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {dataUpdatedAt > 0 && (
+                <span className="hidden sm:inline text-xs text-muted-foreground">
+                  Yangilangan: {new Date(dataUpdatedAt).toLocaleTimeString("uz-UZ")}
+                </span>
+              )}
+              <button
+                onClick={() => refetch()}
+                disabled={isFetching}
+                className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary flex items-center justify-center disabled:opacity-50"
+                title="Yangilash"
+              >
+                <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+              </button>
               {isAdmin && (
                 <Link
                   to="/admin"
