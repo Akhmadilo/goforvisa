@@ -12,6 +12,10 @@ export const WIDGETS = [
   { key: "companies_monthly", label: "Kompaniyalar · oylik sotuvlar" },
   { key: "debtors", label: "Qarzdorlar ro'yxati" },
   { key: "contracts_table", label: "Shartnomalar ro'yxati (jadval)" },
+  { key: "salaries_section", label: "Ishchilar oyliklari — bo'lim (sahifa)" },
+  { key: "salaries_totals", label: "Ishchilar oyliklari — umumiy kartalar" },
+  { key: "salaries_pivot", label: "Ishchilar oyliklari — pivot jadval (oylar × ishchilar)" },
+  { key: "salaries_table", label: "Ishchilar oyliklari — to'liq jadval" },
 ] as const;
 
 export type WidgetKey = (typeof WIDGETS)[number]["key"];
