@@ -1,21 +1,30 @@
+export type WidgetGroup = "dashboard" | "salaries";
+
+export const WIDGET_GROUPS: { key: WidgetGroup; label: string }[] = [
+  { key: "dashboard", label: "Dashboard bo'limi" },
+  { key: "salaries", label: "Ishchilar oyliklari bo'limi" },
+];
+
 export const WIDGETS = [
-  { key: "kpi", label: "KPI ko'rsatkichlari (yuqori panel)" },
-  { key: "monthly_revenue", label: "Oylik daromad va sof foyda" },
-  { key: "visa_results", label: "Visa natijalari" },
-  { key: "managers_revenue", label: "Sotuv menejerlari · daromad va sof foyda" },
-  { key: "contract_types", label: "Shartnoma turlari" },
-  { key: "managers_clients", label: "Menejerlar bo'yicha mijozlar soni" },
-  { key: "companies_sales_pie", label: "Kompaniyalar bo'yicha sotuvlar" },
-  { key: "companies_revenue", label: "Kompaniyalar · daromad va sof foyda" },
-  { key: "sales_monthly", label: "Sotuv menejerlari · oylik sotuvlar" },
-  { key: "backoffice_monthly", label: "Back office · oylik hujjatlar" },
-  { key: "companies_monthly", label: "Kompaniyalar · oylik sotuvlar" },
-  { key: "debtors", label: "Qarzdorlar ro'yxati" },
-  { key: "contracts_table", label: "Shartnomalar ro'yxati (jadval)" },
-  { key: "salaries_section", label: "Ishchilar oyliklari — bo'lim (sahifa)" },
-  { key: "salaries_totals", label: "Ishchilar oyliklari — umumiy kartalar" },
-  { key: "salaries_pivot", label: "Ishchilar oyliklari — pivot jadval (oylar × ishchilar)" },
-  { key: "salaries_table", label: "Ishchilar oyliklari — to'liq jadval" },
+  // Dashboard
+  { key: "kpi", group: "dashboard", label: "KPI ko'rsatkichlari (yuqori panel)" },
+  { key: "monthly_revenue", group: "dashboard", label: "Oylik daromad va sof foyda" },
+  { key: "visa_results", group: "dashboard", label: "Visa natijalari" },
+  { key: "managers_revenue", group: "dashboard", label: "Sotuv menejerlari · daromad va sof foyda" },
+  { key: "contract_types", group: "dashboard", label: "Shartnoma turlari" },
+  { key: "managers_clients", group: "dashboard", label: "Menejerlar bo'yicha mijozlar soni" },
+  { key: "companies_sales_pie", group: "dashboard", label: "Kompaniyalar bo'yicha sotuvlar" },
+  { key: "companies_revenue", group: "dashboard", label: "Kompaniyalar · daromad va sof foyda" },
+  { key: "sales_monthly", group: "dashboard", label: "Sotuv menejerlari · oylik sotuvlar" },
+  { key: "backoffice_monthly", group: "dashboard", label: "Back office · oylik hujjatlar" },
+  { key: "companies_monthly", group: "dashboard", label: "Kompaniyalar · oylik sotuvlar" },
+  { key: "debtors", group: "dashboard", label: "Qarzdorlar ro'yxati" },
+  { key: "contracts_table", group: "dashboard", label: "Shartnomalar ro'yxati (jadval)" },
+  // Salaries
+  { key: "salaries_section", group: "salaries", label: "Bo'limga kirish (sahifa)" },
+  { key: "salaries_totals", group: "salaries", label: "Umumiy kartalar" },
+  { key: "salaries_pivot", group: "salaries", label: "Pivot jadval (oylar × ishchilar)" },
+  { key: "salaries_table", group: "salaries", label: "To'liq jadval" },
 ] as const;
 
 export type WidgetKey = (typeof WIDGETS)[number]["key"];

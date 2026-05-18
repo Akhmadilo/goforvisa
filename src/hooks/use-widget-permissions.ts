@@ -1,22 +1,28 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { useIsAdmin } from "@/hooks/use-is-admin";
+import { useIsAdminStatus } from "@/hooks/use-is-admin";
 
 /**
  * Returns the set of widget keys the current user is allowed to see.
  * - Admins always see everything (sentinel "*").
  * - Non-admins see only keys present in widget_permissions for them.
+ *
+ * `loading` stays true until BOTH auth and admin-role checks have resolved,
+ * so callers can safely gate redirects without race conditions.
  */
 export function useWidgetPermissions() {
   const { user, loading: authLoading } = useAuth();
-  const isAdmin = useIsAdmin();
+  const { isAdmin, loading: adminLoading } = useIsAdminStatus();
   const [keys, setKeys] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
-    if (authLoading) return;
+    if (authLoading || adminLoading) {
+      setLoading(true);
+      return;
+    }
     if (!user) {
       setKeys(new Set());
       setLoading(false);
@@ -40,7 +46,7 @@ export function useWidgetPermissions() {
     return () => {
       mounted = false;
     };
-  }, [user, isAdmin, authLoading]);
+  }, [user, isAdmin, authLoading, adminLoading]);
 
   const can = (key: string) => keys.has("*") || keys.has(key);
   return { can, loading, isAdmin };
