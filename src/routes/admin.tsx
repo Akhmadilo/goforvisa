@@ -482,7 +482,7 @@ function GroupedWidgetPicker({
       </div>
       {WIDGET_GROUPS.map((g) => {
         const groupWidgets = WIDGETS.filter((w) => w.group === g.key);
-        const groupKeys = groupWidgets.map((w) => w.key);
+        const groupKeys: string[] = groupWidgets.map((w) => w.key);
         const allOn = groupKeys.every((k) => value.includes(k));
         const someOn = groupKeys.some((k) => value.includes(k));
         return (
