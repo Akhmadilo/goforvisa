@@ -142,6 +142,21 @@ function AdminPage() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  // Reset-password dialog state
+  const [pwUser, setPwUser] = useState<AdminUser | null>(null);
+  const [pwValue, setPwValue] = useState("");
+
+  const pwMut = useMutation({
+    mutationFn: () =>
+      resetPwFn({ data: { userId: pwUser!.id, password: pwValue } }),
+    onSuccess: () => {
+      toast.success("Parol yangilandi");
+      setPwUser(null);
+      setPwValue("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const isAccessError =
     error && /Ruxsat|admin/i.test((error as Error).message);
 
