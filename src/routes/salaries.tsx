@@ -47,6 +47,7 @@ function inferYear(month: string): number {
 function SalariesPage() {
   const { user, loading } = useAuth();
   const isAdmin = useIsAdmin();
+  const { can, loading: permsLoading } = useWidgetPermissions();
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [year, setYear] = useState<string>("all");
@@ -56,6 +57,16 @@ function SalariesPage() {
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    if (!loading && !permsLoading && user && !can("salaries_section")) {
+      navigate({ to: "/" });
+    }
+  }, [loading, permsLoading, user, can, navigate]);
+
+  const canTotals = can("salaries_totals");
+  const canPivot = can("salaries_pivot");
+  const canTable = can("salaries_table");
 
   const fetchWages = useServerFn(getWages);
   const { data: wages = [], isLoading, isFetching, error, refetch, dataUpdatedAt } = useQuery({
