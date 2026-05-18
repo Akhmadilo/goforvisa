@@ -63,6 +63,7 @@ function AdminPage() {
   const deleteFn = useServerFn(deleteUser);
   const createFn = useServerFn(createUser);
   const setWidgetsFn = useServerFn(setUserWidgets);
+  const resetPwFn = useServerFn(resetUserPassword);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-users"],
