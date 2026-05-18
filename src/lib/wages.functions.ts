@@ -29,24 +29,25 @@ export const getWages = createServerFn({ method: "GET" }).handler(
     if (!lovableKey) throw new Error("LOVABLE_API_KEY missing");
     if (!sheetsKey) throw new Error("GOOGLE_SHEETS_API_KEY missing");
 
-    const url = `${GATEWAY}/spreadsheets/${SHEET_ID}/values/${RANGE}`;
+    const url = `${GATEWAY}/spreadsheets/${SHEET_ID}/values/${RANGE}?valueRenderOption=UNFORMATTED_VALUE`;
     const res = await fetch(url, {
       headers: {
         Authorization: `Bearer ${lovableKey}`,
         "X-Connection-Api-Key": sheetsKey,
+        "Cache-Control": "no-cache",
       },
     });
     if (!res.ok) {
       throw new Error(`Sheets API failed [${res.status}]: ${await res.text()}`);
     }
-    const json = (await res.json()) as { values?: string[][] };
+    const json = (await res.json()) as { values?: unknown[][] };
     const rows = json.values ?? [];
     const out: WageRow[] = [];
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
       if (!r) continue;
-      const month = (r[0] ?? "").trim();
-      const name = (r[1] ?? "").trim();
+      const month = String(r[0] ?? "").trim();
+      const name = String(r[1] ?? "").trim();
       if (!name || !month || month.toLowerCase() === "total") continue;
       out.push({
         month,
