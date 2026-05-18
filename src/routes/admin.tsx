@@ -410,6 +410,39 @@ function AdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Reset password dialog */}
+      <Dialog open={!!pwUser} onOpenChange={(o) => !o && setPwUser(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Parolni yangilash</DialogTitle>
+            <DialogDescription>
+              {pwUser?.email} uchun yangi parol o'rnating. Foydalanuvchi shu
+              parol bilan tizimga kira oladi.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label>Yangi parol (kamida 6 belgi)</Label>
+            <Input
+              type="text"
+              value={pwValue}
+              onChange={(e) => setPwValue(e.target.value)}
+              placeholder="Masalan: Visa2026!"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPwUser(null)}>
+              Bekor qilish
+            </Button>
+            <Button
+              onClick={() => pwMut.mutate()}
+              disabled={pwValue.length < 6 || pwMut.isPending}
+            >
+              {pwMut.isPending ? "..." : "Yangilash"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
