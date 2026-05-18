@@ -293,6 +293,74 @@ function SalariesPage() {
   );
 }
 
+function MultiSelect({
+  options, selected, onChange, placeholder,
+}: {
+  options: string[];
+  selected: string[];
+  onChange: (v: string[]) => void;
+  placeholder: string;
+}) {
+  const toggle = (v: string) =>
+    onChange(selected.includes(v) ? selected.filter((s) => s !== v) : [...selected, v]);
+  const label =
+    selected.length === 0
+      ? placeholder
+      : selected.length === 1
+      ? selected[0]
+      : `${selected.length} tanlangan`;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex w-full items-center justify-between rounded-md border border-input bg-background px-3 h-9 text-sm hover:bg-accent/30"
+        >
+          <span className={cn("truncate", selected.length === 0 && "text-muted-foreground")}>
+            {label}
+          </span>
+          <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-64 p-2" align="start">
+        <div className="flex items-center justify-between px-2 py-1 mb-1">
+          <button
+            type="button"
+            className="text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => onChange([])}
+          >
+            Tozalash
+          </button>
+          <button
+            type="button"
+            className="text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => onChange([...options])}
+          >
+            Hammasi
+          </button>
+        </div>
+        <div className="max-h-64 overflow-auto space-y-1">
+          {options.map((o) => (
+            <label
+              key={o}
+              className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm"
+            >
+              <Checkbox
+                checked={selected.includes(o)}
+                onCheckedChange={() => toggle(o)}
+              />
+              <span className="truncate">{o}</span>
+            </label>
+          ))}
+          {options.length === 0 && (
+            <div className="text-xs text-muted-foreground px-2 py-3 text-center">Bo'sh</div>
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 function SumCard({
   label, value, accent, bold,
 }: {
