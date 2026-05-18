@@ -44,6 +44,7 @@ import {
   Trash2,
   UserPlus,
   Settings2,
+  KeyRound,
 } from "lucide-react";
 import { toast } from "sonner";
 
