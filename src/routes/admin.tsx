@@ -333,41 +333,8 @@ function AdminPage() {
               />
             </div>
             <div className="space-y-2 pt-2">
-              <div className="flex items-center justify-between">
-                <Label>Ko'rish ruxsatlari</Label>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    className="text-xs underline text-muted-foreground"
-                    onClick={() => setNWidgets(WIDGETS.map((w) => w.key))}
-                  >
-                    Hammasi
-                  </button>
-                  <button
-                    type="button"
-                    className="text-xs underline text-muted-foreground"
-                    onClick={() => setNWidgets([])}
-                  >
-                    Hech biri
-                  </button>
-                </div>
-              </div>
-              <div className="border rounded-md divide-y">
-                {WIDGETS.map((w) => (
-                  <label
-                    key={w.key}
-                    className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-secondary/50"
-                  >
-                    <Checkbox
-                      checked={nWidgets.includes(w.key)}
-                      onCheckedChange={(v) =>
-                        toggle(nWidgets, setNWidgets, w.key, !!v)
-                      }
-                    />
-                    <span className="text-sm">{w.label}</span>
-                  </label>
-                ))}
-              </div>
+              <Label>Ko'rish ruxsatlari</Label>
+              <GroupedWidgetPicker value={nWidgets} onChange={setNWidgets} />
             </div>
           </div>
           <DialogFooter>
