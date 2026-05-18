@@ -185,7 +185,7 @@ function SalariesPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Yil</label>
-                <Select value={year} onValueChange={(v) => { setYear(v); setMonth("all"); }}>
+                <Select value={year} onValueChange={(v) => { setYear(v); setSelectedMonths([]); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Barcha yillar</SelectItem>
@@ -196,28 +196,22 @@ function SalariesPage() {
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Oy</label>
-                <Select value={month} onValueChange={setMonth}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Barcha oylar</SelectItem>
-                    {months.map((m) => (
-                      <SelectItem key={m} value={m}>{m}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <label className="text-xs text-muted-foreground mb-1 block">Oylar</label>
+                <MultiSelect
+                  options={months}
+                  selected={selectedMonths}
+                  onChange={setSelectedMonths}
+                  placeholder="Barcha oylar"
+                />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Ishchi</label>
-                <Select value={employee} onValueChange={setEmployee}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Barcha ishchilar</SelectItem>
-                    {employees.map((n) => (
-                      <SelectItem key={n} value={n}>{n}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <label className="text-xs text-muted-foreground mb-1 block">Ishchilar</label>
+                <MultiSelect
+                  options={employees}
+                  selected={selectedEmployees}
+                  onChange={setSelectedEmployees}
+                  placeholder="Barcha ishchilar"
+                />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Qidiruv</label>
