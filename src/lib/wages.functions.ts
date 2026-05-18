@@ -56,7 +56,7 @@ export const getWages = createServerFn({ method: "GET" }).handler(
         penalty: parseNum(r[3]),
         kpi: parseNum(r[4]),
         total: parseNum(r[5]),
-        note: (r[6] ?? "").trim(),
+        note: String(r[6] ?? "").trim(),
       });
     }
     return out;
