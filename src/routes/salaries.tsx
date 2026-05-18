@@ -272,7 +272,7 @@ function SalariesPage() {
                       <TableCell className="font-medium">
                         <button
                           className="hover:underline"
-                          onClick={() => setEmployee(e.name)}
+                          onClick={() => setSelectedEmployees([e.name])}
                         >
                           {e.name}
                         </button>
