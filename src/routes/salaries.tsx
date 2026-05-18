@@ -240,6 +240,9 @@ function SalariesPage() {
             <SumCard label="Jami to'lanadigan" value={fmt(totals.total)} accent="primary" bold />
           </div>
 
+          {/* Pivot table — employees × months, total salary per cell */}
+          <PivotTable rows={rows} fmt={fmt} />
+
           {/* Unified table — all months × all employees */}
           <Card className="p-4">
             <div className="flex items-center justify-between mb-3">
@@ -288,9 +291,6 @@ function SalariesPage() {
               </TableBody>
             </Table>
           </Card>
-
-          {/* Pivot table — employees × months, total salary per cell */}
-          <PivotTable rows={rows} fmt={fmt} />
         </main>
       </div>
     </div>
