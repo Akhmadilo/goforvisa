@@ -293,6 +293,17 @@ function AdminPage() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            title="Parolni yangilash"
+                            onClick={() => {
+                              setPwUser(u);
+                              setPwValue("");
+                            }}
+                          >
+                            <KeyRound className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             disabled={isSelf || delMut.isPending}
                             onClick={() => {
                               if (
