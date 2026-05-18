@@ -14,9 +14,10 @@ export interface WageRow {
   note: string;
 }
 
-function parseNum(v: string | undefined): number {
-  if (!v) return 0;
-  const cleaned = v.replace(/[^\d.,-]/g, "").replace(/,/g, "");
+function parseNum(v: unknown): number {
+  if (v == null || v === "") return 0;
+  if (typeof v === "number") return v;
+  const cleaned = String(v).replace(/[^\d.,-]/g, "").replace(/,/g, "");
   const n = parseFloat(cleaned);
   return isNaN(n) ? 0 : n;
 }
