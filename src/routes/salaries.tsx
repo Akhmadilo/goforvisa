@@ -10,7 +10,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Wallet, LogOut, Shield, Search } from "lucide-react";
+import { Wallet, LogOut, Shield, Search, RefreshCw } from "lucide-react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
@@ -55,10 +55,14 @@ function SalariesPage() {
   }, [user, loading, navigate]);
 
   const fetchWages = useServerFn(getWages);
-  const { data: wages = [], isLoading, error } = useQuery({
+  const { data: wages = [], isLoading, isFetching, error, refetch, dataUpdatedAt } = useQuery({
     queryKey: ["wages"],
     queryFn: () => fetchWages(),
     enabled: !!user,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: "always",
+    refetchInterval: 60_000, // auto-refresh every minute
   });
 
   const enriched = useMemo(
@@ -137,6 +141,19 @@ function SalariesPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {dataUpdatedAt > 0 && (
+                <span className="hidden sm:inline text-xs text-muted-foreground">
+                  Yangilangan: {new Date(dataUpdatedAt).toLocaleTimeString("uz-UZ")}
+                </span>
+              )}
+              <button
+                onClick={() => refetch()}
+                disabled={isFetching}
+                className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary flex items-center justify-center disabled:opacity-50"
+                title="Yangilash"
+              >
+                <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} />
+              </button>
               {isAdmin && (
                 <Link
                   to="/admin"

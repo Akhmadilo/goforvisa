@@ -14,9 +14,10 @@ export interface WageRow {
   note: string;
 }
 
-function parseNum(v: string | undefined): number {
-  if (!v) return 0;
-  const cleaned = v.replace(/[^\d.,-]/g, "").replace(/,/g, "");
+function parseNum(v: unknown): number {
+  if (v == null || v === "") return 0;
+  if (typeof v === "number") return v;
+  const cleaned = String(v).replace(/[^\d.,-]/g, "").replace(/,/g, "");
   const n = parseFloat(cleaned);
   return isNaN(n) ? 0 : n;
 }
@@ -28,24 +29,25 @@ export const getWages = createServerFn({ method: "GET" }).handler(
     if (!lovableKey) throw new Error("LOVABLE_API_KEY missing");
     if (!sheetsKey) throw new Error("GOOGLE_SHEETS_API_KEY missing");
 
-    const url = `${GATEWAY}/spreadsheets/${SHEET_ID}/values/${RANGE}`;
+    const url = `${GATEWAY}/spreadsheets/${SHEET_ID}/values/${RANGE}?valueRenderOption=UNFORMATTED_VALUE`;
     const res = await fetch(url, {
       headers: {
         Authorization: `Bearer ${lovableKey}`,
         "X-Connection-Api-Key": sheetsKey,
+        "Cache-Control": "no-cache",
       },
     });
     if (!res.ok) {
       throw new Error(`Sheets API failed [${res.status}]: ${await res.text()}`);
     }
-    const json = (await res.json()) as { values?: string[][] };
+    const json = (await res.json()) as { values?: unknown[][] };
     const rows = json.values ?? [];
     const out: WageRow[] = [];
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
       if (!r) continue;
-      const month = (r[0] ?? "").trim();
-      const name = (r[1] ?? "").trim();
+      const month = String(r[0] ?? "").trim();
+      const name = String(r[1] ?? "").trim();
       if (!name || !month || month.toLowerCase() === "total") continue;
       out.push({
         month,
@@ -54,7 +56,7 @@ export const getWages = createServerFn({ method: "GET" }).handler(
         penalty: parseNum(r[3]),
         kpi: parseNum(r[4]),
         total: parseNum(r[5]),
-        note: (r[6] ?? "").trim(),
+        note: String(r[6] ?? "").trim(),
       });
     }
     return out;
