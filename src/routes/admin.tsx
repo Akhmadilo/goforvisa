@@ -450,3 +450,79 @@ function AdminPage() {
     </div>
   );
 }
+
+function GroupedWidgetPicker({
+  value,
+  onChange,
+}: {
+  value: string[];
+  onChange: (v: string[]) => void;
+}) {
+  const set = (next: string[]) => onChange(Array.from(new Set(next)));
+  const toggleOne = (key: string, on: boolean) =>
+    set(on ? [...value, key] : value.filter((k) => k !== key));
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-end gap-2">
+        <button
+          type="button"
+          className="text-xs underline text-muted-foreground"
+          onClick={() => set(WIDGETS.map((w) => w.key))}
+        >
+          Hammasi
+        </button>
+        <button
+          type="button"
+          className="text-xs underline text-muted-foreground"
+          onClick={() => onChange([])}
+        >
+          Hech biri
+        </button>
+      </div>
+      {WIDGET_GROUPS.map((g) => {
+        const groupWidgets = WIDGETS.filter((w) => w.group === g.key);
+        const groupKeys = groupWidgets.map((w) => w.key);
+        const allOn = groupKeys.every((k) => value.includes(k));
+        const someOn = groupKeys.some((k) => value.includes(k));
+        return (
+          <div key={g.key} className="border rounded-md overflow-hidden">
+            <div className="flex items-center justify-between px-3 py-2 bg-secondary/40 border-b">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={allOn ? true : someOn ? "indeterminate" : false}
+                  onCheckedChange={(v) =>
+                    set(
+                      v
+                        ? [...value, ...groupKeys]
+                        : value.filter((k) => !groupKeys.includes(k)),
+                    )
+                  }
+                />
+                <span className="text-sm font-semibold">{g.label}</span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                {groupKeys.filter((k) => value.includes(k)).length} / {groupKeys.length}
+              </span>
+            </div>
+            <div className="divide-y">
+              {groupWidgets.map((w) => (
+                <label
+                  key={w.key}
+                  className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-secondary/40"
+                >
+                  <Checkbox
+                    checked={value.includes(w.key)}
+                    onCheckedChange={(v) => toggleOne(w.key, !!v)}
+                  />
+                  <span className="text-sm">{w.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
