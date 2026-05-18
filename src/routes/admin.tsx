@@ -10,7 +10,7 @@ import {
   setUserWidgets,
   type AdminUser,
 } from "@/lib/admin.functions";
-import { WIDGETS } from "@/lib/widgets";
+import { WIDGETS, WIDGET_GROUPS, type WidgetGroup } from "@/lib/widgets";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
