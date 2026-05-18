@@ -271,6 +271,9 @@ function SalariesPage() {
               </TableBody>
             </Table>
           </Card>
+
+          {/* Pivot table — employees × months, total salary per cell */}
+          <PivotTable rows={rows} fmt={fmt} />
         </main>
       </div>
     </div>
