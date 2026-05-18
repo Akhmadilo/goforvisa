@@ -249,15 +249,17 @@ function SalariesPage() {
           </Card>
 
           {/* Totals */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <SumCard label="Jami o'zgarmas" value={fmt(totals.fixed)} />
-            <SumCard label="Jami KPI" value={`+${fmt(totals.kpi)}`} accent="primary" />
-            <SumCard label="Jami jarima" value={`−${fmt(totals.penalty)}`} accent="destructive" />
-            <SumCard label="Jami to'lanadigan" value={fmt(totals.total)} accent="primary" bold />
-          </div>
+          {canTotals && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <SumCard label="Jami o'zgarmas" value={fmt(totals.fixed)} />
+              <SumCard label="Jami KPI" value={`+${fmt(totals.kpi)}`} accent="primary" />
+              <SumCard label="Jami jarima" value={`−${fmt(totals.penalty)}`} accent="destructive" />
+              <SumCard label="Jami to'lanadigan" value={fmt(totals.total)} accent="primary" bold />
+            </div>
+          )}
 
           {/* Pivot table — employees × months, total salary per cell */}
-          <PivotTable rows={rows} fmt={fmt} />
+          {canPivot && <PivotTable rows={rows} fmt={fmt} />}
 
           {/* Unified table — all months × all employees */}
           <Card className="p-4">
