@@ -116,12 +116,20 @@ function SalariesPage() {
       <AppSidebar />
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 z-0 flex items-center justify-center"
+        className="pointer-events-none fixed inset-0 z-0 flex items-center justify-center overflow-hidden"
       >
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(circle at 50% 50%, color-mix(in oklab, var(--primary) 18%, transparent), transparent 60%)",
+          }}
+        />
         <img
           src={logoUrl}
           alt=""
-          className="w-[min(70vw,720px)] opacity-[0.05] select-none"
+          className="relative w-[min(80vw,820px)] opacity-[0.12] select-none drop-shadow-[0_10px_60px_color-mix(in_oklab,var(--primary)_40%,transparent)]"
+          style={{ filter: "saturate(1.1) contrast(1.05)" }}
         />
       </div>
 
