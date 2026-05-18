@@ -262,53 +262,55 @@ function SalariesPage() {
           {canPivot && <PivotTable rows={rows} fmt={fmt} />}
 
           {/* Unified table — all months × all employees */}
-          <Card className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-semibold">Oylik to'lovlar</div>
-              <div className="text-xs text-muted-foreground">{rows.length} yozuv</div>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Yil</TableHead>
-                  <TableHead>Oy</TableHead>
-                  <TableHead>Ishchi</TableHead>
-                  <TableHead className="text-right">O'zgarmas</TableHead>
-                  <TableHead className="text-right">KPI</TableHead>
-                  <TableHead className="text-right">Jarima</TableHead>
-                  <TableHead className="text-right">Oylik</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-10">Yuklanmoqda...</TableCell></TableRow>
-                ) : error ? (
-                  <TableRow><TableCell colSpan={7} className="text-center text-destructive py-10">Xato: {(error as Error).message}</TableCell></TableRow>
-                ) : rows.length === 0 ? (
-                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-10">Ma'lumot topilmadi.</TableCell></TableRow>
-                ) : (
-                  rows.map((e, i) => (
-                    <TableRow key={`${e.year}-${e.month}-${e.name}-${i}`}>
-                      <TableCell className="text-muted-foreground">{e.year}</TableCell>
-                      <TableCell>{e.month}</TableCell>
-                      <TableCell className="font-medium">
-                        <button
-                          className="hover:underline"
-                          onClick={() => setSelectedEmployees([e.name])}
-                        >
-                          {e.name}
-                        </button>
-                      </TableCell>
-                      <TableCell className="text-right">{fmt(e.fixed)}</TableCell>
-                      <TableCell className="text-right text-primary">+{fmt(e.kpi)}</TableCell>
-                      <TableCell className="text-right text-destructive">−{fmt(e.penalty)}</TableCell>
-                      <TableCell className="text-right font-semibold">{fmt(e.total)}</TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </Card>
+          {canTable && (
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="text-sm font-semibold">Oylik to'lovlar</div>
+                <div className="text-xs text-muted-foreground">{rows.length} yozuv</div>
+              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Yil</TableHead>
+                    <TableHead>Oy</TableHead>
+                    <TableHead>Ishchi</TableHead>
+                    <TableHead className="text-right">O'zgarmas</TableHead>
+                    <TableHead className="text-right">KPI</TableHead>
+                    <TableHead className="text-right">Jarima</TableHead>
+                    <TableHead className="text-right">Oylik</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-10">Yuklanmoqda...</TableCell></TableRow>
+                  ) : error ? (
+                    <TableRow><TableCell colSpan={7} className="text-center text-destructive py-10">Xato: {(error as Error).message}</TableCell></TableRow>
+                  ) : rows.length === 0 ? (
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-10">Ma'lumot topilmadi.</TableCell></TableRow>
+                  ) : (
+                    rows.map((e, i) => (
+                      <TableRow key={`${e.year}-${e.month}-${e.name}-${i}`}>
+                        <TableCell className="text-muted-foreground">{e.year}</TableCell>
+                        <TableCell>{e.month}</TableCell>
+                        <TableCell className="font-medium">
+                          <button
+                            className="hover:underline"
+                            onClick={() => setSelectedEmployees([e.name])}
+                          >
+                            {e.name}
+                          </button>
+                        </TableCell>
+                        <TableCell className="text-right">{fmt(e.fixed)}</TableCell>
+                        <TableCell className="text-right text-primary">+{fmt(e.kpi)}</TableCell>
+                        <TableCell className="text-right text-destructive">−{fmt(e.penalty)}</TableCell>
+                        <TableCell className="text-right font-semibold">{fmt(e.total)}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </Card>
+          )}
         </main>
       </div>
     </div>
