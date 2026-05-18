@@ -16,6 +16,7 @@ import { Wallet, LogOut, Shield, Search, RefreshCw, ChevronDown } from "lucide-r
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
+import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { supabase } from "@/integrations/supabase/client";
 import { getWages, type WageRow } from "@/lib/wages.functions";
 import logoUrl from "@/assets/logo.png";
