@@ -10,7 +10,9 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Wallet, LogOut, Shield, Search, RefreshCw } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Wallet, LogOut, Shield, Search, RefreshCw, ChevronDown } from "lucide-react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
