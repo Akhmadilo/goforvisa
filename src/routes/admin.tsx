@@ -367,40 +367,7 @@ function AdminPage() {
               {editUser?.email} — qaysi bo'limlarni ko'ra oladi?
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                className="text-xs underline text-muted-foreground"
-                onClick={() => setEditWidgets(WIDGETS.map((w) => w.key))}
-              >
-                Hammasi
-              </button>
-              <button
-                type="button"
-                className="text-xs underline text-muted-foreground"
-                onClick={() => setEditWidgets([])}
-              >
-                Hech biri
-              </button>
-            </div>
-            <div className="border rounded-md divide-y">
-              {WIDGETS.map((w) => (
-                <label
-                  key={w.key}
-                  className="flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-secondary/50"
-                >
-                  <Checkbox
-                    checked={editWidgets.includes(w.key)}
-                    onCheckedChange={(v) =>
-                      toggle(editWidgets, setEditWidgets, w.key, !!v)
-                    }
-                  />
-                  <span className="text-sm">{w.label}</span>
-                </label>
-              ))}
-            </div>
-          </div>
+          <GroupedWidgetPicker value={editWidgets} onChange={setEditWidgets} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditUser(null)}>
               Bekor qilish
