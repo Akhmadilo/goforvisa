@@ -49,8 +49,8 @@ function SalariesPage() {
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [year, setYear] = useState<string>("all");
-  const [month, setMonth] = useState<string>("all");
-  const [employee, setEmployee] = useState<string>("all");
+  const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
+  const [selectedEmployees, setSelectedEmployees] = useState<string[]>([]);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
