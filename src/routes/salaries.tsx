@@ -35,10 +35,10 @@ const MONTH_ORDER = [
 ];
 
 // Sheet covers June → April crossing calendar year.
-// Heuristic: June–December = 2024, January–May = 2025.
+// June–December = 2025, January–May = 2026.
 function inferYear(month: string): number {
   const idx = MONTH_ORDER.indexOf(month);
-  return idx >= 5 ? 2024 : 2025;
+  return idx >= 5 ? 2025 : 2026;
 }
 
 function SalariesPage() {
