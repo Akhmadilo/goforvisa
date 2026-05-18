@@ -240,6 +240,9 @@ function SalariesPage() {
             <SumCard label="Jami to'lanadigan" value={fmt(totals.total)} accent="primary" bold />
           </div>
 
+          {/* Pivot table — employees × months, total salary per cell */}
+          <PivotTable rows={rows} fmt={fmt} />
+
           {/* Unified table — all months × all employees */}
           <Card className="p-4">
             <div className="flex items-center justify-between mb-3">
@@ -288,9 +291,6 @@ function SalariesPage() {
               </TableBody>
             </Table>
           </Card>
-
-          {/* Pivot table — employees × months, total salary per cell */}
-          <PivotTable rows={rows} fmt={fmt} />
         </main>
       </div>
     </div>
@@ -334,7 +334,23 @@ function PivotTable({ rows, fmt }: { rows: PivotRow[]; fmt: (n: number) => strin
     a.year !== b.year ? a.year - b.year : MONTH_ORDER.indexOf(a.month) - MONTH_ORDER.indexOf(b.month),
   );
 
-  const names = Array.from(new Set(rows.map((r) => r.name))).sort();
+  // Sort employees by first appearance (join order), then by last appearance (leave order)
+  const firstSeen = new Map<string, number>();
+  const lastSeen = new Map<string, number>();
+  for (const r of rows) {
+    const key = r.year * 12 + MONTH_ORDER.indexOf(r.month);
+    if (!firstSeen.has(r.name) || key < firstSeen.get(r.name)!) firstSeen.set(r.name, key);
+    if (!lastSeen.has(r.name) || key > lastSeen.get(r.name)!) lastSeen.set(r.name, key);
+  }
+  const names = Array.from(new Set(rows.map((r) => r.name))).sort((a, b) => {
+    const fa = firstSeen.get(a) ?? 0;
+    const fb = firstSeen.get(b) ?? 0;
+    if (fa !== fb) return fa - fb;
+    const la = lastSeen.get(a) ?? 0;
+    const lb = lastSeen.get(b) ?? 0;
+    if (la !== lb) return la - lb;
+    return a.localeCompare(b);
+  });
 
   // name -> "year-month" -> total
   const grid = new Map<string, Map<string, number>>();
