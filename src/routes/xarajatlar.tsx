@@ -19,6 +19,9 @@ import {
 import {
   Drawer, DrawerContent, DrawerHeader, DrawerTitle,
 } from "@/components/ui/drawer";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChevronDown, User } from "lucide-react";
 import {
   Receipt, LogOut, Shield, Search, Plus, Pencil, Trash2, Coins, TrendingUp, TrendingDown,
 } from "lucide-react";
