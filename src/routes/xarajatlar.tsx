@@ -208,10 +208,28 @@ function ExpensesPage() {
     return m;
   }, [payments]);
 
-  // Stats
+  // Years present in data
+  const years = useMemo(() => {
+    const s = new Set<string>();
+    for (const e of expenses) s.add(e.expense_date.slice(0, 4));
+    return Array.from(s).sort();
+  }, [expenses]);
+
+  // Period filter (year + months) — applied to dashboard, pivot, table
+  const periodFiltered = useMemo(() => {
+    return expenses.filter((e) => {
+      const y = e.expense_date.slice(0, 4);
+      const m = String(Number(e.expense_date.slice(5, 7))); // "1".."12"
+      if (selectedYear !== "all" && y !== selectedYear) return false;
+      if (selectedMonths.length > 0 && !selectedMonths.includes(m)) return false;
+      return true;
+    });
+  }, [expenses, selectedYear, selectedMonths]);
+
+  // Stats (based on period filter)
   const stats = useMemo(() => {
     const s = { total: 0, unpaid: 0, partial: 0, paid: 0 };
-    for (const e of expenses) {
+    for (const e of periodFiltered) {
       const amt = Number(e.total_amount);
       s.total += amt;
       if (e.status === "unpaid") s.unpaid += amt;
@@ -219,16 +237,12 @@ function ExpensesPage() {
       else if (e.status === "paid") s.paid += amt;
     }
     return s;
-  }, [expenses]);
+  }, [periodFiltered]);
 
-  // Filtered rows
-  const rows = expenses
+  // Final rows for table: period + status + category + search
+  const rows = periodFiltered
     .filter((e) => status === "all" || e.status === status)
     .filter((e) => category === "all" || e.category === category)
-    .filter((e) => {
-      if (!monthYear) return true;
-      return e.expense_date.startsWith(monthYear);
-    })
     .filter((e) => {
       if (!query) return true;
       const q = query.toLowerCase();
@@ -237,6 +251,7 @@ function ExpensesPage() {
         (e.vendor ?? "").toLowerCase().includes(q)
       );
     });
+
 
   // Modals
   const [addOpen, setAddOpen] = useState(false);
