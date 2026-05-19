@@ -64,15 +64,24 @@ type Payment = {
   created_at: string;
 };
 
-const CATEGORIES = ["Ofis", "Sayohat", "Kommunal", "Marketing", "Maosh", "Boshqa"];
-const CATEGORY_COLORS: Record<string, string> = {
-  Ofis: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
-  Sayohat: "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30",
-  Kommunal: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
-  Marketing: "bg-pink-500/15 text-pink-600 dark:text-pink-400 border-pink-500/30",
-  Maosh: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
-  Boshqa: "bg-slate-500/15 text-slate-600 dark:text-slate-400 border-slate-500/30",
-};
+// Palette for color-coding category badges; assigned by hashing category name
+const CATEGORY_PALETTE = [
+  "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30",
+  "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30",
+  "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30",
+  "bg-pink-500/15 text-pink-600 dark:text-pink-400 border-pink-500/30",
+  "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30",
+  "bg-slate-500/15 text-slate-600 dark:text-slate-400 border-slate-500/30",
+  "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border-cyan-500/30",
+  "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30",
+  "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30",
+  "bg-lime-500/15 text-lime-600 dark:text-lime-400 border-lime-500/30",
+];
+function categoryColor(name: string) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+  return CATEGORY_PALETTE[h % CATEGORY_PALETTE.length];
+}
 
 const PAYMENT_METHODS = [
   { value: "cash", label: "Naqd pul" },
@@ -129,6 +138,19 @@ function ExpensesPage() {
         .order("paid_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Payment[];
+    },
+    enabled: !!user,
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["expense_categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("expense_categories")
+        .select("name")
+        .order("name");
+      if (error) throw error;
+      return (data ?? []).map((r: any) => r.name as string);
     },
     enabled: !!user,
   });
@@ -312,7 +334,7 @@ function ExpensesPage() {
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Barchasi</SelectItem>
-                    {CATEGORIES.map((c) => (
+                    {categories.map((c) => (
                       <SelectItem key={c} value={c}>{c}</SelectItem>
                     ))}
                   </SelectContent>
@@ -382,7 +404,7 @@ function ExpensesPage() {
                         </TableCell>
                         <TableCell className="font-medium">{e.title}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={cn("border", CATEGORY_COLORS[e.category])}>
+                          <Badge variant="outline" className={cn("border", categoryColor(e.category))}>
                             {e.category}
                           </Badge>
                         </TableCell>
@@ -444,11 +466,13 @@ function ExpensesPage() {
         open={addOpen}
         onOpenChange={setAddOpen}
         expense={null}
+        categories={categories}
       />
       <ExpenseFormDialog
         open={!!editExpense}
         onOpenChange={(o) => !o && setEditExpense(null)}
         expense={editExpense}
+        categories={categories}
       />
       <PaymentDialog
         open={!!payExpense}
@@ -511,15 +535,19 @@ function StatusBadge({ status }: { status: Expense["status"] }) {
 }
 
 function ExpenseFormDialog({
-  open, onOpenChange, expense,
+  open, onOpenChange, expense, categories,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   expense: Expense | null;
+  categories: string[];
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("Ofis");
+  const [category, setCategory] = useState(categories[0] ?? "");
+  const [newCatOpen, setNewCatOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [savingCat, setSavingCat] = useState(false);
   const [totalAmount, setTotalAmount] = useState("");
   const [currency, setCurrency] = useState<"UZS" | "USD">("UZS");
   const [date, setDate] = useState(today);
@@ -580,14 +608,24 @@ function ExpenseFormDialog({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Kategoriya *</label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-1">
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger><SelectValue placeholder="Tanlang" /></SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <button
+                  type="button"
+                  onClick={() => { setNewCatName(""); setNewCatOpen(true); }}
+                  className="h-9 w-9 shrink-0 rounded-md border border-input hover:bg-secondary flex items-center justify-center"
+                  title="Yangi kategoriya"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Sana *</label>
@@ -646,6 +684,39 @@ function ExpenseFormDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      <Dialog open={newCatOpen} onOpenChange={setNewCatOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Yangi kategoriya</DialogTitle>
+          </DialogHeader>
+          <Input
+            placeholder="Kategoriya nomi"
+            value={newCatName}
+            onChange={(e) => setNewCatName(e.target.value)}
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewCatOpen(false)}>Bekor qilish</Button>
+            <Button
+              disabled={savingCat || !newCatName.trim()}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={async () => {
+                const name = newCatName.trim();
+                if (!name) return;
+                setSavingCat(true);
+                const { error } = await supabase.from("expense_categories").insert({ name });
+                setSavingCat(false);
+                if (error) { toast.error(error.message); return; }
+                toast.success("Kategoriya qo'shildi");
+                setCategory(name);
+                setNewCatOpen(false);
+              }}
+            >
+              {savingCat ? "Saqlanmoqda..." : "Qo'shish"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
