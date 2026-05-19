@@ -684,6 +684,39 @@ function ExpenseFormDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+      <Dialog open={newCatOpen} onOpenChange={setNewCatOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Yangi kategoriya</DialogTitle>
+          </DialogHeader>
+          <Input
+            placeholder="Kategoriya nomi"
+            value={newCatName}
+            onChange={(e) => setNewCatName(e.target.value)}
+            autoFocus
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewCatOpen(false)}>Bekor qilish</Button>
+            <Button
+              disabled={savingCat || !newCatName.trim()}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white"
+              onClick={async () => {
+                const name = newCatName.trim();
+                if (!name) return;
+                setSavingCat(true);
+                const { error } = await supabase.from("expense_categories").insert({ name });
+                setSavingCat(false);
+                if (error) { toast.error(error.message); return; }
+                toast.success("Kategoriya qo'shildi");
+                setCategory(name);
+                setNewCatOpen(false);
+              }}
+            >
+              {savingCat ? "Saqlanmoqda..." : "Qo'shish"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
