@@ -608,14 +608,24 @@ function ExpenseFormDialog({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Kategoriya *</label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c}>{c}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex gap-1">
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger><SelectValue placeholder="Tanlang" /></SelectTrigger>
+                  <SelectContent>
+                    {categories.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <button
+                  type="button"
+                  onClick={() => { setNewCatName(""); setNewCatOpen(true); }}
+                  className="h-9 w-9 shrink-0 rounded-md border border-input hover:bg-secondary flex items-center justify-center"
+                  title="Yangi kategoriya"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Sana *</label>
