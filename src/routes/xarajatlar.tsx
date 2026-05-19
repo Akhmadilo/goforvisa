@@ -142,6 +142,19 @@ function ExpensesPage() {
     enabled: !!user,
   });
 
+  const { data: categories = [] } = useQuery({
+    queryKey: ["expense_categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("expense_categories")
+        .select("name")
+        .order("name");
+      if (error) throw error;
+      return (data ?? []).map((r: any) => r.name as string);
+    },
+    enabled: !!user,
+  });
+
   // Realtime subscriptions
   useEffect(() => {
     if (!user) return;
