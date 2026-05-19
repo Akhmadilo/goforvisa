@@ -1324,3 +1324,72 @@ function CategoryPivotTable({ expenses }: { expenses: Expense[] }) {
     </Card>
   );
 }
+
+const MONTHS_UZ = [
+  ["1", "Yanvar"], ["2", "Fevral"], ["3", "Mart"], ["4", "Aprel"],
+  ["5", "May"], ["6", "Iyun"], ["7", "Iyul"], ["8", "Avgust"],
+  ["9", "Sentyabr"], ["10", "Oktyabr"], ["11", "Noyabr"], ["12", "Dekabr"],
+] as const;
+
+function MonthsMultiSelect({
+  selected, onChange,
+}: {
+  selected: string[];
+  onChange: (v: string[]) => void;
+}) {
+  const toggle = (v: string) =>
+    onChange(selected.includes(v) ? selected.filter((s) => s !== v) : [...selected, v]);
+  const label =
+    selected.length === 0
+      ? "Barcha oylar"
+      : selected.length === 1
+      ? MONTHS_UZ.find((m) => m[0] === selected[0])?.[1] ?? selected[0]
+      : `${selected.length} tanlangan`;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex w-full items-center justify-between rounded-md border border-input bg-background px-3 h-9 text-sm hover:bg-accent/30"
+        >
+          <span className={cn("truncate", selected.length === 0 && "text-muted-foreground")}>
+            {label}
+          </span>
+          <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-2" align="start">
+        <div className="flex items-center justify-between px-2 py-1 mb-1">
+          <button
+            type="button"
+            className="text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => onChange([])}
+          >
+            Tozalash
+          </button>
+          <button
+            type="button"
+            className="text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => onChange(MONTHS_UZ.map((m) => m[0]))}
+          >
+            Hammasi
+          </button>
+        </div>
+        <div className="max-h-64 overflow-auto space-y-1">
+          {MONTHS_UZ.map(([k, l]) => (
+            <label
+              key={k}
+              className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm"
+            >
+              <Checkbox
+                checked={selected.includes(k)}
+                onCheckedChange={() => toggle(k)}
+              />
+              <span className="truncate">{l}</span>
+            </label>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
