@@ -20,8 +20,12 @@ import {
   Drawer, DrawerContent, DrawerHeader, DrawerTitle,
 } from "@/components/ui/drawer";
 import {
-  Receipt, LogOut, Shield, Search, Plus, Pencil, Trash2, Coins,
+  Receipt, LogOut, Shield, Search, Plus, Pencil, Trash2, Coins, TrendingUp, TrendingDown,
 } from "lucide-react";
+import {
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip,
+  BarChart, Bar, Cell, CartesianGrid,
+} from "recharts";
 import { toast } from "sonner";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
