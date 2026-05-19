@@ -533,15 +533,19 @@ function StatusBadge({ status }: { status: Expense["status"] }) {
 }
 
 function ExpenseFormDialog({
-  open, onOpenChange, expense,
+  open, onOpenChange, expense, categories,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   expense: Expense | null;
+  categories: string[];
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("Ofis");
+  const [category, setCategory] = useState(categories[0] ?? "");
+  const [newCatOpen, setNewCatOpen] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [savingCat, setSavingCat] = useState(false);
   const [totalAmount, setTotalAmount] = useState("");
   const [currency, setCurrency] = useState<"UZS" | "USD">("UZS");
   const [date, setDate] = useState(today);
