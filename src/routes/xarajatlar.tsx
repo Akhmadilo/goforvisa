@@ -56,6 +56,7 @@ type Expense = {
   status: "unpaid" | "partial" | "paid";
   expense_date: string;
   created_at: string;
+  created_by: string | null;
 };
 
 type Payment = {
