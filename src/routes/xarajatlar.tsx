@@ -308,6 +308,13 @@ function ExpensesPage() {
             <StatCard label="To'langan" value={fmt(stats.paid)} tone="green" />
           </div>
 
+          {/* Dashboard: monthly trend + top categories */}
+          <ExpensesDashboard expenses={expenses} />
+
+          {/* Pivot: categories × months */}
+          <CategoryPivotTable expenses={expenses} />
+
+
           {/* Filters */}
           <Card className="p-4 space-y-3">
             <div className="flex flex-wrap gap-1.5">
