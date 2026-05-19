@@ -30,6 +30,7 @@ export const WIDGETS = [
   { key: "expenses_section", group: "expenses", label: "Bo'limga kirish (sahifa)" },
   { key: "expenses_totals", group: "expenses", label: "Umumiy kartalar" },
   { key: "expenses_table", group: "expenses", label: "Xarajatlar jadvali" },
+  { key: "expenses_create", group: "expenses", label: "Xarajat yaratish / tahrirlash / o'chirish" },
 ] as const;
 
 export type WidgetKey = (typeof WIDGETS)[number]["key"];

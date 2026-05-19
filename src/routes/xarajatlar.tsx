@@ -19,6 +19,9 @@ import {
 import {
   Drawer, DrawerContent, DrawerHeader, DrawerTitle,
 } from "@/components/ui/drawer";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
+import { ChevronDown, User } from "lucide-react";
 import {
   Receipt, LogOut, Shield, Search, Plus, Pencil, Trash2, Coins, TrendingUp, TrendingDown,
 } from "lucide-react";
@@ -56,6 +59,7 @@ type Expense = {
   status: "unpaid" | "partial" | "paid";
   expense_date: string;
   created_at: string;
+  created_by: string | null;
 };
 
 type Payment = {
@@ -113,10 +117,13 @@ function ExpensesPage() {
     }
   }, [loading, permsLoading, user, can, navigate]);
 
+  const canCreate = can("expenses_create");
+
   // Filters
   const [status, setStatus] = useState<"all" | "unpaid" | "partial" | "paid">("all");
   const [category, setCategory] = useState<string>("all");
-  const [monthYear, setMonthYear] = useState<string>(""); // YYYY-MM
+  const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [selectedMonths, setSelectedMonths] = useState<string[]>([]); // 1..12 as strings
   const [query, setQuery] = useState("");
 
   // Data
@@ -159,6 +166,21 @@ function ExpensesPage() {
     enabled: !!user,
   });
 
+  // Profiles for creator names
+  const { data: profileMap = new Map<string, string>() } = useQuery({
+    queryKey: ["profiles-map"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, display_name");
+      if (error) throw error;
+      const m = new Map<string, string>();
+      for (const r of data ?? []) m.set((r as any).id, (r as any).display_name ?? "—");
+      return m;
+    },
+    enabled: !!user,
+  });
+
   // Realtime subscriptions
   useEffect(() => {
     if (!user) return;
@@ -186,10 +208,28 @@ function ExpensesPage() {
     return m;
   }, [payments]);
 
-  // Stats
+  // Years present in data
+  const years = useMemo(() => {
+    const s = new Set<string>();
+    for (const e of expenses) s.add(e.expense_date.slice(0, 4));
+    return Array.from(s).sort();
+  }, [expenses]);
+
+  // Period filter (year + months) — applied to dashboard, pivot, table
+  const periodFiltered = useMemo(() => {
+    return expenses.filter((e) => {
+      const y = e.expense_date.slice(0, 4);
+      const m = String(Number(e.expense_date.slice(5, 7))); // "1".."12"
+      if (selectedYear !== "all" && y !== selectedYear) return false;
+      if (selectedMonths.length > 0 && !selectedMonths.includes(m)) return false;
+      return true;
+    });
+  }, [expenses, selectedYear, selectedMonths]);
+
+  // Stats (based on period filter)
   const stats = useMemo(() => {
     const s = { total: 0, unpaid: 0, partial: 0, paid: 0 };
-    for (const e of expenses) {
+    for (const e of periodFiltered) {
       const amt = Number(e.total_amount);
       s.total += amt;
       if (e.status === "unpaid") s.unpaid += amt;
@@ -197,16 +237,12 @@ function ExpensesPage() {
       else if (e.status === "paid") s.paid += amt;
     }
     return s;
-  }, [expenses]);
+  }, [periodFiltered]);
 
-  // Filtered rows
-  const rows = expenses
+  // Final rows for table: period + status + category + search
+  const rows = periodFiltered
     .filter((e) => status === "all" || e.status === status)
     .filter((e) => category === "all" || e.category === category)
-    .filter((e) => {
-      if (!monthYear) return true;
-      return e.expense_date.startsWith(monthYear);
-    })
     .filter((e) => {
       if (!query) return true;
       const q = query.toLowerCase();
@@ -215,6 +251,7 @@ function ExpensesPage() {
         (e.vendor ?? "").toLowerCase().includes(q)
       );
     });
+
 
   // Modals
   const [addOpen, setAddOpen] = useState(false);
@@ -269,13 +306,15 @@ function ExpensesPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                onClick={() => setAddOpen(true)}
-                className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
-                <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Xarajat qo'shish</span>
-              </Button>
+              {canCreate && (
+                <Button
+                  onClick={() => setAddOpen(true)}
+                  className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Xarajat qo'shish</span>
+                </Button>
+              )}
               {isAdmin && (
                 <Link
                   to="/admin"
@@ -300,45 +339,28 @@ function ExpensesPage() {
         </header>
 
         <main className="mx-auto max-w-[1500px] px-6 py-6 space-y-6">
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <StatCard label="Jami xarajat" value={fmt(stats.total)} />
-            <StatCard label="To'lanmagan" value={fmt(stats.unpaid)} tone="red" />
-            <StatCard label="Qisman to'langan" value={fmt(stats.partial)} tone="orange" />
-            <StatCard label="To'langan" value={fmt(stats.paid)} tone="green" />
-          </div>
-
-          {/* Dashboard: monthly trend + top categories */}
-          <ExpensesDashboard expenses={expenses} />
-
-          {/* Pivot: categories × months */}
-          <CategoryPivotTable expenses={expenses} />
-
-
-          {/* Filters */}
+          {/* Top filters — affect dashboards, pivot and table */}
           <Card className="p-4 space-y-3">
-            <div className="flex flex-wrap gap-1.5">
-              {([
-                ["all", "Barchasi"],
-                ["unpaid", "To'lanmagan"],
-                ["partial", "Qisman"],
-                ["paid", "To'langan"],
-              ] as const).map(([k, l]) => (
-                <button
-                  key={k}
-                  onClick={() => setStatus(k)}
-                  className={cn(
-                    "px-3 py-1.5 text-sm rounded-md border transition-colors",
-                    status === k
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-card border-border hover:bg-secondary",
-                  )}
-                >
-                  {l}
-                </button>
-              ))}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Yil</label>
+                <Select value={selectedYear} onValueChange={(v) => { setSelectedYear(v); setSelectedMonths([]); }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Barcha yillar</SelectItem>
+                    {years.map((y) => (
+                      <SelectItem key={y} value={y}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Oylar</label>
+                <MonthsMultiSelect
+                  selected={selectedMonths}
+                  onChange={setSelectedMonths}
+                />
+              </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Kategoriya</label>
                 <Select value={category} onValueChange={setCategory}>
@@ -351,15 +373,7 @@ function ExpensesPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Oy / Yil</label>
-                <Input
-                  type="month"
-                  value={monthYear}
-                  onChange={(e) => setMonthYear(e.target.value)}
-                />
-              </div>
-              <div>
+              <div className="col-span-2 md:col-span-2">
                 <label className="text-xs text-muted-foreground mb-1 block">Qidiruv</label>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -372,7 +386,53 @@ function ExpensesPage() {
                 </div>
               </div>
             </div>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {([
+                ["all", "Barchasi"],
+                ["unpaid", "To'lanmagan"],
+                ["partial", "Qisman"],
+                ["paid", "To'langan"],
+              ] as const).map(([k, l]) => (
+                <button
+                  key={k}
+                  onClick={() => setStatus(k)}
+                  className={cn(
+                    "px-3 py-1.5 text-xs rounded-md border transition-colors",
+                    status === k
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card border-border hover:bg-secondary",
+                  )}
+                >
+                  {l}
+                </button>
+              ))}
+              {(selectedYear !== "all" || selectedMonths.length > 0 || category !== "all" || status !== "all" || query) && (
+                <button
+                  onClick={() => {
+                    setSelectedYear("all"); setSelectedMonths([]);
+                    setCategory("all"); setStatus("all"); setQuery("");
+                  }}
+                  className="px-3 py-1.5 text-xs rounded-md border border-border bg-card hover:bg-secondary ml-auto"
+                >
+                  Tozalash
+                </button>
+              )}
+            </div>
           </Card>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <StatCard label="Jami xarajat" value={fmt(stats.total)} />
+            <StatCard label="To'lanmagan" value={fmt(stats.unpaid)} tone="red" />
+            <StatCard label="Qisman to'langan" value={fmt(stats.partial)} tone="orange" />
+            <StatCard label="To'langan" value={fmt(stats.paid)} tone="green" />
+          </div>
+
+          {/* Dashboard: monthly trend + top categories */}
+          <ExpensesDashboard expenses={periodFiltered} />
+
+          {/* Pivot: categories × months */}
+          <CategoryPivotTable expenses={periodFiltered} />
 
           {/* Table */}
           <Card className="p-4">
@@ -391,19 +451,21 @@ function ExpensesPage() {
                     <TableHead className="text-right">To'langan</TableHead>
                     <TableHead className="text-right">Qoldiq</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Amallar</TableHead>
+                    <TableHead>Yaratuvchi</TableHead>
+                    {canCreate && <TableHead className="text-right">Amallar</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
+                      <TableCell colSpan={canCreate ? 9 : 8} className="text-center text-muted-foreground py-10">
                         Xarajatlar topilmadi.
                       </TableCell>
                     </TableRow>
                   ) : rows.map((e) => {
                     const paid = paidByExpense.get(e.id) ?? 0;
                     const remaining = Number(e.total_amount) - paid;
+                    const creator = e.created_by ? (profileMap.get(e.created_by) ?? "—") : "—";
                     return (
                       <TableRow
                         key={e.id}
@@ -436,33 +498,40 @@ function ExpensesPage() {
                         <TableCell>
                           <StatusBadge status={e.status} />
                         </TableCell>
-                        <TableCell className="text-right whitespace-nowrap" onClick={(ev) => ev.stopPropagation()}>
-                          <div className="flex items-center justify-end gap-1">
-                            {e.status !== "paid" && (
-                              <Button
-                                size="sm"
-                                className="h-7 gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
-                                onClick={() => setPayExpense(e)}
-                              >
-                                <Coins className="h-3 w-3" /> To'lov
-                              </Button>
-                            )}
-                            <button
-                              className="h-7 w-7 rounded-md border border-border hover:bg-secondary flex items-center justify-center"
-                              title="Tahrirlash"
-                              onClick={() => setEditExpense(e)}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              className="h-7 w-7 rounded-md border border-border hover:bg-destructive hover:text-destructive-foreground flex items-center justify-center"
-                              title="O'chirish"
-                              onClick={() => handleDelete(e.id)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
+                        <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                          <span className="inline-flex items-center gap-1">
+                            <User className="h-3 w-3" /> {creator}
+                          </span>
                         </TableCell>
+                        {canCreate && (
+                          <TableCell className="text-right whitespace-nowrap" onClick={(ev) => ev.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1">
+                              {e.status !== "paid" && (
+                                <Button
+                                  size="sm"
+                                  className="h-7 gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                                  onClick={() => setPayExpense(e)}
+                                >
+                                  <Coins className="h-3 w-3" /> To'lov
+                                </Button>
+                              )}
+                              <button
+                                className="h-7 w-7 rounded-md border border-border hover:bg-secondary flex items-center justify-center"
+                                title="Tahrirlash"
+                                onClick={() => setEditExpense(e)}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                className="h-7 w-7 rounded-md border border-border hover:bg-destructive hover:text-destructive-foreground flex items-center justify-center"
+                                title="O'chirish"
+                                onClick={() => handleDelete(e.id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     );
                   })}
@@ -471,6 +540,7 @@ function ExpensesPage() {
             </div>
           </Card>
         </main>
+
       </div>
 
       <ExpenseFormDialog
@@ -496,6 +566,8 @@ function ExpensesPage() {
         onOpenChange={(o) => !o && setDetailExpense(null)}
         payments={detailExpense ? payments.filter((p) => p.expense_id === detailExpense.id) : []}
         paidSoFar={detailExpense ? (paidByExpense.get(detailExpense.id) ?? 0) : 0}
+        creatorName={detailExpense?.created_by ? (profileMap.get(detailExpense.created_by) ?? "—") : "—"}
+        canCreate={canCreate}
         onAddPayment={() => {
           if (detailExpense) {
             setPayExpense(detailExpense);
@@ -867,13 +939,15 @@ function PaymentDialog({
 }
 
 function ExpenseDetailDrawer({
-  expense, onOpenChange, payments, paidSoFar, onAddPayment,
+  expense, onOpenChange, payments, paidSoFar, onAddPayment, creatorName, canCreate,
 }: {
   expense: Expense | null;
   onOpenChange: (o: boolean) => void;
   payments: Payment[];
   paidSoFar: number;
   onAddPayment: () => void;
+  creatorName: string;
+  canCreate: boolean;
 }) {
   if (!expense) return null;
   const total = Number(expense.total_amount);
@@ -897,6 +971,7 @@ function ExpenseDetailDrawer({
             <Info label="Sana" value={expense.expense_date} />
             <Info label="Yetkazuvchi" value={expense.vendor ?? "—"} />
             <Info label="Jami" value={fmt(total, expense.currency)} />
+            <Info label="Yaratuvchi" value={creatorName} />
           </div>
           {expense.notes && (
             <Info label="Izoh" value={expense.notes} />
@@ -944,7 +1019,7 @@ function ExpenseDetailDrawer({
               </Table>
             </div>
           </div>
-          {expense.status !== "paid" && (
+          {canCreate && expense.status !== "paid" && (
             <Button
               onClick={onAddPayment}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
@@ -1252,5 +1327,74 @@ function CategoryPivotTable({ expenses }: { expenses: Expense[] }) {
         </Table>
       </div>
     </Card>
+  );
+}
+
+const MONTHS_UZ = [
+  ["1", "Yanvar"], ["2", "Fevral"], ["3", "Mart"], ["4", "Aprel"],
+  ["5", "May"], ["6", "Iyun"], ["7", "Iyul"], ["8", "Avgust"],
+  ["9", "Sentyabr"], ["10", "Oktyabr"], ["11", "Noyabr"], ["12", "Dekabr"],
+] as const;
+
+function MonthsMultiSelect({
+  selected, onChange,
+}: {
+  selected: string[];
+  onChange: (v: string[]) => void;
+}) {
+  const toggle = (v: string) =>
+    onChange(selected.includes(v) ? selected.filter((s) => s !== v) : [...selected, v]);
+  const label =
+    selected.length === 0
+      ? "Barcha oylar"
+      : selected.length === 1
+      ? MONTHS_UZ.find((m) => m[0] === selected[0])?.[1] ?? selected[0]
+      : `${selected.length} tanlangan`;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className="flex w-full items-center justify-between rounded-md border border-input bg-background px-3 h-9 text-sm hover:bg-accent/30"
+        >
+          <span className={cn("truncate", selected.length === 0 && "text-muted-foreground")}>
+            {label}
+          </span>
+          <ChevronDown className="h-4 w-4 opacity-50 shrink-0 ml-2" />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-2" align="start">
+        <div className="flex items-center justify-between px-2 py-1 mb-1">
+          <button
+            type="button"
+            className="text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => onChange([])}
+          >
+            Tozalash
+          </button>
+          <button
+            type="button"
+            className="text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => onChange(MONTHS_UZ.map((m) => m[0]))}
+          >
+            Hammasi
+          </button>
+        </div>
+        <div className="max-h-64 overflow-auto space-y-1">
+          {MONTHS_UZ.map(([k, l]) => (
+            <label
+              key={k}
+              className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm"
+            >
+              <Checkbox
+                checked={selected.includes(k)}
+                onCheckedChange={() => toggle(k)}
+              />
+              <span className="truncate">{l}</span>
+            </label>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
