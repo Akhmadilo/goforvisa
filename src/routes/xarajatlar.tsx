@@ -1019,7 +1019,7 @@ function ExpenseDetailDrawer({
               </Table>
             </div>
           </div>
-          {expense.status !== "paid" && (
+          {canCreate && expense.status !== "paid" && (
             <Button
               onClick={onAddPayment}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
