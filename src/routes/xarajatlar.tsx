@@ -971,6 +971,7 @@ function ExpenseDetailDrawer({
             <Info label="Sana" value={expense.expense_date} />
             <Info label="Yetkazuvchi" value={expense.vendor ?? "—"} />
             <Info label="Jami" value={fmt(total, expense.currency)} />
+            <Info label="Yaratuvchi" value={creatorName} />
           </div>
           {expense.notes && (
             <Info label="Izoh" value={expense.notes} />
