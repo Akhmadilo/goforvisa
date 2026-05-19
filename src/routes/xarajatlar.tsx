@@ -466,11 +466,13 @@ function ExpensesPage() {
         open={addOpen}
         onOpenChange={setAddOpen}
         expense={null}
+        categories={categories}
       />
       <ExpenseFormDialog
         open={!!editExpense}
         onOpenChange={(o) => !o && setEditExpense(null)}
         expense={editExpense}
+        categories={categories}
       />
       <PaymentDialog
         open={!!payExpense}
