@@ -566,6 +566,8 @@ function ExpensesPage() {
         onOpenChange={(o) => !o && setDetailExpense(null)}
         payments={detailExpense ? payments.filter((p) => p.expense_id === detailExpense.id) : []}
         paidSoFar={detailExpense ? (paidByExpense.get(detailExpense.id) ?? 0) : 0}
+        creatorName={detailExpense?.created_by ? (profileMap.get(detailExpense.created_by) ?? "—") : "—"}
+        canCreate={canCreate}
         onAddPayment={() => {
           if (detailExpense) {
             setPayExpense(detailExpense);
