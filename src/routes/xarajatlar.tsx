@@ -404,7 +404,7 @@ function ExpensesPage() {
                         </TableCell>
                         <TableCell className="font-medium">{e.title}</TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={cn("border", CATEGORY_COLORS[e.category])}>
+                          <Badge variant="outline" className={cn("border", categoryColor(e.category))}>
                             {e.category}
                           </Badge>
                         </TableCell>
