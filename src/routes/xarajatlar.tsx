@@ -939,13 +939,15 @@ function PaymentDialog({
 }
 
 function ExpenseDetailDrawer({
-  expense, onOpenChange, payments, paidSoFar, onAddPayment,
+  expense, onOpenChange, payments, paidSoFar, onAddPayment, creatorName, canCreate,
 }: {
   expense: Expense | null;
   onOpenChange: (o: boolean) => void;
   payments: Payment[];
   paidSoFar: number;
   onAddPayment: () => void;
+  creatorName: string;
+  canCreate: boolean;
 }) {
   if (!expense) return null;
   const total = Number(expense.total_amount);
