@@ -306,13 +306,15 @@ function ExpensesPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <Button
-                onClick={() => setAddOpen(true)}
-                className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-              >
-                <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Xarajat qo'shish</span>
-              </Button>
+              {canCreate && (
+                <Button
+                  onClick={() => setAddOpen(true)}
+                  className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Xarajat qo'shish</span>
+                </Button>
+              )}
               {isAdmin && (
                 <Link
                   to="/admin"
@@ -337,45 +339,28 @@ function ExpensesPage() {
         </header>
 
         <main className="mx-auto max-w-[1500px] px-6 py-6 space-y-6">
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <StatCard label="Jami xarajat" value={fmt(stats.total)} />
-            <StatCard label="To'lanmagan" value={fmt(stats.unpaid)} tone="red" />
-            <StatCard label="Qisman to'langan" value={fmt(stats.partial)} tone="orange" />
-            <StatCard label="To'langan" value={fmt(stats.paid)} tone="green" />
-          </div>
-
-          {/* Dashboard: monthly trend + top categories */}
-          <ExpensesDashboard expenses={expenses} />
-
-          {/* Pivot: categories × months */}
-          <CategoryPivotTable expenses={expenses} />
-
-
-          {/* Filters */}
+          {/* Top filters — affect dashboards, pivot and table */}
           <Card className="p-4 space-y-3">
-            <div className="flex flex-wrap gap-1.5">
-              {([
-                ["all", "Barchasi"],
-                ["unpaid", "To'lanmagan"],
-                ["partial", "Qisman"],
-                ["paid", "To'langan"],
-              ] as const).map(([k, l]) => (
-                <button
-                  key={k}
-                  onClick={() => setStatus(k)}
-                  className={cn(
-                    "px-3 py-1.5 text-sm rounded-md border transition-colors",
-                    status === k
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-card border-border hover:bg-secondary",
-                  )}
-                >
-                  {l}
-                </button>
-              ))}
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Yil</label>
+                <Select value={selectedYear} onValueChange={(v) => { setSelectedYear(v); setSelectedMonths([]); }}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Barcha yillar</SelectItem>
+                    {years.map((y) => (
+                      <SelectItem key={y} value={y}>{y}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Oylar</label>
+                <MonthsMultiSelect
+                  selected={selectedMonths}
+                  onChange={setSelectedMonths}
+                />
+              </div>
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">Kategoriya</label>
                 <Select value={category} onValueChange={setCategory}>
@@ -388,15 +373,7 @@ function ExpensesPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Oy / Yil</label>
-                <Input
-                  type="month"
-                  value={monthYear}
-                  onChange={(e) => setMonthYear(e.target.value)}
-                />
-              </div>
-              <div>
+              <div className="col-span-2 md:col-span-2">
                 <label className="text-xs text-muted-foreground mb-1 block">Qidiruv</label>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -409,7 +386,53 @@ function ExpensesPage() {
                 </div>
               </div>
             </div>
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {([
+                ["all", "Barchasi"],
+                ["unpaid", "To'lanmagan"],
+                ["partial", "Qisman"],
+                ["paid", "To'langan"],
+              ] as const).map(([k, l]) => (
+                <button
+                  key={k}
+                  onClick={() => setStatus(k)}
+                  className={cn(
+                    "px-3 py-1.5 text-xs rounded-md border transition-colors",
+                    status === k
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-card border-border hover:bg-secondary",
+                  )}
+                >
+                  {l}
+                </button>
+              ))}
+              {(selectedYear !== "all" || selectedMonths.length > 0 || category !== "all" || status !== "all" || query) && (
+                <button
+                  onClick={() => {
+                    setSelectedYear("all"); setSelectedMonths([]);
+                    setCategory("all"); setStatus("all"); setQuery("");
+                  }}
+                  className="px-3 py-1.5 text-xs rounded-md border border-border bg-card hover:bg-secondary ml-auto"
+                >
+                  Tozalash
+                </button>
+              )}
+            </div>
           </Card>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <StatCard label="Jami xarajat" value={fmt(stats.total)} />
+            <StatCard label="To'lanmagan" value={fmt(stats.unpaid)} tone="red" />
+            <StatCard label="Qisman to'langan" value={fmt(stats.partial)} tone="orange" />
+            <StatCard label="To'langan" value={fmt(stats.paid)} tone="green" />
+          </div>
+
+          {/* Dashboard: monthly trend + top categories */}
+          <ExpensesDashboard expenses={periodFiltered} />
+
+          {/* Pivot: categories × months */}
+          <CategoryPivotTable expenses={periodFiltered} />
 
           {/* Table */}
           <Card className="p-4">
@@ -428,19 +451,21 @@ function ExpensesPage() {
                     <TableHead className="text-right">To'langan</TableHead>
                     <TableHead className="text-right">Qoldiq</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Amallar</TableHead>
+                    <TableHead>Yaratuvchi</TableHead>
+                    {canCreate && <TableHead className="text-right">Amallar</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground py-10">
+                      <TableCell colSpan={canCreate ? 9 : 8} className="text-center text-muted-foreground py-10">
                         Xarajatlar topilmadi.
                       </TableCell>
                     </TableRow>
                   ) : rows.map((e) => {
                     const paid = paidByExpense.get(e.id) ?? 0;
                     const remaining = Number(e.total_amount) - paid;
+                    const creator = e.created_by ? (profileMap.get(e.created_by) ?? "—") : "—";
                     return (
                       <TableRow
                         key={e.id}
@@ -473,33 +498,40 @@ function ExpensesPage() {
                         <TableCell>
                           <StatusBadge status={e.status} />
                         </TableCell>
-                        <TableCell className="text-right whitespace-nowrap" onClick={(ev) => ev.stopPropagation()}>
-                          <div className="flex items-center justify-end gap-1">
-                            {e.status !== "paid" && (
-                              <Button
-                                size="sm"
-                                className="h-7 gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
-                                onClick={() => setPayExpense(e)}
-                              >
-                                <Coins className="h-3 w-3" /> To'lov
-                              </Button>
-                            )}
-                            <button
-                              className="h-7 w-7 rounded-md border border-border hover:bg-secondary flex items-center justify-center"
-                              title="Tahrirlash"
-                              onClick={() => setEditExpense(e)}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </button>
-                            <button
-                              className="h-7 w-7 rounded-md border border-border hover:bg-destructive hover:text-destructive-foreground flex items-center justify-center"
-                              title="O'chirish"
-                              onClick={() => handleDelete(e.id)}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
+                        <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                          <span className="inline-flex items-center gap-1">
+                            <User className="h-3 w-3" /> {creator}
+                          </span>
                         </TableCell>
+                        {canCreate && (
+                          <TableCell className="text-right whitespace-nowrap" onClick={(ev) => ev.stopPropagation()}>
+                            <div className="flex items-center justify-end gap-1">
+                              {e.status !== "paid" && (
+                                <Button
+                                  size="sm"
+                                  className="h-7 gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                                  onClick={() => setPayExpense(e)}
+                                >
+                                  <Coins className="h-3 w-3" /> To'lov
+                                </Button>
+                              )}
+                              <button
+                                className="h-7 w-7 rounded-md border border-border hover:bg-secondary flex items-center justify-center"
+                                title="Tahrirlash"
+                                onClick={() => setEditExpense(e)}
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                className="h-7 w-7 rounded-md border border-border hover:bg-destructive hover:text-destructive-foreground flex items-center justify-center"
+                                title="O'chirish"
+                                onClick={() => handleDelete(e.id)}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </TableCell>
+                        )}
                       </TableRow>
                     );
                   })}
@@ -508,6 +540,7 @@ function ExpensesPage() {
             </div>
           </Card>
         </main>
+
       </div>
 
       <ExpenseFormDialog
