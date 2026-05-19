@@ -20,8 +20,12 @@ import {
   Drawer, DrawerContent, DrawerHeader, DrawerTitle,
 } from "@/components/ui/drawer";
 import {
-  Receipt, LogOut, Shield, Search, Plus, Pencil, Trash2, Coins,
+  Receipt, LogOut, Shield, Search, Plus, Pencil, Trash2, Coins, TrendingUp, TrendingDown,
 } from "lucide-react";
+import {
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip,
+  BarChart, Bar, Cell, CartesianGrid,
+} from "recharts";
 import { toast } from "sonner";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
@@ -303,6 +307,13 @@ function ExpensesPage() {
             <StatCard label="Qisman to'langan" value={fmt(stats.partial)} tone="orange" />
             <StatCard label="To'langan" value={fmt(stats.paid)} tone="green" />
           </div>
+
+          {/* Dashboard: monthly trend + top categories */}
+          <ExpensesDashboard expenses={expenses} />
+
+          {/* Pivot: categories × months */}
+          <CategoryPivotTable expenses={expenses} />
+
 
           {/* Filters */}
           <Card className="p-4 space-y-3">
@@ -953,5 +964,293 @@ function Info({ label, value }: { label: string; value: string }) {
       <div className="text-xs text-muted-foreground">{label}</div>
       <div className="text-sm font-medium mt-0.5">{value}</div>
     </div>
+  );
+}
+
+// ============ DASHBOARDS ============
+
+const MONTH_LABELS_UZ = [
+  "Yan", "Fev", "Mar", "Apr", "May", "Iyn",
+  "Iyl", "Avg", "Sen", "Okt", "Noy", "Dek",
+];
+
+function monthsBetween(expenses: Expense[]): string[] {
+  if (expenses.length === 0) return [];
+  const set = new Set<string>();
+  for (const e of expenses) set.add(e.expense_date.slice(0, 7));
+  // also fill gaps for nicer trend
+  const sorted = Array.from(set).sort();
+  const [minY, minM] = sorted[0].split("-").map(Number);
+  const [maxY, maxM] = sorted[sorted.length - 1].split("-").map(Number);
+  const out: string[] = [];
+  let y = minY, m = minM;
+  while (y < maxY || (y === maxY && m <= maxM)) {
+    out.push(`${y}-${String(m).padStart(2, "0")}`);
+    m++;
+    if (m > 12) { m = 1; y++; }
+  }
+  return out;
+}
+
+function labelOfMonth(ym: string) {
+  const [y, m] = ym.split("-").map(Number);
+  return `${MONTH_LABELS_UZ[m - 1]} ${String(y).slice(2)}`;
+}
+
+function ExpensesDashboard({ expenses }: { expenses: Expense[] }) {
+  const months = useMemo(() => monthsBetween(expenses), [expenses]);
+
+  // Monthly totals
+  const monthlyData = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const e of expenses) {
+      const k = e.expense_date.slice(0, 7);
+      m.set(k, (m.get(k) ?? 0) + Number(e.total_amount));
+    }
+    return months.map((ym) => ({
+      month: labelOfMonth(ym),
+      raw: ym,
+      total: Math.round(m.get(ym) ?? 0),
+    }));
+  }, [expenses, months]);
+
+  // Top categories (all time)
+  const catData = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const e of expenses) {
+      m.set(e.category, (m.get(e.category) ?? 0) + Number(e.total_amount));
+    }
+    return Array.from(m.entries())
+      .map(([name, total]) => ({ name, total: Math.round(total) }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 8);
+  }, [expenses]);
+
+  // Month-over-month delta (last vs prev)
+  const delta = useMemo(() => {
+    const n = monthlyData.length;
+    if (n < 2) return null;
+    const last = monthlyData[n - 1].total;
+    const prev = monthlyData[n - 2].total;
+    if (prev === 0) return null;
+    const pct = ((last - prev) / prev) * 100;
+    return { last, prev, pct };
+  }, [monthlyData]);
+
+  const avgMonthly = useMemo(() => {
+    if (monthlyData.length === 0) return 0;
+    return monthlyData.reduce((s, d) => s + d.total, 0) / monthlyData.length;
+  }, [monthlyData]);
+
+  const barPalette = [
+    "#10b981", "#3b82f6", "#a855f7", "#f59e0b", "#ec4899",
+    "#06b6d4", "#ef4444", "#84cc16", "#6366f1", "#14b8a6",
+  ];
+
+  const tooltipFmt = (v: number) => fmt(v);
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+      {/* Monthly trend — area chart */}
+      <Card className="p-4 lg:col-span-2">
+        <div className="flex items-start justify-between mb-2">
+          <div>
+            <div className="text-sm font-semibold">Oylik xarajatlar tendensiyasi</div>
+            <div className="text-xs text-muted-foreground">
+              O'rtacha: {fmt(avgMonthly)}
+            </div>
+          </div>
+          {delta && (
+            <div
+              className={cn(
+                "text-xs flex items-center gap-1 px-2 py-1 rounded-md border",
+                delta.pct >= 0
+                  ? "text-destructive border-destructive/30 bg-destructive/10"
+                  : "text-emerald-600 dark:text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
+              )}
+            >
+              {delta.pct >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+              {delta.pct >= 0 ? "+" : ""}{delta.pct.toFixed(1)}% oyma-oy
+            </div>
+          )}
+        </div>
+        <div className="h-[260px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={monthlyData} margin={{ top: 10, right: 8, bottom: 0, left: 0 }}>
+              <defs>
+                <linearGradient id="gradExp" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="hsl(var(--primary, 142 71% 45%))" stopOpacity={0.6} />
+                  <stop offset="100%" stopColor="hsl(var(--primary, 142 71% 45%))" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.08} vertical={false} />
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="currentColor" opacity={0.5} />
+              <YAxis
+                tick={{ fontSize: 11 }}
+                stroke="currentColor"
+                opacity={0.5}
+                tickFormatter={(v) => v >= 1_000_000 ? `${(v/1_000_000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}K` : String(v)}
+              />
+              <Tooltip
+                formatter={tooltipFmt}
+                contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+              />
+              <Area
+                type="monotone"
+                dataKey="total"
+                stroke="#10b981"
+                strokeWidth={2}
+                fill="url(#gradExp)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
+
+      {/* Top categories — horizontal bar */}
+      <Card className="p-4">
+        <div className="text-sm font-semibold mb-1">Eng katta kategoriyalar</div>
+        <div className="text-xs text-muted-foreground mb-2">Jami summa bo'yicha</div>
+        <div className="h-[260px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={catData} layout="vertical" margin={{ top: 4, right: 8, bottom: 0, left: 4 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.08} horizontal={false} />
+              <XAxis
+                type="number"
+                tick={{ fontSize: 10 }}
+                stroke="currentColor"
+                opacity={0.5}
+                tickFormatter={(v) => v >= 1_000_000 ? `${(v/1_000_000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}K` : String(v)}
+              />
+              <YAxis
+                type="category"
+                dataKey="name"
+                tick={{ fontSize: 11 }}
+                stroke="currentColor"
+                opacity={0.7}
+                width={90}
+              />
+              <Tooltip
+                formatter={tooltipFmt}
+                contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+              />
+              <Bar dataKey="total" radius={[0, 6, 6, 0]}>
+                {catData.map((_, i) => (
+                  <Cell key={i} fill={barPalette[i % barPalette.length]} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function CategoryPivotTable({ expenses }: { expenses: Expense[] }) {
+  const months = useMemo(() => monthsBetween(expenses), [expenses]);
+
+  const { grid, categories, colTotals, rowTotals, grandTotal } = useMemo(() => {
+    const grid = new Map<string, Map<string, number>>();
+    for (const e of expenses) {
+      const ym = e.expense_date.slice(0, 7);
+      if (!grid.has(e.category)) grid.set(e.category, new Map());
+      const row = grid.get(e.category)!;
+      row.set(ym, (row.get(ym) ?? 0) + Number(e.total_amount));
+    }
+    const rowTotals = new Map<string, number>();
+    for (const [cat, row] of grid) {
+      let s = 0;
+      for (const v of row.values()) s += v;
+      rowTotals.set(cat, s);
+    }
+    const categories = Array.from(grid.keys()).sort(
+      (a, b) => (rowTotals.get(b) ?? 0) - (rowTotals.get(a) ?? 0),
+    );
+    const colTotals = months.map((ym) =>
+      categories.reduce((s, c) => s + (grid.get(c)?.get(ym) ?? 0), 0),
+    );
+    const grandTotal = colTotals.reduce((a, b) => a + b, 0);
+    return { grid, categories, colTotals, rowTotals, grandTotal };
+  }, [expenses, months]);
+
+  if (categories.length === 0) {
+    return null;
+  }
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <div className="text-sm font-semibold">Kategoriyalar × Oylar (jadval)</div>
+          <div className="text-xs text-muted-foreground">
+            {categories.length} kategoriya × {months.length} oy
+          </div>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          Jami: <span className="font-semibold text-foreground">{fmt(grandTotal)}</span>
+        </div>
+      </div>
+      <div className="overflow-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="sticky left-0 bg-card z-10 min-w-[160px]">Kategoriya</TableHead>
+              {months.map((ym) => (
+                <TableHead key={ym} className="text-right whitespace-nowrap">
+                  <div>{labelOfMonth(ym).split(" ")[0]}</div>
+                  <div className="text-[10px] text-muted-foreground font-normal">
+                    {labelOfMonth(ym).split(" ")[1]}
+                  </div>
+                </TableHead>
+              ))}
+              <TableHead className="text-right whitespace-nowrap sticky right-0 bg-card z-10">Jami</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {categories.map((cat) => {
+              const total = rowTotals.get(cat) ?? 0;
+              return (
+                <TableRow key={cat}>
+                  <TableCell className="sticky left-0 bg-card z-10 font-medium">
+                    <Badge variant="outline" className={cn("border", categoryColor(cat))}>
+                      {cat}
+                    </Badge>
+                  </TableCell>
+                  {months.map((ym) => {
+                    const v = grid.get(cat)?.get(ym) ?? 0;
+                    return (
+                      <TableCell
+                        key={`${cat}-${ym}`}
+                        className={cn(
+                          "text-right whitespace-nowrap tabular-nums text-xs",
+                          v === 0 && "text-muted-foreground/30",
+                        )}
+                      >
+                        {v === 0 ? "—" : fmt(v)}
+                      </TableCell>
+                    );
+                  })}
+                  <TableCell className="text-right font-semibold whitespace-nowrap tabular-nums sticky right-0 bg-card z-10">
+                    {fmt(total)}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            <TableRow className="border-t-2 bg-muted/30">
+              <TableCell className="sticky left-0 bg-muted/30 z-10 font-semibold">Jami</TableCell>
+              {colTotals.map((t, i) => (
+                <TableCell key={i} className="text-right font-semibold whitespace-nowrap tabular-nums text-xs">
+                  {t === 0 ? "—" : fmt(t)}
+                </TableCell>
+              ))}
+              <TableCell className="text-right font-bold whitespace-nowrap tabular-nums sticky right-0 bg-muted/30 z-10 text-primary">
+                {fmt(grandTotal)}
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
+    </Card>
   );
 }
