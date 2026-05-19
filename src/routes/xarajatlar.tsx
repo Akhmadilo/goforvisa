@@ -117,10 +117,13 @@ function ExpensesPage() {
     }
   }, [loading, permsLoading, user, can, navigate]);
 
+  const canCreate = can("expenses_create");
+
   // Filters
   const [status, setStatus] = useState<"all" | "unpaid" | "partial" | "paid">("all");
   const [category, setCategory] = useState<string>("all");
-  const [monthYear, setMonthYear] = useState<string>(""); // YYYY-MM
+  const [selectedYear, setSelectedYear] = useState<string>("all");
+  const [selectedMonths, setSelectedMonths] = useState<string[]>([]); // 1..12 as strings
   const [query, setQuery] = useState("");
 
   // Data
