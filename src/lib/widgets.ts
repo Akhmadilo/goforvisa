@@ -1,8 +1,9 @@
-export type WidgetGroup = "dashboard" | "salaries";
+export type WidgetGroup = "dashboard" | "salaries" | "expenses";
 
 export const WIDGET_GROUPS: { key: WidgetGroup; label: string }[] = [
   { key: "dashboard", label: "Dashboard bo'limi" },
   { key: "salaries", label: "Ishchilar oyliklari bo'limi" },
+  { key: "expenses", label: "Xarajatlar bo'limi" },
 ];
 
 export const WIDGETS = [
@@ -25,6 +26,10 @@ export const WIDGETS = [
   { key: "salaries_totals", group: "salaries", label: "Umumiy kartalar" },
   { key: "salaries_pivot", group: "salaries", label: "Pivot jadval (oylar × ishchilar)" },
   { key: "salaries_table", group: "salaries", label: "To'liq jadval" },
+  // Expenses
+  { key: "expenses_section", group: "expenses", label: "Bo'limga kirish (sahifa)" },
+  { key: "expenses_totals", group: "expenses", label: "Umumiy kartalar" },
+  { key: "expenses_table", group: "expenses", label: "Xarajatlar jadvali" },
 ] as const;
 
 export type WidgetKey = (typeof WIDGETS)[number]["key"];

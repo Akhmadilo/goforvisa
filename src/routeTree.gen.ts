@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as XarajatlarRouteImport } from './routes/xarajatlar'
 import { Route as SalariesRouteImport } from './routes/salaries'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 
+const XarajatlarRoute = XarajatlarRouteImport.update({
+  id: '/xarajatlar',
+  path: '/xarajatlar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SalariesRoute = SalariesRouteImport.update({
   id: '/salaries',
   path: '/salaries',
@@ -40,12 +46,14 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/salaries': typeof SalariesRoute
+  '/xarajatlar': typeof XarajatlarRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/salaries': typeof SalariesRoute
+  '/xarajatlar': typeof XarajatlarRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,14 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
   '/salaries': typeof SalariesRoute
+  '/xarajatlar': typeof XarajatlarRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/auth' | '/salaries'
+  fullPaths: '/' | '/admin' | '/auth' | '/salaries' | '/xarajatlar'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/auth' | '/salaries'
-  id: '__root__' | '/' | '/admin' | '/auth' | '/salaries'
+  to: '/' | '/admin' | '/auth' | '/salaries' | '/xarajatlar'
+  id: '__root__' | '/' | '/admin' | '/auth' | '/salaries' | '/xarajatlar'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,10 +76,18 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
   SalariesRoute: typeof SalariesRoute
+  XarajatlarRoute: typeof XarajatlarRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/xarajatlar': {
+      id: '/xarajatlar'
+      path: '/xarajatlar'
+      fullPath: '/xarajatlar'
+      preLoaderRoute: typeof XarajatlarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/salaries': {
       id: '/salaries'
       path: '/salaries'
@@ -107,6 +124,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
   SalariesRoute: SalariesRoute,
+  XarajatlarRoute: XarajatlarRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

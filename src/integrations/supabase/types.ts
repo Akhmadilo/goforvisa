@@ -14,6 +14,83 @@ export type Database = {
   }
   public: {
     Tables: {
+      expense_payments: {
+        Row: {
+          amount: number
+          created_at: string
+          expense_id: string
+          id: string
+          note: string | null
+          paid_at: string
+          payment_method: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          expense_id: string
+          id?: string
+          note?: string | null
+          paid_at?: string
+          payment_method?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          expense_id?: string
+          id?: string
+          note?: string | null
+          paid_at?: string
+          payment_method?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expense_payments_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expenses: {
+        Row: {
+          category: string
+          created_at: string
+          currency: string
+          expense_date: string
+          id: string
+          notes: string | null
+          status: string
+          title: string
+          total_amount: number
+          vendor: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          currency?: string
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          title: string
+          total_amount: number
+          vendor?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          currency?: string
+          expense_date?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          title?: string
+          total_amount?: number
+          vendor?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -91,6 +168,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      recompute_expense_status: {
+        Args: { _expense_id: string }
+        Returns: undefined
       }
     }
     Enums: {
