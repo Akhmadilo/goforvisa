@@ -166,6 +166,21 @@ function ExpensesPage() {
     enabled: !!user,
   });
 
+  // Profiles for creator names
+  const { data: profileMap = new Map<string, string>() } = useQuery({
+    queryKey: ["profiles-map"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, display_name");
+      if (error) throw error;
+      const m = new Map<string, string>();
+      for (const r of data ?? []) m.set((r as any).id, (r as any).display_name ?? "—");
+      return m;
+    },
+    enabled: !!user,
+  });
+
   // Realtime subscriptions
   useEffect(() => {
     if (!user) return;
