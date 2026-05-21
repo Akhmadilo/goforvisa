@@ -26,6 +26,7 @@ export const WIDGETS = [
   { key: "salaries_totals", group: "salaries", label: "Umumiy kartalar" },
   { key: "salaries_pivot", group: "salaries", label: "Pivot jadval (oylar × ishchilar)" },
   { key: "salaries_table", group: "salaries", label: "To'liq jadval" },
+  { key: "salaries_create", group: "salaries", label: "Oylik yaratish / tahrirlash / o'chirish" },
   // Expenses
   { key: "expenses_section", group: "expenses", label: "Bo'limga kirish (sahifa)" },
   { key: "expenses_totals", group: "expenses", label: "Umumiy kartalar" },
