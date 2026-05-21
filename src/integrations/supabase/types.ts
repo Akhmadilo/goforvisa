@@ -136,6 +136,48 @@ export type Database = {
         }
         Relationships: []
       }
+      salaries: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          employee_name: string
+          fixed_amount: number
+          id: string
+          kpi_amount: number
+          month: number
+          note: string | null
+          penalty_amount: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          employee_name: string
+          fixed_amount?: number
+          id?: string
+          kpi_amount?: number
+          month: number
+          note?: string | null
+          penalty_amount?: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          employee_name?: string
+          fixed_amount?: number
+          id?: string
+          kpi_amount?: number
+          month?: number
+          note?: string | null
+          penalty_amount?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
