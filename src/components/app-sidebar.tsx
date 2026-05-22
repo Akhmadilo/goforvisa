@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Wallet, Receipt } from "lucide-react";
+import { LayoutDashboard, Wallet, Receipt, Users, LineChart } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 
@@ -7,6 +7,8 @@ const items = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, widget: null as string | null },
   { to: "/salaries", label: "Ishchilar oyliklari", icon: Wallet, widget: "salaries_section" },
   { to: "/xarajatlar", label: "Xarajatlar", icon: Receipt, widget: "expenses_section" },
+  { to: "/employees", label: "Ishchilar", icon: Users, widget: "employees_section" },
+  { to: "/moliya", label: "Moliyaviy hisobot", icon: LineChart, widget: "finance_section" },
 ] as const;
 
 export function AppSidebar() {
