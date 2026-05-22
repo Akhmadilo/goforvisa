@@ -118,6 +118,10 @@ function ExpensesPage() {
   }, [loading, permsLoading, user, can, navigate]);
 
   const canCreate = can("expenses_create");
+  const canEdit = can("expenses_edit");
+  const canDelete = can("expenses_delete");
+  const canPay = can("expenses_pay");
+  const canAnyAction = canCreate || canEdit || canDelete || canPay;
 
   // Filters
   const [status, setStatus] = useState<"all" | "unpaid" | "partial" | "paid">("all");
@@ -452,13 +456,13 @@ function ExpensesPage() {
                     <TableHead className="text-right">Qoldiq</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Yaratuvchi</TableHead>
-                    {canCreate && <TableHead className="text-right">Amallar</TableHead>}
+                    {canAnyAction && <TableHead className="text-right">Amallar</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={canCreate ? 9 : 8} className="text-center text-muted-foreground py-10">
+                      <TableCell colSpan={canAnyAction ? 9 : 8} className="text-center text-muted-foreground py-10">
                         Xarajatlar topilmadi.
                       </TableCell>
                     </TableRow>
@@ -503,10 +507,10 @@ function ExpensesPage() {
                             <User className="h-3 w-3" /> {creator}
                           </span>
                         </TableCell>
-                        {canCreate && (
+                        {canAnyAction && (
                           <TableCell className="text-right whitespace-nowrap" onClick={(ev) => ev.stopPropagation()}>
                             <div className="flex items-center justify-end gap-1">
-                              {e.status !== "paid" && (
+                              {canPay && e.status !== "paid" && (
                                 <Button
                                   size="sm"
                                   className="h-7 gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -515,20 +519,24 @@ function ExpensesPage() {
                                   <Coins className="h-3 w-3" /> To'lov
                                 </Button>
                               )}
-                              <button
-                                className="h-7 w-7 rounded-md border border-border hover:bg-secondary flex items-center justify-center"
-                                title="Tahrirlash"
-                                onClick={() => setEditExpense(e)}
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </button>
-                              <button
-                                className="h-7 w-7 rounded-md border border-border hover:bg-destructive hover:text-destructive-foreground flex items-center justify-center"
-                                title="O'chirish"
-                                onClick={() => handleDelete(e.id)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
+                              {canEdit && (
+                                <button
+                                  className="h-7 w-7 rounded-md border border-border hover:bg-secondary flex items-center justify-center"
+                                  title="Tahrirlash"
+                                  onClick={() => setEditExpense(e)}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                              {canDelete && (
+                                <button
+                                  className="h-7 w-7 rounded-md border border-border hover:bg-destructive hover:text-destructive-foreground flex items-center justify-center"
+                                  title="O'chirish"
+                                  onClick={() => handleDelete(e.id)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
                             </div>
                           </TableCell>
                         )}
@@ -567,7 +575,7 @@ function ExpensesPage() {
         payments={detailExpense ? payments.filter((p) => p.expense_id === detailExpense.id) : []}
         paidSoFar={detailExpense ? (paidByExpense.get(detailExpense.id) ?? 0) : 0}
         creatorName={detailExpense?.created_by ? (profileMap.get(detailExpense.created_by) ?? "—") : "—"}
-        canCreate={canCreate}
+        canPay={canPay}
         onAddPayment={() => {
           if (detailExpense) {
             setPayExpense(detailExpense);
@@ -939,7 +947,7 @@ function PaymentDialog({
 }
 
 function ExpenseDetailDrawer({
-  expense, onOpenChange, payments, paidSoFar, onAddPayment, creatorName, canCreate,
+  expense, onOpenChange, payments, paidSoFar, onAddPayment, creatorName, canPay,
 }: {
   expense: Expense | null;
   onOpenChange: (o: boolean) => void;
@@ -947,7 +955,7 @@ function ExpenseDetailDrawer({
   paidSoFar: number;
   onAddPayment: () => void;
   creatorName: string;
-  canCreate: boolean;
+  canPay: boolean;
 }) {
   if (!expense) return null;
   const total = Number(expense.total_amount);
@@ -955,6 +963,13 @@ function ExpenseDetailDrawer({
   const pct = total > 0 ? Math.min(100, Math.round((paidSoFar / total) * 100)) : 0;
   const methodLabel = (m: string | null) =>
     PAYMENT_METHODS.find((p) => p.value === m)?.label ?? m ?? "—";
+
+  const handleDeletePayment = async (id: string) => {
+    if (!confirm("To'lovni o'chirishni xohlaysizmi? Status qayta hisoblanadi.")) return;
+    const { error } = await supabase.from("expense_payments").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else toast.success("To'lov o'chirildi");
+  };
 
   return (
     <Drawer open={!!expense} onOpenChange={onOpenChange}>
@@ -973,9 +988,7 @@ function ExpenseDetailDrawer({
             <Info label="Jami" value={fmt(total, expense.currency)} />
             <Info label="Yaratuvchi" value={creatorName} />
           </div>
-          {expense.notes && (
-            <Info label="Izoh" value={expense.notes} />
-          )}
+          {expense.notes && <Info label="Izoh" value={expense.notes} />}
           <div className="space-y-1.5">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">To'langan: {fmt(paidSoFar, expense.currency)}</span>
@@ -986,8 +999,19 @@ function ExpenseDetailDrawer({
             <Progress value={pct} />
             <div className="text-xs text-muted-foreground text-right">{pct}%</div>
           </div>
-          <div>
-            <div className="text-sm font-semibold mb-2">To'lovlar tarixi</div>
+          <div className="rounded-md border border-border">
+            <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
+              <div className="text-sm font-semibold">To'lovlar tarixi</div>
+              {canPay && expense.status !== "paid" && (
+                <Button
+                  size="sm"
+                  onClick={onAddPayment}
+                  className="h-7 gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                >
+                  <Plus className="h-3 w-3" /> Qayta to'lash
+                </Button>
+              )}
+            </div>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -996,12 +1020,13 @@ function ExpenseDetailDrawer({
                     <TableHead className="text-right">Summa</TableHead>
                     <TableHead>Usul</TableHead>
                     <TableHead>Izoh</TableHead>
+                    {canPay && <TableHead className="text-right w-16">Amal</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {payments.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground py-6">
+                      <TableCell colSpan={canPay ? 5 : 4} className="text-center text-muted-foreground py-6">
                         To'lovlar yo'q
                       </TableCell>
                     </TableRow>
@@ -1013,20 +1038,23 @@ function ExpenseDetailDrawer({
                       </TableCell>
                       <TableCell>{methodLabel(p.payment_method)}</TableCell>
                       <TableCell className="text-muted-foreground">{p.note ?? "—"}</TableCell>
+                      {canPay && (
+                        <TableCell className="text-right">
+                          <button
+                            className="h-7 w-7 rounded-md border border-border hover:bg-destructive hover:text-destructive-foreground flex items-center justify-center"
+                            title="To'lovni o'chirish"
+                            onClick={() => handleDeletePayment(p.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </div>
           </div>
-          {canCreate && expense.status !== "paid" && (
-            <Button
-              onClick={onAddPayment}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5"
-            >
-              <Plus className="h-4 w-4" /> To'lov qo'shish
-            </Button>
-          )}
         </div>
       </DrawerContent>
     </Drawer>

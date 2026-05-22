@@ -1,9 +1,11 @@
-export type WidgetGroup = "dashboard" | "salaries" | "expenses";
+export type WidgetGroup = "dashboard" | "salaries" | "expenses" | "employees" | "finance";
 
 export const WIDGET_GROUPS: { key: WidgetGroup; label: string }[] = [
   { key: "dashboard", label: "Dashboard bo'limi" },
   { key: "salaries", label: "Ishchilar oyliklari bo'limi" },
   { key: "expenses", label: "Xarajatlar bo'limi" },
+  { key: "employees", label: "Ishchilar bo'limi" },
+  { key: "finance", label: "Moliyaviy hisobotlar bo'limi" },
 ];
 
 export const WIDGETS = [
@@ -26,12 +28,22 @@ export const WIDGETS = [
   { key: "salaries_totals", group: "salaries", label: "Umumiy kartalar" },
   { key: "salaries_pivot", group: "salaries", label: "Pivot jadval (oylar × ishchilar)" },
   { key: "salaries_table", group: "salaries", label: "To'liq jadval" },
-  { key: "salaries_create", group: "salaries", label: "Oylik yaratish / tahrirlash / o'chirish" },
+  { key: "salaries_create", group: "salaries", label: "Oylik yaratish" },
+  { key: "salaries_edit", group: "salaries", label: "Oylik tahrirlash" },
+  { key: "salaries_delete", group: "salaries", label: "Oylik o'chirish" },
   // Expenses
   { key: "expenses_section", group: "expenses", label: "Bo'limga kirish (sahifa)" },
   { key: "expenses_totals", group: "expenses", label: "Umumiy kartalar" },
   { key: "expenses_table", group: "expenses", label: "Xarajatlar jadvali" },
-  { key: "expenses_create", group: "expenses", label: "Xarajat yaratish / tahrirlash / o'chirish" },
+  { key: "expenses_create", group: "expenses", label: "Xarajat yaratish" },
+  { key: "expenses_edit", group: "expenses", label: "Xarajat tahrirlash" },
+  { key: "expenses_delete", group: "expenses", label: "Xarajat o'chirish" },
+  { key: "expenses_pay", group: "expenses", label: "To'lov qo'shish / o'chirish" },
+  // Employees
+  { key: "employees_section", group: "employees", label: "Bo'limga kirish (sahifa)" },
+  { key: "employees_create", group: "employees", label: "Ishchi qo'shish / tahrirlash / o'chirish" },
+  // Finance
+  { key: "finance_section", group: "finance", label: "Bo'limga kirish (sahifa)" },
 ] as const;
 
 export type WidgetKey = (typeof WIDGETS)[number]["key"];

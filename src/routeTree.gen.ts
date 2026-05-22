@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as XarajatlarRouteImport } from './routes/xarajatlar'
 import { Route as SalariesRouteImport } from './routes/salaries'
+import { Route as MoliyaRouteImport } from './routes/moliya'
+import { Route as EmployeesRouteImport } from './routes/employees'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -23,6 +25,16 @@ const XarajatlarRoute = XarajatlarRouteImport.update({
 const SalariesRoute = SalariesRouteImport.update({
   id: '/salaries',
   path: '/salaries',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MoliyaRoute = MoliyaRouteImport.update({
+  id: '/moliya',
+  path: '/moliya',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmployeesRoute = EmployeesRouteImport.update({
+  id: '/employees',
+  path: '/employees',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -45,6 +57,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/employees': typeof EmployeesRoute
+  '/moliya': typeof MoliyaRoute
   '/salaries': typeof SalariesRoute
   '/xarajatlar': typeof XarajatlarRoute
 }
@@ -52,6 +66,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/employees': typeof EmployeesRoute
+  '/moliya': typeof MoliyaRoute
   '/salaries': typeof SalariesRoute
   '/xarajatlar': typeof XarajatlarRoute
 }
@@ -60,21 +76,47 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/employees': typeof EmployeesRoute
+  '/moliya': typeof MoliyaRoute
   '/salaries': typeof SalariesRoute
   '/xarajatlar': typeof XarajatlarRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/admin' | '/auth' | '/salaries' | '/xarajatlar'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/employees'
+    | '/moliya'
+    | '/salaries'
+    | '/xarajatlar'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/admin' | '/auth' | '/salaries' | '/xarajatlar'
-  id: '__root__' | '/' | '/admin' | '/auth' | '/salaries' | '/xarajatlar'
+  to:
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/employees'
+    | '/moliya'
+    | '/salaries'
+    | '/xarajatlar'
+  id:
+    | '__root__'
+    | '/'
+    | '/admin'
+    | '/auth'
+    | '/employees'
+    | '/moliya'
+    | '/salaries'
+    | '/xarajatlar'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
+  EmployeesRoute: typeof EmployeesRoute
+  MoliyaRoute: typeof MoliyaRoute
   SalariesRoute: typeof SalariesRoute
   XarajatlarRoute: typeof XarajatlarRoute
 }
@@ -93,6 +135,20 @@ declare module '@tanstack/react-router' {
       path: '/salaries'
       fullPath: '/salaries'
       preLoaderRoute: typeof SalariesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/moliya': {
+      id: '/moliya'
+      path: '/moliya'
+      fullPath: '/moliya'
+      preLoaderRoute: typeof MoliyaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/employees': {
+      id: '/employees'
+      path: '/employees'
+      fullPath: '/employees'
+      preLoaderRoute: typeof EmployeesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -123,19 +179,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
+  EmployeesRoute: EmployeesRoute,
+  MoliyaRoute: MoliyaRoute,
   SalariesRoute: SalariesRoute,
   XarajatlarRoute: XarajatlarRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

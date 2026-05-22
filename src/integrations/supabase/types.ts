@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      employees: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          created_by: string | null
+          full_name: string
+          hired_at: string | null
+          id: string
+          note: string | null
+          phone: string | null
+          position: string | null
+          terminated_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          full_name: string
+          hired_at?: string | null
+          id?: string
+          note?: string | null
+          phone?: string | null
+          position?: string | null
+          terminated_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          full_name?: string
+          hired_at?: string | null
+          id?: string
+          note?: string | null
+          phone?: string | null
+          position?: string | null
+          terminated_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       expense_categories: {
         Row: {
           created_at: string
