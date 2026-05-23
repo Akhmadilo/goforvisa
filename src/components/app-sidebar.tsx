@@ -1,19 +1,21 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Wallet, Receipt, Users, LineChart } from "lucide-react";
+import { LayoutDashboard, Wallet, Receipt, Users, LineChart, Settings } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
-
-const items = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, widget: null as string | null },
-  { to: "/salaries", label: "Ishchilar oyliklari", icon: Wallet, widget: "salaries_section" },
-  { to: "/xarajatlar", label: "Xarajatlar", icon: Receipt, widget: "expenses_section" },
-  { to: "/employees", label: "Ishchilar", icon: Users, widget: "employees_section" },
-  { to: "/moliya", label: "Moliyaviy hisobot", icon: LineChart, widget: "finance_section" },
-] as const;
+import { useT, LANGUAGES, type Lang } from "@/lib/i18n";
 
 export function AppSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { can, loading } = useWidgetPermissions();
+  const { t, lang, setLang } = useT();
+
+  const items = [
+    { to: "/", label: t("nav.dashboard"), icon: LayoutDashboard, widget: null as string | null },
+    { to: "/salaries", label: t("nav.salaries"), icon: Wallet, widget: "salaries_section" },
+    { to: "/xarajatlar", label: t("nav.expenses"), icon: Receipt, widget: "expenses_section" },
+    { to: "/employees", label: t("nav.employees"), icon: Users, widget: "employees_section" },
+    { to: "/moliya", label: t("nav.finance"), icon: LineChart, widget: "finance_section" },
+  ] as const;
 
   return (
     <aside className="hidden md:flex fixed inset-y-0 left-0 z-30 w-56 flex-col border-r border-border bg-card/60 backdrop-blur">
@@ -43,7 +45,39 @@ export function AppSidebar() {
             </Link>
           );
         })}
+        <Link
+          to="/settings"
+          className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+            pathname === "/settings"
+              ? "bg-primary text-primary-foreground"
+              : "text-foreground hover:bg-secondary"
+          }`}
+        >
+          <Settings className="h-4 w-4" />
+          <span>{t("nav.settings")}</span>
+        </Link>
       </nav>
+      <div className="border-t border-border p-3">
+        <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">
+          {t("common.language")}
+        </div>
+        <div className="flex gap-1">
+          {LANGUAGES.map((l) => (
+            <button
+              key={l.code}
+              onClick={() => setLang(l.code as Lang)}
+              className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+                lang === l.code
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-foreground hover:bg-secondary/70"
+              }`}
+              title={l.label}
+            >
+              {l.code.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </div>
     </aside>
   );
 }
