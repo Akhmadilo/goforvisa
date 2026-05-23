@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Employee photos listable by authenticated" ON storage.objects;
