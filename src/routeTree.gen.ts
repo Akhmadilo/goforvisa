@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as XarajatlarRouteImport } from './routes/xarajatlar'
+import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SalariesRouteImport } from './routes/salaries'
 import { Route as MoliyaRouteImport } from './routes/moliya'
 import { Route as EmployeesRouteImport } from './routes/employees'
@@ -20,6 +21,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const XarajatlarRoute = XarajatlarRouteImport.update({
   id: '/xarajatlar',
   path: '/xarajatlar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SalariesRoute = SalariesRouteImport.update({
@@ -60,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/employees': typeof EmployeesRoute
   '/moliya': typeof MoliyaRoute
   '/salaries': typeof SalariesRoute
+  '/settings': typeof SettingsRoute
   '/xarajatlar': typeof XarajatlarRoute
 }
 export interface FileRoutesByTo {
@@ -69,6 +76,7 @@ export interface FileRoutesByTo {
   '/employees': typeof EmployeesRoute
   '/moliya': typeof MoliyaRoute
   '/salaries': typeof SalariesRoute
+  '/settings': typeof SettingsRoute
   '/xarajatlar': typeof XarajatlarRoute
 }
 export interface FileRoutesById {
@@ -79,6 +87,7 @@ export interface FileRoutesById {
   '/employees': typeof EmployeesRoute
   '/moliya': typeof MoliyaRoute
   '/salaries': typeof SalariesRoute
+  '/settings': typeof SettingsRoute
   '/xarajatlar': typeof XarajatlarRoute
 }
 export interface FileRouteTypes {
@@ -90,6 +99,7 @@ export interface FileRouteTypes {
     | '/employees'
     | '/moliya'
     | '/salaries'
+    | '/settings'
     | '/xarajatlar'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -99,6 +109,7 @@ export interface FileRouteTypes {
     | '/employees'
     | '/moliya'
     | '/salaries'
+    | '/settings'
     | '/xarajatlar'
   id:
     | '__root__'
@@ -108,6 +119,7 @@ export interface FileRouteTypes {
     | '/employees'
     | '/moliya'
     | '/salaries'
+    | '/settings'
     | '/xarajatlar'
   fileRoutesById: FileRoutesById
 }
@@ -118,6 +130,7 @@ export interface RootRouteChildren {
   EmployeesRoute: typeof EmployeesRoute
   MoliyaRoute: typeof MoliyaRoute
   SalariesRoute: typeof SalariesRoute
+  SettingsRoute: typeof SettingsRoute
   XarajatlarRoute: typeof XarajatlarRoute
 }
 
@@ -128,6 +141,13 @@ declare module '@tanstack/react-router' {
       path: '/xarajatlar'
       fullPath: '/xarajatlar'
       preLoaderRoute: typeof XarajatlarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/salaries': {
@@ -182,6 +202,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmployeesRoute: EmployeesRoute,
   MoliyaRoute: MoliyaRoute,
   SalariesRoute: SalariesRoute,
+  SettingsRoute: SettingsRoute,
   XarajatlarRoute: XarajatlarRoute,
 }
 export const routeTree = rootRouteImport
