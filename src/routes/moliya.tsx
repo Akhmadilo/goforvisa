@@ -235,7 +235,9 @@ function FinancePage() {
       revenueByMonth, expenseByMonth, expenseByCat, topExpenses,
       allYears: Array.from(ySet).sort(),
     };
-  }, [contracts, expenses, payments, basis, year, months]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contracts, expenses, payments, salaries, basis, year, months, getRate]);
+
 
   const allMonths = useMemo(() => {
     const s = new Set<string>([...revenueByMonth.keys(), ...expenseByMonth.keys()]);
