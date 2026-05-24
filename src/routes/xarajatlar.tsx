@@ -251,38 +251,51 @@ function ExpensesPage() {
     return m;
   }, [payments]);
 
-  // Years present in data
+  // Years present in data (expenses + salaries)
   const years = useMemo(() => {
     const s = new Set<string>();
     for (const e of expenses) s.add(e.expense_date.slice(0, 4));
+    for (const e of salaryExpenses) s.add(e.expense_date.slice(0, 4));
     return Array.from(s).sort();
-  }, [expenses]);
+  }, [expenses, salaryExpenses]);
 
-  // Period filter (year + months) — applied to dashboard, pivot, table
-  const periodFiltered = useMemo(() => {
-    return expenses.filter((e) => {
-      const y = e.expense_date.slice(0, 4);
-      const m = String(Number(e.expense_date.slice(5, 7))); // "1".."12"
-      if (selectedYear !== "all" && y !== selectedYear) return false;
-      if (selectedMonths.length > 0 && !selectedMonths.includes(m)) return false;
-      return true;
-    });
-  }, [expenses, selectedYear, selectedMonths]);
+  const matchesPeriod = (e: Expense) => {
+    const y = e.expense_date.slice(0, 4);
+    const m = String(Number(e.expense_date.slice(5, 7)));
+    if (selectedYear !== "all" && y !== selectedYear) return false;
+    if (selectedMonths.length > 0 && !selectedMonths.includes(m)) return false;
+    return true;
+  };
 
-  // Stats (based on period filter)
+  // Period filter — table-only (expenses, no salaries)
+  const periodFiltered = useMemo(
+    () => expenses.filter(matchesPeriod),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [expenses, selectedYear, selectedMonths],
+  );
+
+  // Period filter — dashboards/pivot/stats (includes salaries)
+  const periodFilteredAll = useMemo(
+    () => [...expenses, ...salaryExpenses].filter(matchesPeriod),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [expenses, salaryExpenses, selectedYear, selectedMonths],
+  );
+
+  // Stats — in UZS (USD converted via per-month rate); includes salaries
   const stats = useMemo(() => {
     const s = { total: 0, unpaid: 0, partial: 0, paid: 0 };
-    for (const e of periodFiltered) {
-      const amt = Number(e.total_amount);
+    for (const e of periodFilteredAll) {
+      const amt = toUzs(e);
       s.total += amt;
       if (e.status === "unpaid") s.unpaid += amt;
       else if (e.status === "partial") s.partial += amt;
       else if (e.status === "paid") s.paid += amt;
     }
     return s;
-  }, [periodFiltered]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodFilteredAll, getRate]);
 
-  // Final rows for table: period + status + category + search
+  // Final rows for table: period + status + category + search (expenses only)
   const rows = periodFiltered
     .filter((e) => status === "all" || e.status === status)
     .filter((e) => category === "all" || e.category === category)
@@ -294,6 +307,7 @@ function ExpensesPage() {
         (e.vendor ?? "").toLowerCase().includes(q)
       );
     });
+
 
 
   // Modals
