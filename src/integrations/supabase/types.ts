@@ -220,6 +220,33 @@ export type Database = {
         }
         Relationships: []
       }
+      usd_rates: {
+        Row: {
+          created_at: string
+          id: string
+          month: number
+          rate: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month: number
+          rate: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month?: number
+          rate?: number
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
