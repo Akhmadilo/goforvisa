@@ -485,11 +485,12 @@ function ExpensesPage() {
             <StatCard label="To'langan" value={fmt(stats.paid)} tone="green" />
           </div>
 
-          {/* Dashboard: monthly trend + top categories */}
-          <ExpensesDashboard expenses={periodFiltered} />
+          {/* Dashboard: monthly trend + top categories (UZS-normalized, includes salaries) */}
+          <ExpensesDashboard expenses={periodFilteredAll.map(e => ({ ...e, total_amount: toUzs(e), currency: "UZS" }))} />
 
-          {/* Pivot: categories × months */}
-          <CategoryPivotTable expenses={periodFiltered} />
+          {/* Pivot: categories × months (UZS-normalized, includes salaries) */}
+          <CategoryPivotTable expenses={periodFilteredAll.map(e => ({ ...e, total_amount: toUzs(e), currency: "UZS" }))} />
+
 
           {/* Table */}
           <Card className="p-4">
