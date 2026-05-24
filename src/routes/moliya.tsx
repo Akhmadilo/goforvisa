@@ -39,13 +39,20 @@ export const Route = createFileRoute("/moliya")({
   }),
 });
 
-const USD_RATE = 12600;
-
-function toUsd(c: Contract): number {
+// Convert a contract to USD (uses priceUsd if available; falls back to UZS via the rate of the contract's month)
+function contractToUsd(c: Contract, getRate: (ym: string) => number): number {
   if (c.priceUsd > 0) return c.priceUsd;
-  if (c.priceUzs > 0) return c.priceUzs / USD_RATE;
+  if (c.priceUzs > 0) {
+    const d = parseContractDate(c.contractDate);
+    const ym = d
+      ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+      : "";
+    const rate = ym ? getRate(ym) : DEFAULT_USD_RATE;
+    return c.priceUzs / rate;
+  }
   return 0;
 }
+
 
 const MONTH_ORDER = [
   "January","February","March","April","May","June",
