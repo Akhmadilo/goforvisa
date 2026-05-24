@@ -187,6 +187,39 @@ function ExpensesPage() {
     enabled: !!user,
   });
 
+  // Salaries — included as synthetic "Oyliklar" expenses for stats/dashboard/pivot
+  const { data: salaryExpenses = [] } = useQuery({
+    queryKey: ["salaries-as-expenses"],
+    queryFn: async (): Promise<Expense[]> => {
+      const { data, error } = await supabase
+        .from("salaries")
+        .select("id, employee_name, year, month, fixed_amount, kpi_amount, penalty_amount, note, created_by, created_at");
+      if (error) throw error;
+      return (data ?? []).map((s: any) => ({
+        id: `salary-${s.id}`,
+        title: `Oylik: ${s.employee_name}`,
+        category: "Oyliklar",
+        total_amount:
+          Number(s.fixed_amount) + Number(s.kpi_amount) - Number(s.penalty_amount),
+        currency: "UZS",
+        vendor: null,
+        notes: s.note,
+        status: "paid" as const,
+        expense_date: `${s.year}-${String(s.month).padStart(2, "0")}-01`,
+        created_at: s.created_at,
+        created_by: s.created_by,
+      }));
+    },
+    enabled: !!user,
+  });
+
+  const { getRate } = useUsdRates();
+  const toUzs = (e: Expense) => {
+    const amt = Number(e.total_amount);
+    if (e.currency === "USD") return amt * getRate(e.expense_date.slice(0, 7));
+    return amt;
+  };
+
   // Realtime subscriptions
   useEffect(() => {
     if (!user) return;
@@ -199,11 +232,15 @@ function ExpensesPage() {
         qc.invalidateQueries({ queryKey: ["expense_payments"] });
         qc.invalidateQueries({ queryKey: ["expenses"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "salaries" }, () => {
+        qc.invalidateQueries({ queryKey: ["salaries-as-expenses"] });
+      })
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
   }, [user, qc]);
+
 
   // Aggregated paid totals per expense
   const paidByExpense = useMemo(() => {
