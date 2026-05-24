@@ -83,6 +83,14 @@ type Payment = {
   amount: number;
   paid_at: string;
 };
+type Salary = {
+  id: string;
+  year: number;
+  month: number;
+  fixed_amount: number;
+  kpi_amount: number;
+  penalty_amount: number;
+};
 
 function FinancePage() {
   const { user, loading } = useAuth();
@@ -128,9 +136,32 @@ function FinancePage() {
     enabled: !!user,
   });
 
+  const { data: salaries = [] } = useQuery({
+    queryKey: ["finance-salaries"],
+    queryFn: async (): Promise<Salary[]> => {
+      const { data, error } = await supabase
+        .from("salaries")
+        .select("id, year, month, fixed_amount, kpi_amount, penalty_amount");
+      if (error) throw error;
+      return (data ?? []) as Salary[];
+    },
+    enabled: !!user,
+  });
+
+  const { getRate } = useUsdRates();
+
+  const expenseUzs = (e: Expense): number => {
+    const amt = Number(e.total_amount);
+    if (e.currency === "USD") return amt * getRate(e.expense_date.slice(0, 7));
+    return amt;
+  };
+  const paymentUzs = (p: Payment, exp?: Expense): number => {
+    const amt = Number(p.amount);
+    if (exp && exp.currency === "USD") return amt * getRate(p.paid_at.slice(0, 7));
+    return amt;
+  };
+
   // Build period-keyed series in UZS
-  // Revenue: contracts → USD then to UZS
-  // Expenses accrual = expense_date; cash = each payment paid_at
   const { revenueByMonth, expenseByMonth, expenseByCat, topExpenses, allYears } = useMemo(() => {
     const revenueByMonth = new Map<string, number>();
     const expenseByMonth = new Map<string, number>();
@@ -146,7 +177,7 @@ function FinancePage() {
       if (year !== "all" && y !== year) continue;
       if (months.length > 0 && !months.includes(m)) continue;
       const key = `${y}-${String(m).padStart(2, "0")}`;
-      const uzs = toUsd(c) * USD_RATE;
+      const uzs = contractToUsd(c, getRate) * getRate(key);
       revenueByMonth.set(key, (revenueByMonth.get(key) ?? 0) + uzs);
     }
 
@@ -162,7 +193,7 @@ function FinancePage() {
         if (year !== "all" && y !== year) continue;
         if (months.length > 0 && !months.includes(m)) continue;
         const key = `${y}-${mm}`;
-        const amt = Number(e.total_amount);
+        const amt = expenseUzs(e);
         expenseByMonth.set(key, (expenseByMonth.get(key) ?? 0) + amt);
         expenseByCat.set(e.category, (expenseByCat.get(e.category) ?? 0) + amt);
       }
@@ -175,16 +206,29 @@ function FinancePage() {
         if (year !== "all" && y !== year) continue;
         if (months.length > 0 && !months.includes(m)) continue;
         const key = `${y}-${mm}`;
-        const amt = Number(p.amount);
-        expenseByMonth.set(key, (expenseByMonth.get(key) ?? 0) + amt);
         const exp = expById.get(p.expense_id);
+        const amt = paymentUzs(p, exp);
+        expenseByMonth.set(key, (expenseByMonth.get(key) ?? 0) + amt);
         if (exp) expenseByCat.set(exp.category, (expenseByCat.get(exp.category) ?? 0) + amt);
       }
+    }
+
+    // Salaries — counted as expenses for both bases (paid each month they're recorded)
+    for (const s of salaries) {
+      const y = String(s.year);
+      ySet.add(y);
+      if (year !== "all" && y !== year) continue;
+      if (months.length > 0 && !months.includes(s.month)) continue;
+      const key = `${y}-${String(s.month).padStart(2, "0")}`;
+      const amt = Number(s.fixed_amount) + Number(s.kpi_amount) - Number(s.penalty_amount);
+      expenseByMonth.set(key, (expenseByMonth.get(key) ?? 0) + amt);
+      expenseByCat.set("Oyliklar", (expenseByCat.get("Oyliklar") ?? 0) + amt);
     }
 
     const topExpenses = Array.from(expenseByCat.entries())
       .map(([name, total]) => ({ name, total }))
       .sort((a, b) => b.total - a.total)
+
       .slice(0, 10);
 
     return {
