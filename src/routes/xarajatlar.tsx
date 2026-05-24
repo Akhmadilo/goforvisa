@@ -35,8 +35,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { supabase } from "@/integrations/supabase/client";
+import { useUsdRates } from "@/lib/usd-rates";
 import logoUrl from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/xarajatlar")({
   component: ExpensesPage,
@@ -185,6 +187,39 @@ function ExpensesPage() {
     enabled: !!user,
   });
 
+  // Salaries — included as synthetic "Oyliklar" expenses for stats/dashboard/pivot
+  const { data: salaryExpenses = [] } = useQuery({
+    queryKey: ["salaries-as-expenses"],
+    queryFn: async (): Promise<Expense[]> => {
+      const { data, error } = await supabase
+        .from("salaries")
+        .select("id, employee_name, year, month, fixed_amount, kpi_amount, penalty_amount, note, created_by, created_at");
+      if (error) throw error;
+      return (data ?? []).map((s: any) => ({
+        id: `salary-${s.id}`,
+        title: `Oylik: ${s.employee_name}`,
+        category: "Oyliklar",
+        total_amount:
+          Number(s.fixed_amount) + Number(s.kpi_amount) - Number(s.penalty_amount),
+        currency: "UZS",
+        vendor: null,
+        notes: s.note,
+        status: "paid" as const,
+        expense_date: `${s.year}-${String(s.month).padStart(2, "0")}-01`,
+        created_at: s.created_at,
+        created_by: s.created_by,
+      }));
+    },
+    enabled: !!user,
+  });
+
+  const { getRate } = useUsdRates();
+  const toUzs = (e: Expense) => {
+    const amt = Number(e.total_amount);
+    if (e.currency === "USD") return amt * getRate(e.expense_date.slice(0, 7));
+    return amt;
+  };
+
   // Realtime subscriptions
   useEffect(() => {
     if (!user) return;
@@ -197,11 +232,15 @@ function ExpensesPage() {
         qc.invalidateQueries({ queryKey: ["expense_payments"] });
         qc.invalidateQueries({ queryKey: ["expenses"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "salaries" }, () => {
+        qc.invalidateQueries({ queryKey: ["salaries-as-expenses"] });
+      })
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
   }, [user, qc]);
+
 
   // Aggregated paid totals per expense
   const paidByExpense = useMemo(() => {
@@ -212,38 +251,51 @@ function ExpensesPage() {
     return m;
   }, [payments]);
 
-  // Years present in data
+  // Years present in data (expenses + salaries)
   const years = useMemo(() => {
     const s = new Set<string>();
     for (const e of expenses) s.add(e.expense_date.slice(0, 4));
+    for (const e of salaryExpenses) s.add(e.expense_date.slice(0, 4));
     return Array.from(s).sort();
-  }, [expenses]);
+  }, [expenses, salaryExpenses]);
 
-  // Period filter (year + months) — applied to dashboard, pivot, table
-  const periodFiltered = useMemo(() => {
-    return expenses.filter((e) => {
-      const y = e.expense_date.slice(0, 4);
-      const m = String(Number(e.expense_date.slice(5, 7))); // "1".."12"
-      if (selectedYear !== "all" && y !== selectedYear) return false;
-      if (selectedMonths.length > 0 && !selectedMonths.includes(m)) return false;
-      return true;
-    });
-  }, [expenses, selectedYear, selectedMonths]);
+  const matchesPeriod = (e: Expense) => {
+    const y = e.expense_date.slice(0, 4);
+    const m = String(Number(e.expense_date.slice(5, 7)));
+    if (selectedYear !== "all" && y !== selectedYear) return false;
+    if (selectedMonths.length > 0 && !selectedMonths.includes(m)) return false;
+    return true;
+  };
 
-  // Stats (based on period filter)
+  // Period filter — table-only (expenses, no salaries)
+  const periodFiltered = useMemo(
+    () => expenses.filter(matchesPeriod),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [expenses, selectedYear, selectedMonths],
+  );
+
+  // Period filter — dashboards/pivot/stats (includes salaries)
+  const periodFilteredAll = useMemo(
+    () => [...expenses, ...salaryExpenses].filter(matchesPeriod),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [expenses, salaryExpenses, selectedYear, selectedMonths],
+  );
+
+  // Stats — in UZS (USD converted via per-month rate); includes salaries
   const stats = useMemo(() => {
     const s = { total: 0, unpaid: 0, partial: 0, paid: 0 };
-    for (const e of periodFiltered) {
-      const amt = Number(e.total_amount);
+    for (const e of periodFilteredAll) {
+      const amt = toUzs(e);
       s.total += amt;
       if (e.status === "unpaid") s.unpaid += amt;
       else if (e.status === "partial") s.partial += amt;
       else if (e.status === "paid") s.paid += amt;
     }
     return s;
-  }, [periodFiltered]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodFilteredAll, getRate]);
 
-  // Final rows for table: period + status + category + search
+  // Final rows for table: period + status + category + search (expenses only)
   const rows = periodFiltered
     .filter((e) => status === "all" || e.status === status)
     .filter((e) => category === "all" || e.category === category)
@@ -255,6 +307,7 @@ function ExpensesPage() {
         (e.vendor ?? "").toLowerCase().includes(q)
       );
     });
+
 
 
   // Modals
@@ -432,11 +485,12 @@ function ExpensesPage() {
             <StatCard label="To'langan" value={fmt(stats.paid)} tone="green" />
           </div>
 
-          {/* Dashboard: monthly trend + top categories */}
-          <ExpensesDashboard expenses={periodFiltered} />
+          {/* Dashboard: monthly trend + top categories (UZS-normalized, includes salaries) */}
+          <ExpensesDashboard expenses={periodFilteredAll.map(e => ({ ...e, total_amount: toUzs(e), currency: "UZS" }))} />
 
-          {/* Pivot: categories × months */}
-          <CategoryPivotTable expenses={periodFiltered} />
+          {/* Pivot: categories × months (UZS-normalized, includes salaries) */}
+          <CategoryPivotTable expenses={periodFilteredAll.map(e => ({ ...e, total_amount: toUzs(e), currency: "UZS" }))} />
+
 
           {/* Table */}
           <Card className="p-4">
