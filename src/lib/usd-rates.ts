@@ -9,8 +9,9 @@ export function useUsdRates() {
   const { data = [] } = useQuery({
     queryKey: ["usd_rates"],
     queryFn: async (): Promise<UsdRate[]> => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("usd_rates")
+
         .select("year, month, rate")
         .order("year", { ascending: true })
         .order("month", { ascending: true });
