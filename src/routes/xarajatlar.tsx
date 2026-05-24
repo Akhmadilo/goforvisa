@@ -35,8 +35,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { supabase } from "@/integrations/supabase/client";
+import { useUsdRates } from "@/lib/usd-rates";
 import logoUrl from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
+
 
 export const Route = createFileRoute("/xarajatlar")({
   component: ExpensesPage,
