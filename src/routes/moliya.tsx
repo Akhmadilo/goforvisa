@@ -160,7 +160,7 @@ function FinancePage() {
   };
 
   // Build period-keyed series in UZS
-  const { revenueByMonth, expenseByMonth, expenseByCat, topExpenses, allYears } = useMemo(() => {
+  const { revenueByMonth, expenseByMonth, topExpenses, allYears, salariesTotal } = useMemo(() => {
     const revenueByMonth = new Map<string, number>();
     const expenseByMonth = new Map<string, number>();
     const expenseByCat = new Map<string, number>();
