@@ -281,20 +281,20 @@ function FinancePage() {
                 <LineChartIcon className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold tracking-tight">Moliyaviy hisobot</h1>
-                <p className="text-xs text-muted-foreground">Daromad, xarajat va sof foyda</p>
+                <h1 className="text-xl font-bold tracking-tight">{t("finance.title")}</h1>
+                <p className="text-xs text-muted-foreground">{t("finance.subtitle")}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
               {isAdmin && (
-                <Link to="/admin" className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary flex items-center justify-center" title="Admin">
+                <Link to="/admin" className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary flex items-center justify-center" title={t("nav.admin")}>
                   <Shield className="h-4 w-4" />
                 </Link>
               )}
               <button
                 onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/auth" }); }}
                 className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary flex items-center justify-center"
-                title="Chiqish"
+                title={t("common.logout")}
               >
                 <LogOut className="h-4 w-4" />
               </button>
@@ -306,15 +306,15 @@ function FinancePage() {
           <Card className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Hisob usuli</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t("finance.basis")}</label>
                 <div className="flex gap-1">
                   {([
-                    ["accrual", "Accrual (hisoblanmaganidagi)"],
-                    ["cash", "Cash (to'langan kunlardagi)"],
+                    ["accrual", t("finance.basis.accrual")],
+                    ["cash", t("finance.basis.cash")],
                   ] as const).map(([k, l]) => (
                     <button
                       key={k}
-                      onClick={() => setBasis(k)}
+                      onClick={() => setBasis(k as "accrual" | "cash")}
                       className={cn(
                         "flex-1 h-9 rounded-md border text-xs px-2 transition-colors",
                         basis === k ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-secondary"
@@ -326,36 +326,36 @@ function FinancePage() {
                 </div>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Yil</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t("common.year")}</label>
                 <Select value={year} onValueChange={(v) => { setYear(v); setMonths([]); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Barcha yillar</SelectItem>
+                    <SelectItem value="all">{t("common.allYears")}</SelectItem>
                     {allYears.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Oylar</label>
-                <MonthsPicker selected={months} onChange={setMonths} />
+                <label className="text-xs text-muted-foreground mb-1 block">{t("finance.months")}</label>
+                <MonthsPicker selected={months} onChange={setMonths} monthNames={MONTHS} allLabel={t("common.allMonths")} selectedLabel={t("common.selected")} clearLabel={t("common.clear")} />
               </div>
             </div>
           </Card>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <KpiCard label="Jami daromad" value={fmt(totals.revenue)} icon={<DollarSign className="h-4 w-4" />} tone="green" />
-            <KpiCard label="Jami xarajat" value={fmt(totals.expense)} icon={<Receipt className="h-4 w-4" />} tone="red" />
+            <KpiCard label={t("finance.revenue")} value={fmt(totals.revenue)} icon={<DollarSign className="h-4 w-4" />} tone="green" />
+            <KpiCard label={t("finance.expense")} value={fmt(totals.expense)} icon={<Receipt className="h-4 w-4" />} tone="green" />
             <KpiCard
-              label="Sof foyda"
+              label={t("finance.profit")}
               value={fmt(totals.profit)}
               icon={totals.profit >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-              tone={totals.profit >= 0 ? "green" : "red"}
+              tone="green"
             />
-            <KpiCard label="Marja" value={`${totals.margin.toFixed(1)}%`} icon={<TrendingUp className="h-4 w-4" />} />
+            <KpiCard label={t("finance.margin")} value={`${totals.margin.toFixed(1)}%`} icon={<TrendingUp className="h-4 w-4" />} tone="green" />
           </div>
 
           <Card className="p-4">
-            <div className="text-sm font-semibold mb-3">Oylik daromad / xarajat / sof foyda</div>
+            <div className="text-sm font-semibold mb-3">{t("finance.monthlyChart")}</div>
             <div className="h-[320px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData}>
@@ -367,16 +367,16 @@ function FinancePage() {
                     contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
                   />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="revenue" name="Daromad" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="expense" name="Xarajat" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="profit" name="Sof foyda" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="revenue" name={t("finance.revenue")} fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="expense" name={t("finance.expense")} fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="profit" name={t("finance.profit")} fill="#6366f1" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </Card>
 
           <Card className="p-4">
-            <div className="text-sm font-semibold mb-3">Sof foyda dinamikasi</div>
+            <div className="text-sm font-semibold mb-3">{t("finance.profitTrend")}</div>
             <div className="h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData}>
@@ -394,19 +394,71 @@ function FinancePage() {
           </Card>
 
           <Card className="p-4">
-            <div className="text-sm font-semibold mb-3">Eng katta xarajat kategoriyalari</div>
+            <div className="text-sm font-semibold mb-3">{t("finance.pnl")}</div>
             <div className="overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Kategoriya</TableHead>
-                    <TableHead className="text-right">Summa</TableHead>
-                    <TableHead className="text-right">%</TableHead>
+                    <TableHead>{t("finance.pnl.line")}</TableHead>
+                    <TableHead className="text-right">{t("common.amount")}</TableHead>
+                    <TableHead className="text-right">{t("finance.pnl.share")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell className="font-medium">{t("finance.pnl.revenue")}</TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold">{fmt(totals.revenue)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">100.0%</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="pl-6 text-muted-foreground">{t("finance.pnl.salaries")}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmt(salariesTotal)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">
+                      {totals.revenue > 0 ? ((salariesTotal / totals.revenue) * 100).toFixed(1) : "0.0"}%
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="pl-6 text-muted-foreground">{t("finance.pnl.otherExpenses")}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmt(Math.max(0, totals.expense - salariesTotal))}</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">
+                      {totals.revenue > 0 ? (((totals.expense - salariesTotal) / totals.revenue) * 100).toFixed(1) : "0.0"}%
+                    </TableCell>
+                  </TableRow>
+                  <TableRow className="border-t-2">
+                    <TableCell className="font-medium">{t("finance.pnl.totalExpenses")}</TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold">{fmt(totals.expense)}</TableCell>
+                    <TableCell className="text-right tabular-nums text-muted-foreground">
+                      {totals.revenue > 0 ? ((totals.expense / totals.revenue) * 100).toFixed(1) : "0.0"}%
+                    </TableCell>
+                  </TableRow>
+                  <TableRow className="border-t-2">
+                    <TableCell className="font-bold">{t("finance.pnl.netProfit")}</TableCell>
+                    <TableCell className={cn("text-right tabular-nums font-bold", totals.profit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>
+                      {fmt(totals.profit)}
+                    </TableCell>
+                    <TableCell className={cn("text-right tabular-nums font-bold", totals.profit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>
+                      {totals.margin.toFixed(1)}%
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+
+          <Card className="p-4">
+            <div className="text-sm font-semibold mb-3">{t("finance.topCategories")}</div>
+            <div className="overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("finance.category")}</TableHead>
+                    <TableHead className="text-right">{t("common.amount")}</TableHead>
+                    <TableHead className="text-right">{t("finance.percent")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {topExpenses.length === 0 ? (
-                    <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">Ma'lumot yo'q</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">{t("common.noData")}</TableCell></TableRow>
                   ) : topExpenses.map((c) => (
                     <TableRow key={c.name}>
                       <TableCell><Badge variant="outline">{c.name}</Badge></TableCell>
@@ -422,9 +474,7 @@ function FinancePage() {
           </Card>
 
           <div className="text-xs text-muted-foreground text-center pb-4">
-            {basis === "accrual"
-              ? "Accrual: xarajatlar yaratilgan sana bo'yicha, daromad shartnoma sanasi bo'yicha hisoblanadi."
-              : "Cash: xarajatlar to'lov sanasi bo'yicha, daromad shartnoma sanasi bo'yicha hisoblanadi."}
+            {basis === "accrual" ? t("finance.note.accrual") : t("finance.note.cash")}
           </div>
         </main>
       </div>
