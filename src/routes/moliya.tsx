@@ -25,7 +25,7 @@ import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { supabase } from "@/integrations/supabase/client";
 import { getContracts, type Contract } from "@/lib/contracts.functions";
 import { useUsdRates, DEFAULT_USD_RATE } from "@/lib/usd-rates";
-import logoUrl from "@/assets/logo.png";
+import { useT, getMonthNames } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 
@@ -39,8 +39,10 @@ export const Route = createFileRoute("/moliya")({
   }),
 });
 
-// Convert a contract to USD (uses priceUsd if available; falls back to UZS via the rate of the contract's month)
-function contractToUsd(c: Contract, getRate: (ym: string) => number): number {
+// Convert net contract revenue ("total" column from Mijozlar bazasi) to USD.
+// Treat `total` as USD when present; otherwise fall back to gross price fields.
+function contractNetUsd(c: Contract, getRate: (ym: string) => number): number {
+  if (c.total > 0) return c.total;
   if (c.priceUsd > 0) return c.priceUsd;
   if (c.priceUzs > 0) {
     const d = parseContractDate(c.contractDate);
