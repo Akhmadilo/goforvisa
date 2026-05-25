@@ -251,7 +251,7 @@ function FinancePage() {
       const rev = revenueByMonth.get(k) ?? 0;
       const exp = expenseByMonth.get(k) ?? 0;
       return {
-        name: `${MONTHS_UZ[Number(mm) - 1].slice(0, 3)} ${y.slice(2)}`,
+        name: `${MONTHS[Number(mm) - 1].slice(0, 3)} ${y.slice(2)}`,
         revenue: Math.round(rev),
         expense: Math.round(exp),
         profit: Math.round(rev - exp),
