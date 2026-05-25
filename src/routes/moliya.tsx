@@ -92,6 +92,9 @@ function FinancePage() {
   const isAdmin = useIsAdmin();
   const { can, loading: permsLoading } = useWidgetPermissions();
   const navigate = useNavigate();
+  const { t, lang } = useT();
+  const MONTHS = getMonthNames(lang);
+
 
   useEffect(() => { if (!loading && !user) navigate({ to: "/auth" }); }, [user, loading, navigate]);
   useEffect(() => {
