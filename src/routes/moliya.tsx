@@ -56,15 +56,8 @@ function contractNetUsd(c: Contract, getRate: (ym: string) => number): number {
 }
 
 
-const MONTH_ORDER = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December",
-];
+// MONTHS sourced from i18n via getMonthNames(lang)
 
-const MONTHS_UZ = [
-  "Yanvar","Fevral","Mart","Aprel","May","Iyun",
-  "Iyul","Avgust","Sentabr","Oktabr","Noyabr","Dekabr",
-];
 
 const fmt = (n: number) => new Intl.NumberFormat("uz-UZ").format(Math.round(n)) + " so'm";
 const fmtShort = (n: number) =>
