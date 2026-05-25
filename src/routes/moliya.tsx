@@ -509,14 +509,14 @@ function KpiCard({
 }
 
 function MonthsPicker({
-  selected, onChange,
-}: { selected: number[]; onChange: (v: number[]) => void }) {
+  selected, onChange, monthNames, allLabel, selectedLabel, clearLabel,
+}: { selected: number[]; onChange: (v: number[]) => void; monthNames: string[]; allLabel: string; selectedLabel: string; clearLabel: string }) {
   const toggle = (m: number) =>
     onChange(selected.includes(m) ? selected.filter((s) => s !== m) : [...selected, m]);
   const label =
-    selected.length === 0 ? "Barcha oylar"
-    : selected.length === 1 ? MONTHS_UZ[selected[0] - 1]
-    : `${selected.length} tanlangan`;
+    selected.length === 0 ? allLabel
+    : selected.length === 1 ? monthNames[selected[0] - 1]
+    : `${selected.length} ${selectedLabel}`;
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -530,13 +530,13 @@ function MonthsPicker({
       </PopoverTrigger>
       <PopoverContent className="w-56 p-2">
         <div className="grid grid-cols-2 gap-1">
-          {MONTHS_UZ.map((label, i) => {
+          {monthNames.map((mLabel, i) => {
             const v = i + 1;
             const checked = selected.includes(v);
             return (
               <label key={v} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent/30 cursor-pointer">
                 <Checkbox checked={checked} onCheckedChange={() => toggle(v)} />
-                <span className="text-xs">{label}</span>
+                <span className="text-xs">{mLabel}</span>
               </label>
             );
           })}
@@ -546,7 +546,7 @@ function MonthsPicker({
             onClick={() => onChange([])}
             className="w-full text-xs text-muted-foreground mt-2 py-1 rounded hover:bg-accent/30"
           >
-            Tozalash
+            {clearLabel}
           </button>
         )}
       </PopoverContent>
