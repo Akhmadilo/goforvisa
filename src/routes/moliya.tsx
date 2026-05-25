@@ -212,6 +212,8 @@ function FinancePage() {
     }
 
     // Salaries — counted as expenses for both bases (paid each month they're recorded)
+    let salariesTotal = 0;
+    const salariesLabel = t("finance.pnl.salaries");
     for (const s of salaries) {
       const y = String(s.year);
       ySet.add(y);
@@ -220,21 +222,22 @@ function FinancePage() {
       const key = `${y}-${String(s.month).padStart(2, "0")}`;
       const amt = Number(s.fixed_amount) + Number(s.kpi_amount) - Number(s.penalty_amount);
       expenseByMonth.set(key, (expenseByMonth.get(key) ?? 0) + amt);
-      expenseByCat.set("Oyliklar", (expenseByCat.get("Oyliklar") ?? 0) + amt);
+      expenseByCat.set(salariesLabel, (expenseByCat.get(salariesLabel) ?? 0) + amt);
+      salariesTotal += amt;
     }
 
     const topExpenses = Array.from(expenseByCat.entries())
       .map(([name, total]) => ({ name, total }))
       .sort((a, b) => b.total - a.total)
-
       .slice(0, 10);
 
     return {
-      revenueByMonth, expenseByMonth, expenseByCat, topExpenses,
+      revenueByMonth, expenseByMonth, expenseByCat, topExpenses, salariesTotal,
       allYears: Array.from(ySet).sort(),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [contracts, expenses, payments, salaries, basis, year, months, getRate]);
+  }, [contracts, expenses, payments, salaries, basis, year, months, getRate, lang]);
+
 
 
   const allMonths = useMemo(() => {
