@@ -175,7 +175,7 @@ function FinancePage() {
       if (year !== "all" && y !== year) continue;
       if (months.length > 0 && !months.includes(m)) continue;
       const key = `${y}-${String(m).padStart(2, "0")}`;
-      const uzs = contractToUsd(c, getRate) * getRate(key);
+      const uzs = contractNetUsd(c, getRate) * getRate(key);
       revenueByMonth.set(key, (revenueByMonth.get(key) ?? 0) + uzs);
     }
 
