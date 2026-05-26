@@ -109,6 +109,8 @@ function FinancePage() {
   const [basis, setBasis] = useState<"accrual" | "cash">("accrual");
   const [year, setYear] = useState<string>("all");
   const [months, setMonths] = useState<number[]>([]);
+  const [currency, setCurrency] = useState<"UZS" | "USD">("UZS");
+  const fmt = useMemo(() => makeFmt(currency), [currency]);
 
   const fetchContracts = useServerFn(getContracts);
   const { data: contracts = [] } = useQuery({
