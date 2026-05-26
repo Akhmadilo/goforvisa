@@ -478,28 +478,43 @@ function FinancePage() {
                     <TableCell className="text-right tabular-nums text-muted-foreground">100.0%</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell className="pl-6 text-muted-foreground">{t("finance.pnl.salaries")}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmt(salariesTotal)}</TableCell>
+                    <TableCell className="pl-6 text-muted-foreground">− {t("finance.pnl.docCosts")}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmt(totals.docCosts)}</TableCell>
                     <TableCell className="text-right tabular-nums text-muted-foreground">
-                      {totals.revenue > 0 ? ((salariesTotal / totals.revenue) * 100).toFixed(1) : "0.0"}%
+                      {totals.revenue > 0 ? ((totals.docCosts / totals.revenue) * 100).toFixed(1) : "0.0"}%
                     </TableCell>
                   </TableRow>
-                  <TableRow>
-                    <TableCell className="pl-6 text-muted-foreground">{t("finance.pnl.otherExpenses")}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmt(Math.max(0, totals.expense - salariesTotal))}</TableCell>
+                  <TableRow className="border-t-2 bg-muted/30">
+                    <TableCell className="font-semibold">= {t("finance.pnl.grossProfit")}</TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold">{fmt(totals.grossProfit)}</TableCell>
                     <TableCell className="text-right tabular-nums text-muted-foreground">
-                      {totals.revenue > 0 ? (((totals.expense - salariesTotal) / totals.revenue) * 100).toFixed(1) : "0.0"}%
+                      {totals.revenue > 0 ? ((totals.grossProfit / totals.revenue) * 100).toFixed(1) : "0.0"}%
                     </TableCell>
                   </TableRow>
                   <TableRow className="border-t-2">
-                    <TableCell className="font-medium">{t("finance.pnl.totalExpenses")}</TableCell>
+                    <TableCell className="font-medium">{t("finance.pnl.expensesBreakdown")}</TableCell>
                     <TableCell className="text-right tabular-nums font-semibold">{fmt(totals.expense)}</TableCell>
                     <TableCell className="text-right tabular-nums text-muted-foreground">
                       {totals.revenue > 0 ? ((totals.expense / totals.revenue) * 100).toFixed(1) : "0.0"}%
                     </TableCell>
                   </TableRow>
-                  <TableRow className="border-t-2">
-                    <TableCell className="font-bold">{t("finance.pnl.netProfit")}</TableCell>
+                  {expenseCategories.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center text-muted-foreground py-3 text-xs">
+                        {t("common.noData")}
+                      </TableCell>
+                    </TableRow>
+                  ) : expenseCategories.map((c) => (
+                    <TableRow key={c.name}>
+                      <TableCell className="pl-6 text-muted-foreground">− {c.name}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmt(c.total)}</TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">
+                        {totals.revenue > 0 ? ((c.total / totals.revenue) * 100).toFixed(1) : "0.0"}%
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="border-t-2 bg-muted/30">
+                    <TableCell className="font-bold">= {t("finance.pnl.netProfit")}</TableCell>
                     <TableCell className={cn("text-right tabular-nums font-bold", totals.profit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>
                       {fmt(totals.profit)}
                     </TableCell>
