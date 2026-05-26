@@ -59,7 +59,12 @@ function contractNetUsd(c: Contract, getRate: (ym: string) => number): number {
 // MONTHS sourced from i18n via getMonthNames(lang)
 
 
-const fmt = (n: number) => new Intl.NumberFormat("uz-UZ").format(Math.round(n)) + " so'm";
+const nfUzs = new Intl.NumberFormat("uz-UZ");
+const nfUsd = new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const makeFmt = (currency: "UZS" | "USD") => (n: number) =>
+  currency === "UZS"
+    ? nfUzs.format(Math.round(n)) + " so'm"
+    : "$" + nfUsd.format(Math.round(n));
 const fmtShort = (n: number) =>
   n >= 1_000_000_000 ? `${(n/1_000_000_000).toFixed(1)}B`
   : n >= 1_000_000 ? `${(n/1_000_000).toFixed(1)}M`
@@ -104,6 +109,8 @@ function FinancePage() {
   const [basis, setBasis] = useState<"accrual" | "cash">("accrual");
   const [year, setYear] = useState<string>("all");
   const [months, setMonths] = useState<number[]>([]);
+  const [currency, setCurrency] = useState<"UZS" | "USD">("UZS");
+  const fmt = useMemo(() => makeFmt(currency), [currency]);
 
   const fetchContracts = useServerFn(getContracts);
   const { data: contracts = [] } = useQuery({
@@ -159,11 +166,20 @@ function FinancePage() {
     return amt;
   };
 
-  // Build period-keyed series in UZS
-  const { revenueByMonth, expenseByMonth, topExpenses, allYears, salariesTotal } = useMemo(() => {
-    const revenueByMonth = new Map<string, number>();
-    const expenseByMonth = new Map<string, number>();
-    const expenseByCat = new Map<string, number>();
+  // Build period-keyed series with parallel UZS and USD aggregates.
+  // For each month key we use that month's rate to convert between UZS and USD.
+  const {
+    revenueByMonth, expenseByMonth, docCostsByMonth, expenseByCat, allYears, salariesTotalUzs,
+  } = useMemo(() => {
+    type Pair = { uzs: number; usd: number };
+    const add = (m: Map<string, Pair>, k: string, p: Pair) => {
+      const cur = m.get(k) ?? { uzs: 0, usd: 0 };
+      m.set(k, { uzs: cur.uzs + p.uzs, usd: cur.usd + p.usd });
+    };
+    const revenueByMonth = new Map<string, Pair>();
+    const expenseByMonth = new Map<string, Pair>();
+    const docCostsByMonth = new Map<string, Pair>();
+    const expenseByCat = new Map<string, Pair>();
     const ySet = new Set<string>();
 
     for (const c of contracts) {
@@ -175,12 +191,20 @@ function FinancePage() {
       if (year !== "all" && y !== year) continue;
       if (months.length > 0 && !months.includes(m)) continue;
       const key = `${y}-${String(m).padStart(2, "0")}`;
-      const uzs = contractNetUsd(c, getRate) * getRate(key);
-      revenueByMonth.set(key, (revenueByMonth.get(key) ?? 0) + uzs);
+      const rate = getRate(key);
+      const revUsd = contractNetUsd(c, getRate);
+      add(revenueByMonth, key, { uzs: revUsd * rate, usd: revUsd });
+      const docUsd = Number(c.docsUsd) || 0;
+      if (docUsd > 0) add(docCostsByMonth, key, { uzs: docUsd * rate, usd: docUsd });
     }
 
     const expById = new Map<string, Expense>();
     for (const e of expenses) expById.set(e.id, e);
+
+    const pushExpense = (key: string, amtUzs: number, amtUsd: number, cat: string) => {
+      add(expenseByMonth, key, { uzs: amtUzs, usd: amtUsd });
+      add(expenseByCat, cat, { uzs: amtUzs, usd: amtUsd });
+    };
 
     if (basis === "accrual") {
       for (const e of expenses) {
@@ -191,9 +215,11 @@ function FinancePage() {
         if (year !== "all" && y !== year) continue;
         if (months.length > 0 && !months.includes(m)) continue;
         const key = `${y}-${mm}`;
-        const amt = expenseUzs(e);
-        expenseByMonth.set(key, (expenseByMonth.get(key) ?? 0) + amt);
-        expenseByCat.set(e.category, (expenseByCat.get(e.category) ?? 0) + amt);
+        const rate = getRate(key);
+        const raw = Number(e.total_amount);
+        const uzs = e.currency === "USD" ? raw * rate : raw;
+        const usd = e.currency === "USD" ? raw : raw / rate;
+        pushExpense(key, uzs, usd, e.category);
       }
     } else {
       for (const p of payments) {
@@ -205,14 +231,17 @@ function FinancePage() {
         if (months.length > 0 && !months.includes(m)) continue;
         const key = `${y}-${mm}`;
         const exp = expById.get(p.expense_id);
-        const amt = paymentUzs(p, exp);
-        expenseByMonth.set(key, (expenseByMonth.get(key) ?? 0) + amt);
-        if (exp) expenseByCat.set(exp.category, (expenseByCat.get(exp.category) ?? 0) + amt);
+        const rate = getRate(key);
+        const raw = Number(p.amount);
+        const isUsd = exp?.currency === "USD";
+        const uzs = isUsd ? raw * rate : raw;
+        const usd = isUsd ? raw : raw / rate;
+        pushExpense(key, uzs, usd, exp?.category ?? "—");
       }
     }
 
-    // Salaries — counted as expenses for both bases (paid each month they're recorded)
-    let salariesTotal = 0;
+    // Salaries — always UZS, counted as expenses each month they're recorded
+    let salariesTotalUzs = 0;
     const salariesLabel = t("finance.pnl.salaries");
     for (const s of salaries) {
       const y = String(s.year);
@@ -220,25 +249,24 @@ function FinancePage() {
       if (year !== "all" && y !== year) continue;
       if (months.length > 0 && !months.includes(s.month)) continue;
       const key = `${y}-${String(s.month).padStart(2, "0")}`;
-      const amt = Number(s.fixed_amount) + Number(s.kpi_amount) - Number(s.penalty_amount);
-      expenseByMonth.set(key, (expenseByMonth.get(key) ?? 0) + amt);
-      expenseByCat.set(salariesLabel, (expenseByCat.get(salariesLabel) ?? 0) + amt);
-      salariesTotal += amt;
+      const rate = getRate(key);
+      const uzs = Number(s.fixed_amount) + Number(s.kpi_amount) - Number(s.penalty_amount);
+      const usd = uzs / rate;
+      pushExpense(key, uzs, usd, salariesLabel);
+      salariesTotalUzs += uzs;
     }
 
-    const topExpenses = Array.from(expenseByCat.entries())
-      .map(([name, total]) => ({ name, total }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 10);
-
     return {
-      revenueByMonth, expenseByMonth, expenseByCat, topExpenses, salariesTotal,
+      revenueByMonth, expenseByMonth, docCostsByMonth, expenseByCat, salariesTotalUzs,
       allYears: Array.from(ySet).sort(),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contracts, expenses, payments, salaries, basis, year, months, getRate, lang]);
 
+  void expenseUzs; void paymentUzs; void salariesTotalUzs;
 
+  const pick = (p: { uzs: number; usd: number } | undefined) =>
+    p ? (currency === "UZS" ? p.uzs : p.usd) : 0;
 
   const allMonths = useMemo(() => {
     const s = new Set<string>([...revenueByMonth.keys(), ...expenseByMonth.keys()]);
@@ -248,8 +276,8 @@ function FinancePage() {
   const chartData = useMemo(() => {
     return allMonths.map((k) => {
       const [y, mm] = k.split("-");
-      const rev = revenueByMonth.get(k) ?? 0;
-      const exp = expenseByMonth.get(k) ?? 0;
+      const rev = pick(revenueByMonth.get(k));
+      const exp = pick(expenseByMonth.get(k));
       return {
         name: `${MONTHS[Number(mm) - 1].slice(0, 3)} ${y.slice(2)}`,
         revenue: Math.round(rev),
@@ -257,15 +285,34 @@ function FinancePage() {
         profit: Math.round(rev - exp),
       };
     });
-  }, [allMonths, revenueByMonth, expenseByMonth]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allMonths, revenueByMonth, expenseByMonth, currency]);
+
+  const sumPair = (m: Map<string, { uzs: number; usd: number }>) =>
+    Array.from(m.values()).reduce((s, v) => ({ uzs: s.uzs + v.uzs, usd: s.usd + v.usd }), { uzs: 0, usd: 0 });
 
   const totals = useMemo(() => {
-    const revenue = Array.from(revenueByMonth.values()).reduce((s, v) => s + v, 0);
-    const expense = Array.from(expenseByMonth.values()).reduce((s, v) => s + v, 0);
-    const profit = revenue - expense;
+    const revP = sumPair(revenueByMonth);
+    const expP = sumPair(expenseByMonth);
+    const docP = sumPair(docCostsByMonth);
+    const revenue = pick(revP);
+    const expense = pick(expP);
+    const docCosts = pick(docP);
+    const grossProfit = revenue - docCosts;
+    const profit = revenue - docCosts - expense;
     const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
-    return { revenue, expense, profit, margin };
-  }, [revenueByMonth, expenseByMonth]);
+    return { revenue, expense, docCosts, grossProfit, profit, margin };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [revenueByMonth, expenseByMonth, docCostsByMonth, currency]);
+
+  const expenseCategories = useMemo(() => {
+    return Array.from(expenseByCat.entries())
+      .map(([name, p]) => ({ name, total: pick(p) }))
+      .sort((a, b) => b.total - a.total);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expenseByCat, currency]);
+
+  const topExpenses = expenseCategories.slice(0, 10);
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
@@ -304,7 +351,7 @@ function FinancePage() {
 
         <main className="mx-auto max-w-[1500px] px-6 py-6 space-y-6">
           <Card className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">{t("finance.basis")}</label>
                 <div className="flex gap-1">
@@ -318,6 +365,26 @@ function FinancePage() {
                       className={cn(
                         "flex-1 h-9 rounded-md border text-xs px-2 transition-colors",
                         basis === k ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-secondary"
+                      )}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">{t("finance.currency")}</label>
+                <div className="flex gap-1">
+                  {([
+                    ["UZS", t("finance.currency.uzs")],
+                    ["USD", t("finance.currency.usd")],
+                  ] as const).map(([k, l]) => (
+                    <button
+                      key={k}
+                      onClick={() => setCurrency(k)}
+                      className={cn(
+                        "flex-1 h-9 rounded-md border text-xs px-2 transition-colors",
+                        currency === k ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-secondary"
                       )}
                     >
                       {l}
@@ -411,28 +478,43 @@ function FinancePage() {
                     <TableCell className="text-right tabular-nums text-muted-foreground">100.0%</TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell className="pl-6 text-muted-foreground">{t("finance.pnl.salaries")}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmt(salariesTotal)}</TableCell>
+                    <TableCell className="pl-6 text-muted-foreground">− {t("finance.pnl.docCosts")}</TableCell>
+                    <TableCell className="text-right tabular-nums">{fmt(totals.docCosts)}</TableCell>
                     <TableCell className="text-right tabular-nums text-muted-foreground">
-                      {totals.revenue > 0 ? ((salariesTotal / totals.revenue) * 100).toFixed(1) : "0.0"}%
+                      {totals.revenue > 0 ? ((totals.docCosts / totals.revenue) * 100).toFixed(1) : "0.0"}%
                     </TableCell>
                   </TableRow>
-                  <TableRow>
-                    <TableCell className="pl-6 text-muted-foreground">{t("finance.pnl.otherExpenses")}</TableCell>
-                    <TableCell className="text-right tabular-nums">{fmt(Math.max(0, totals.expense - salariesTotal))}</TableCell>
+                  <TableRow className="border-t-2 bg-muted/30">
+                    <TableCell className="font-semibold">= {t("finance.pnl.grossProfit")}</TableCell>
+                    <TableCell className="text-right tabular-nums font-semibold">{fmt(totals.grossProfit)}</TableCell>
                     <TableCell className="text-right tabular-nums text-muted-foreground">
-                      {totals.revenue > 0 ? (((totals.expense - salariesTotal) / totals.revenue) * 100).toFixed(1) : "0.0"}%
+                      {totals.revenue > 0 ? ((totals.grossProfit / totals.revenue) * 100).toFixed(1) : "0.0"}%
                     </TableCell>
                   </TableRow>
                   <TableRow className="border-t-2">
-                    <TableCell className="font-medium">{t("finance.pnl.totalExpenses")}</TableCell>
+                    <TableCell className="font-medium">{t("finance.pnl.expensesBreakdown")}</TableCell>
                     <TableCell className="text-right tabular-nums font-semibold">{fmt(totals.expense)}</TableCell>
                     <TableCell className="text-right tabular-nums text-muted-foreground">
                       {totals.revenue > 0 ? ((totals.expense / totals.revenue) * 100).toFixed(1) : "0.0"}%
                     </TableCell>
                   </TableRow>
-                  <TableRow className="border-t-2">
-                    <TableCell className="font-bold">{t("finance.pnl.netProfit")}</TableCell>
+                  {expenseCategories.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center text-muted-foreground py-3 text-xs">
+                        {t("common.noData")}
+                      </TableCell>
+                    </TableRow>
+                  ) : expenseCategories.map((c) => (
+                    <TableRow key={c.name}>
+                      <TableCell className="pl-6 text-muted-foreground">− {c.name}</TableCell>
+                      <TableCell className="text-right tabular-nums">{fmt(c.total)}</TableCell>
+                      <TableCell className="text-right tabular-nums text-muted-foreground">
+                        {totals.revenue > 0 ? ((c.total / totals.revenue) * 100).toFixed(1) : "0.0"}%
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow className="border-t-2 bg-muted/30">
+                    <TableCell className="font-bold">= {t("finance.pnl.netProfit")}</TableCell>
                     <TableCell className={cn("text-right tabular-nums font-bold", totals.profit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>
                       {fmt(totals.profit)}
                     </TableCell>
