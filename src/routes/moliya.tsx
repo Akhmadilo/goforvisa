@@ -351,7 +351,7 @@ function FinancePage() {
 
         <main className="mx-auto max-w-[1500px] px-6 py-6 space-y-6">
           <Card className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">{t("finance.basis")}</label>
                 <div className="flex gap-1">
@@ -365,6 +365,26 @@ function FinancePage() {
                       className={cn(
                         "flex-1 h-9 rounded-md border text-xs px-2 transition-colors",
                         basis === k ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-secondary"
+                      )}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">{t("finance.currency")}</label>
+                <div className="flex gap-1">
+                  {([
+                    ["UZS", t("finance.currency.uzs")],
+                    ["USD", t("finance.currency.usd")],
+                  ] as const).map(([k, l]) => (
+                    <button
+                      key={k}
+                      onClick={() => setCurrency(k)}
+                      className={cn(
+                        "flex-1 h-9 rounded-md border text-xs px-2 transition-colors",
+                        currency === k ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-secondary"
                       )}
                     >
                       {l}
