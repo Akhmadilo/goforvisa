@@ -59,7 +59,12 @@ function contractNetUsd(c: Contract, getRate: (ym: string) => number): number {
 // MONTHS sourced from i18n via getMonthNames(lang)
 
 
-const fmt = (n: number) => new Intl.NumberFormat("uz-UZ").format(Math.round(n)) + " so'm";
+const nfUzs = new Intl.NumberFormat("uz-UZ");
+const nfUsd = new Intl.NumberFormat("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+const makeFmt = (currency: "UZS" | "USD") => (n: number) =>
+  currency === "UZS"
+    ? nfUzs.format(Math.round(n)) + " so'm"
+    : "$" + nfUsd.format(Math.round(n));
 const fmtShort = (n: number) =>
   n >= 1_000_000_000 ? `${(n/1_000_000_000).toFixed(1)}B`
   : n >= 1_000_000 ? `${(n/1_000_000).toFixed(1)}M`
