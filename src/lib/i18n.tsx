@@ -57,7 +57,7 @@ const dict = {
     "finance.category": "Kategoriya",
     "finance.percent": "%",
     "finance.pnl": "P&L hisoboti",
-    "finance.pnl.revenue": "Sof daromad (shartnomalar)",
+    "finance.pnl.revenue": "Jami daromad (shartnomalar)",
     "finance.pnl.salaries": "Oyliklar",
     "finance.pnl.docCosts": "Hujjat xarajatlari",
     "finance.pnl.grossProfit": "Yalpi foyda",
