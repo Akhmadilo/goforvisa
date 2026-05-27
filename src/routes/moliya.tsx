@@ -24,7 +24,7 @@ import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { supabase } from "@/integrations/supabase/client";
 import { getContracts, type Contract } from "@/lib/contracts.functions";
-import { useUsdRates, DEFAULT_USD_RATE } from "@/lib/usd-rates";
+import { useUsdRates } from "@/lib/usd-rates";
 import { useT, getMonthNames } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
