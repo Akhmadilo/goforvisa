@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line,
+  ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line,
 } from "recharts";
 import { LineChart as LineChartIcon, LogOut, Shield, ChevronDown, TrendingUp, TrendingDown, DollarSign, Receipt } from "lucide-react";
 import { AppSidebar } from "@/components/app-sidebar";
