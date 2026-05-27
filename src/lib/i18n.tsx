@@ -205,7 +205,7 @@ const dict = {
     "finance.category": "Категория",
     "finance.percent": "%",
     "finance.pnl": "Отчёт P&L",
-    "finance.pnl.revenue": "Чистая выручка (контракты)",
+    "finance.pnl.revenue": "Общий доход (контракты)",
     "finance.pnl.salaries": "Зарплаты",
     "finance.pnl.docCosts": "Расходы на документы",
     "finance.pnl.grossProfit": "Валовая прибыль",
