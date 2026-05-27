@@ -39,11 +39,11 @@ export const Route = createFileRoute("/moliya")({
   }),
 });
 
-// Net revenue (sof daromad) per contract in USD — matches dashboard's "Sof daromad".
-// Sheet's `commission` column is the post-fee net income in USD.
-function contractNetUsd(c: Contract, _getRate: (ym: string) => number): number {
-  void _getRate;
-  return Number(c.commission) || 0;
+// Gross contract value (Jami shartnoma) in USD — matches dashboard's "Jami shartnoma".
+function contractGrossUsd(c: Contract, getRate: (ym: string) => number, ym: string): number {
+  if (c.priceUsd > 0) return c.priceUsd;
+  if (c.priceUzs > 0) return c.priceUzs / getRate(ym);
+  return 0;
 }
 
 
