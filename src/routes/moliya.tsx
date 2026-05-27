@@ -538,12 +538,13 @@ function FinancePage() {
 }
 
 function KpiCard({
-  label, value, icon, tone,
+  label, value, icon, tone, sub,
 }: {
   label: string;
   value: string;
   icon: React.ReactNode;
   tone?: "green" | "red";
+  sub?: string;
 }) {
   return (
     <Card className="p-4">
@@ -559,6 +560,7 @@ function KpiCard({
         tone === "green" && "text-emerald-600 dark:text-emerald-400",
         tone === "red" && "text-destructive"
       )}>{value}</div>
+      {sub && <div className="mt-1 text-[11px] text-muted-foreground">{sub}</div>}
     </Card>
   );
 }
