@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line,
+  ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line,
 } from "recharts";
 import { LineChart as LineChartIcon, LogOut, Shield, ChevronDown, TrendingUp, TrendingDown, DollarSign, Receipt } from "lucide-react";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -39,11 +39,11 @@ export const Route = createFileRoute("/moliya")({
   }),
 });
 
-// Net revenue (sof daromad) per contract in USD — matches dashboard's "Sof daromad".
-// Sheet's `commission` column is the post-fee net income in USD.
-function contractNetUsd(c: Contract, _getRate: (ym: string) => number): number {
-  void _getRate;
-  return Number(c.commission) || 0;
+// Gross contract value (Jami shartnoma) in USD — matches dashboard's "Jami shartnoma".
+function contractGrossUsd(c: Contract, getRate: (ym: string) => number, ym: string): number {
+  if (c.priceUsd > 0) return c.priceUsd;
+  if (c.priceUzs > 0) return c.priceUzs / getRate(ym);
+  return 0;
 }
 
 
@@ -183,8 +183,8 @@ function FinancePage() {
       if (months.length > 0 && !months.includes(m)) continue;
       const key = `${y}-${String(m).padStart(2, "0")}`;
       const rate = getRate(key);
-      const revUsd = contractNetUsd(c, getRate);
-      add(revenueByMonth, key, { uzs: revUsd * rate, usd: revUsd });
+      const grossUsd = contractGrossUsd(c, getRate, key);
+      add(revenueByMonth, key, { uzs: grossUsd * rate, usd: grossUsd });
       const docUsd = Number(c.docsUsd) || 0;
       if (docUsd > 0) add(docCostsByMonth, key, { uzs: docUsd * rate, usd: docUsd });
     }
@@ -400,38 +400,20 @@ function FinancePage() {
             </div>
           </Card>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             <KpiCard label={t("finance.revenue")} value={fmt(totals.revenue)} icon={<DollarSign className="h-4 w-4" />} tone="green" />
-            <KpiCard label={t("finance.expense")} value={fmt(totals.expense)} icon={<Receipt className="h-4 w-4" />} tone="green" />
+            <KpiCard label={t("finance.pnl.docCosts")} value={fmt(totals.docCosts)} icon={<Receipt className="h-4 w-4" />} />
+            <KpiCard label={t("finance.grossProfit")} value={fmt(totals.grossProfit)} icon={<TrendingUp className="h-4 w-4" />} tone="green" />
+            <KpiCard label={t("finance.expense")} value={fmt(totals.expense)} icon={<Receipt className="h-4 w-4" />} />
             <KpiCard
               label={t("finance.profit")}
               value={fmt(totals.profit)}
               icon={totals.profit >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
-              tone="green"
+              tone={totals.profit >= 0 ? "green" : "red"}
+              sub={`${t("finance.margin")} ${totals.margin.toFixed(1)}%`}
             />
-            <KpiCard label={t("finance.margin")} value={`${totals.margin.toFixed(1)}%`} icon={<TrendingUp className="h-4 w-4" />} tone="green" />
           </div>
 
-          <Card className="p-4">
-            <div className="text-sm font-semibold mb-3">{t("finance.monthlyChart")}</div>
-            <div className="h-[320px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.08} vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="currentColor" opacity={0.5} />
-                  <YAxis tick={{ fontSize: 11 }} stroke="currentColor" opacity={0.5} tickFormatter={fmtShort} />
-                  <Tooltip
-                    formatter={(v: number) => fmt(v)}
-                    contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="revenue" name={t("finance.revenue")} fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="expense" name={t("finance.expense")} fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="profit" name={t("finance.profit")} fill="#6366f1" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
 
           <Card className="p-4">
             <div className="text-sm font-semibold mb-3">{t("finance.profitTrend")}</div>
@@ -556,12 +538,13 @@ function FinancePage() {
 }
 
 function KpiCard({
-  label, value, icon, tone,
+  label, value, icon, tone, sub,
 }: {
   label: string;
   value: string;
   icon: React.ReactNode;
   tone?: "green" | "red";
+  sub?: string;
 }) {
   return (
     <Card className="p-4">
@@ -577,6 +560,7 @@ function KpiCard({
         tone === "green" && "text-emerald-600 dark:text-emerald-400",
         tone === "red" && "text-destructive"
       )}>{value}</div>
+      {sub && <div className="mt-1 text-[11px] text-muted-foreground">{sub}</div>}
     </Card>
   );
 }
