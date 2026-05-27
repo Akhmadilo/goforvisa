@@ -131,7 +131,7 @@ const dict = {
     "finance.category": "Category",
     "finance.percent": "%",
     "finance.pnl": "P&L statement",
-    "finance.pnl.revenue": "Net revenue (contracts)",
+    "finance.pnl.revenue": "Total revenue (contracts)",
     "finance.pnl.salaries": "Salaries",
     "finance.pnl.docCosts": "Document costs",
     "finance.pnl.grossProfit": "Gross profit",
