@@ -39,20 +39,11 @@ export const Route = createFileRoute("/moliya")({
   }),
 });
 
-// Convert net contract revenue ("total" column from Mijozlar bazasi) to USD.
-// Treat `total` as USD when present; otherwise fall back to gross price fields.
-function contractNetUsd(c: Contract, getRate: (ym: string) => number): number {
-  if (c.total > 0) return c.total;
-  if (c.priceUsd > 0) return c.priceUsd;
-  if (c.priceUzs > 0) {
-    const d = parseContractDate(c.contractDate);
-    const ym = d
-      ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
-      : "";
-    const rate = ym ? getRate(ym) : DEFAULT_USD_RATE;
-    return c.priceUzs / rate;
-  }
-  return 0;
+// Net revenue (sof daromad) per contract in USD — matches dashboard's "Sof daromad".
+// Sheet's `commission` column is the post-fee net income in USD.
+function contractNetUsd(c: Contract, _getRate: (ym: string) => number): number {
+  void _getRate;
+  return Number(c.commission) || 0;
 }
 
 
