@@ -183,8 +183,8 @@ function FinancePage() {
       if (months.length > 0 && !months.includes(m)) continue;
       const key = `${y}-${String(m).padStart(2, "0")}`;
       const rate = getRate(key);
-      const revUsd = contractNetUsd(c, getRate);
-      add(revenueByMonth, key, { uzs: revUsd * rate, usd: revUsd });
+      const grossUsd = contractGrossUsd(c, getRate, key);
+      add(revenueByMonth, key, { uzs: grossUsd * rate, usd: grossUsd });
       const docUsd = Number(c.docsUsd) || 0;
       if (docUsd > 0) add(docCostsByMonth, key, { uzs: docUsd * rate, usd: docUsd });
     }
