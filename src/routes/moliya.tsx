@@ -185,7 +185,11 @@ function FinancePage() {
       const rate = getRate(key);
       const grossUsd = contractGrossUsd(c, getRate, key);
       add(revenueByMonth, key, { uzs: grossUsd * rate, usd: grossUsd });
-      const docUsd = Number(c.docsUsd) || 0;
+      // Doc xarajat = shartnoma summasi − komissiya (sheet'dagi formulaga mos).
+      // Shunda Yalpi foyda = Jami daromad − Doc xarajat = komissiya,
+      // ya'ni boshqaruv panelidagi "Sof daromad" bilan aynan bir xil chiqadi.
+      const commissionUsd = Number(c.commission) || 0;
+      const docUsd = Math.max(0, grossUsd - commissionUsd);
       if (docUsd > 0) add(docCostsByMonth, key, { uzs: docUsd * rate, usd: docUsd });
     }
 
