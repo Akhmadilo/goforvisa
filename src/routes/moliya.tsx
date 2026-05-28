@@ -217,7 +217,7 @@ function FinancePage() {
       // Doc xarajat = Jami daromad − Sof daromad qilib chiqariladi.
       const commissionUsd = Number(c.commission) || 0;
       const docUsd = grossUsd - commissionUsd;
-      if (docUsd > 0) add(docCostsByMonth, key, { uzs: docUsd * rate, usd: docUsd });
+      if (docUsd !== 0) add(docCostsByMonth, key, { uzs: docUsd * rate, usd: docUsd });
     }
 
     const expById = new Map<string, Expense>();
