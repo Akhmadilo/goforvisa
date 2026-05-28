@@ -219,7 +219,7 @@ function Dashboard() {
   const filteredForCompanies = useMemo(() => all.filter((c) => matches(c, "company")), deps);
 
   const kpis = useMemo(() => {
-    const totalUsd = filtered.reduce((s, c) => s + toUsd(c), 0);
+    const totalUsd = filtered.reduce((s, c) => s + toUsd(c, getRate), 0);
     const docsTotal = filtered.reduce((s, c) => s + (c.docsUsd || 0), 0);
     const commission = filtered.reduce((s, c) => s + (c.commission || 0), 0);
     const marginPct = totalUsd > 0 ? (commission / totalUsd) * 100 : 0;
@@ -253,7 +253,7 @@ function Dashboard() {
     for (const c of filtered) {
       const key = `${c.year} ${c.month}`;
       const b = buckets.get(key) ?? { revenue: 0, commission: 0, clients: 0 };
-      b.revenue += toUsd(c);
+      b.revenue += toUsd(c, getRate);
       b.commission += netProfit(c);
       b.clients += 1;
       buckets.set(key, b);
@@ -286,7 +286,7 @@ function Dashboard() {
       const key = c.salesManager || "—";
       const m = map.get(key) ?? { clients: 0, revenue: 0, commission: 0 };
       m.clients += 1;
-      m.revenue += toUsd(c);
+      m.revenue += toUsd(c, getRate);
       m.commission += netProfit(c);
       map.set(key, m);
     }
@@ -314,7 +314,7 @@ function Dashboard() {
       const key = c.company || "—";
       const m = map.get(key) ?? { clients: 0, revenue: 0, profit: 0 };
       m.clients += 1;
-      m.revenue += toUsd(c);
+      m.revenue += toUsd(c, getRate);
       m.profit += netProfit(c);
       map.set(key, m);
     }
@@ -389,7 +389,7 @@ function Dashboard() {
   }, [filtered]);
 
   const debtorsTotalUsd = useMemo(
-    () => debtors.reduce((s, c) => s + toUsd(c), 0),
+    () => debtors.reduce((s, c) => s + toUsd(c, getRate), 0),
     [debtors],
   );
 
