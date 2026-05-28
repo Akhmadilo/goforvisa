@@ -59,6 +59,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { supabase } from "@/integrations/supabase/client";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
+import { useUsdRates } from "@/lib/usd-rates";
 import { Link } from "@tanstack/react-router";
 import { LogOut, Shield } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
