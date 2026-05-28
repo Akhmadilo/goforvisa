@@ -94,11 +94,26 @@ const MONTH_ORDER = [
   "December",
 ];
 
-const USD_RATE = 12600; // approx UZS per USD for unified totals
+// Build "YYYY-MM" key from a contract using its contract date, with fallback
+// to the year/month name columns. Same logic as moliya hisoboti.
+function contractYM(c: Contract): string | null {
+  const d = parseContractDate(c.contractDate);
+  if (d && !isNaN(d.getTime())) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }
+  const y = (c.year || "").trim();
+  const mIdx = MONTH_ORDER.indexOf((c.month || "").trim());
+  if (!y || mIdx < 0) return null;
+  return `${y}-${String(mIdx + 1).padStart(2, "0")}`;
+}
 
-function toUsd(c: Contract): number {
+function toUsd(c: Contract, getRate: (ym: string) => number): number {
   if (c.priceUsd > 0) return c.priceUsd;
-  if (c.priceUzs > 0) return c.priceUzs / USD_RATE;
+  if (c.priceUzs > 0) {
+    const ym = contractYM(c);
+    const rate = ym ? getRate(ym) : getRate("");
+    return c.priceUzs / rate;
+  }
   return 0;
 }
 
