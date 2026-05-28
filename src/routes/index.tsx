@@ -165,6 +165,9 @@ function Dashboard() {
     staleTime: 15_000,
   });
 
+  // Dynamic monthly USD rate — same source as Moliyaviy hisobot, so totals match.
+  const { getRate } = useUsdRates();
+
   const [year, setYear] = useState<string>("all");
   const [months, setMonths] = useState<string[]>([]);
   const [managers, setManagers] = useState<string[]>([]);
