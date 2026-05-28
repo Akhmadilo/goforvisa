@@ -203,22 +203,20 @@ function FinancePage() {
     const ySet = new Set<string>();
 
     for (const c of contracts) {
-      const date = parseContractDate(c.contractDate);
-      if (!date) continue;
-      const y = String(date.getFullYear());
-      const m = date.getMonth() + 1;
-      ySet.add(y);
-      if (year !== "all" && y !== year) continue;
-      if (months.length > 0 && !months.includes(m)) continue;
-      const key = `${y}-${String(m).padStart(2, "0")}`;
+      const period = dashboardPeriod(c);
+      if (!period) continue;
+      ySet.add(period.year);
+      if (year !== "all" && period.year !== year) continue;
+      if (months.length > 0 && !months.includes(period.month)) continue;
+      const key = period.key;
       const rate = getRate(key);
       const grossUsd = contractGrossUsd(c, getRate, key);
       add(revenueByMonth, key, { uzs: grossUsd * rate, usd: grossUsd });
-      // Doc xarajat = shartnoma summasi − komissiya (sheet'dagi formulaga mos).
-      // Shunda Yalpi foyda = Jami daromad − Doc xarajat = komissiya,
-      // ya'ni boshqaruv panelidagi "Sof daromad" bilan aynan bir xil chiqadi.
+      // Boshqaruv panelidagi "Sof daromad" aynan c.commission yig'indisi.
+      // Moliyaviy hisobotda Yalpi foyda shu qiymatga teng bo'lishi uchun
+      // Doc xarajat = Jami daromad − Sof daromad qilib chiqariladi.
       const commissionUsd = Number(c.commission) || 0;
-      const docUsd = Math.max(0, grossUsd - commissionUsd);
+      const docUsd = grossUsd - commissionUsd;
       if (docUsd > 0) add(docCostsByMonth, key, { uzs: docUsd * rate, usd: docUsd });
     }
 
