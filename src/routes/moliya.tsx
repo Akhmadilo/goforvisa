@@ -39,6 +39,35 @@ export const Route = createFileRoute("/moliya")({
   }),
 });
 
+const MONTH_ORDER = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+function dashboardPeriod(c: Contract): { year: string; month: number; key: string } | null {
+  const y = (c.year || "").trim();
+  const mIdx = MONTH_ORDER.indexOf((c.month || "").trim());
+  if (y && mIdx >= 0) {
+    const month = mIdx + 1;
+    return { year: y, month, key: `${y}-${String(month).padStart(2, "0")}` };
+  }
+  const date = parseContractDate(c.contractDate);
+  if (!date) return null;
+  const year = String(date.getFullYear());
+  const month = date.getMonth() + 1;
+  return { year, month, key: `${year}-${String(month).padStart(2, "0")}` };
+}
+
 // Gross contract value (Jami shartnoma) in USD — matches dashboard's "Jami shartnoma".
 function contractGrossUsd(c: Contract, getRate: (ym: string) => number, ym: string): number {
   if (c.priceUsd > 0) return c.priceUsd;
