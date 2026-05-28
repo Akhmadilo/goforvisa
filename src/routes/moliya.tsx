@@ -39,6 +39,35 @@ export const Route = createFileRoute("/moliya")({
   }),
 });
 
+const MONTH_ORDER = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+
+function dashboardPeriod(c: Contract): { year: string; month: number; key: string } | null {
+  const y = (c.year || "").trim();
+  const mIdx = MONTH_ORDER.indexOf((c.month || "").trim());
+  if (y && mIdx >= 0) {
+    const month = mIdx + 1;
+    return { year: y, month, key: `${y}-${String(month).padStart(2, "0")}` };
+  }
+  const date = parseContractDate(c.contractDate);
+  if (!date) return null;
+  const year = String(date.getFullYear());
+  const month = date.getMonth() + 1;
+  return { year, month, key: `${year}-${String(month).padStart(2, "0")}` };
+}
+
 // Gross contract value (Jami shartnoma) in USD — matches dashboard's "Jami shartnoma".
 function contractGrossUsd(c: Contract, getRate: (ym: string) => number, ym: string): number {
   if (c.priceUsd > 0) return c.priceUsd;
@@ -174,23 +203,21 @@ function FinancePage() {
     const ySet = new Set<string>();
 
     for (const c of contracts) {
-      const date = parseContractDate(c.contractDate);
-      if (!date) continue;
-      const y = String(date.getFullYear());
-      const m = date.getMonth() + 1;
-      ySet.add(y);
-      if (year !== "all" && y !== year) continue;
-      if (months.length > 0 && !months.includes(m)) continue;
-      const key = `${y}-${String(m).padStart(2, "0")}`;
+      const period = dashboardPeriod(c);
+      if (!period) continue;
+      ySet.add(period.year);
+      if (year !== "all" && period.year !== year) continue;
+      if (months.length > 0 && !months.includes(period.month)) continue;
+      const key = period.key;
       const rate = getRate(key);
       const grossUsd = contractGrossUsd(c, getRate, key);
       add(revenueByMonth, key, { uzs: grossUsd * rate, usd: grossUsd });
-      // Doc xarajat = shartnoma summasi − komissiya (sheet'dagi formulaga mos).
-      // Shunda Yalpi foyda = Jami daromad − Doc xarajat = komissiya,
-      // ya'ni boshqaruv panelidagi "Sof daromad" bilan aynan bir xil chiqadi.
+      // Boshqaruv panelidagi "Sof daromad" aynan c.commission yig'indisi.
+      // Moliyaviy hisobotda Yalpi foyda shu qiymatga teng bo'lishi uchun
+      // Doc xarajat = Jami daromad − Sof daromad qilib chiqariladi.
       const commissionUsd = Number(c.commission) || 0;
-      const docUsd = Math.max(0, grossUsd - commissionUsd);
-      if (docUsd > 0) add(docCostsByMonth, key, { uzs: docUsd * rate, usd: docUsd });
+      const docUsd = grossUsd - commissionUsd;
+      if (docUsd !== 0) add(docCostsByMonth, key, { uzs: docUsd * rate, usd: docUsd });
     }
 
     const expById = new Map<string, Expense>();
