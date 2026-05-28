@@ -59,6 +59,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { supabase } from "@/integrations/supabase/client";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
+import { useUsdRates } from "@/lib/usd-rates";
 import { Link } from "@tanstack/react-router";
 import { LogOut, Shield } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
@@ -93,11 +94,26 @@ const MONTH_ORDER = [
   "December",
 ];
 
-const USD_RATE = 12600; // approx UZS per USD for unified totals
+// Build "YYYY-MM" key from a contract using its contract date, with fallback
+// to the year/month name columns. Same logic as moliya hisoboti.
+function contractYM(c: Contract): string | null {
+  const d = parseContractDate(c.contractDate);
+  if (d && !isNaN(d.getTime())) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }
+  const y = (c.year || "").trim();
+  const mIdx = MONTH_ORDER.indexOf((c.month || "").trim());
+  if (!y || mIdx < 0) return null;
+  return `${y}-${String(mIdx + 1).padStart(2, "0")}`;
+}
 
-function toUsd(c: Contract): number {
+function toUsd(c: Contract, getRate: (ym: string) => number): number {
   if (c.priceUsd > 0) return c.priceUsd;
-  if (c.priceUzs > 0) return c.priceUzs / USD_RATE;
+  if (c.priceUzs > 0) {
+    const ym = contractYM(c);
+    const rate = ym ? getRate(ym) : getRate("");
+    return c.priceUzs / rate;
+  }
   return 0;
 }
 
@@ -148,6 +164,9 @@ function Dashboard() {
     refetchOnWindowFocus: true,
     staleTime: 15_000,
   });
+
+  // Dynamic monthly USD rate — same source as Moliyaviy hisobot, so totals match.
+  const { getRate } = useUsdRates();
 
   const [year, setYear] = useState<string>("all");
   const [months, setMonths] = useState<string[]>([]);
@@ -200,7 +219,7 @@ function Dashboard() {
   const filteredForCompanies = useMemo(() => all.filter((c) => matches(c, "company")), deps);
 
   const kpis = useMemo(() => {
-    const totalUsd = filtered.reduce((s, c) => s + toUsd(c), 0);
+    const totalUsd = filtered.reduce((s, c) => s + toUsd(c, getRate), 0);
     const docsTotal = filtered.reduce((s, c) => s + (c.docsUsd || 0), 0);
     const commission = filtered.reduce((s, c) => s + (c.commission || 0), 0);
     const marginPct = totalUsd > 0 ? (commission / totalUsd) * 100 : 0;
@@ -234,7 +253,7 @@ function Dashboard() {
     for (const c of filtered) {
       const key = `${c.year} ${c.month}`;
       const b = buckets.get(key) ?? { revenue: 0, commission: 0, clients: 0 };
-      b.revenue += toUsd(c);
+      b.revenue += toUsd(c, getRate);
       b.commission += netProfit(c);
       b.clients += 1;
       buckets.set(key, b);
@@ -267,7 +286,7 @@ function Dashboard() {
       const key = c.salesManager || "—";
       const m = map.get(key) ?? { clients: 0, revenue: 0, commission: 0 };
       m.clients += 1;
-      m.revenue += toUsd(c);
+      m.revenue += toUsd(c, getRate);
       m.commission += netProfit(c);
       map.set(key, m);
     }
@@ -295,7 +314,7 @@ function Dashboard() {
       const key = c.company || "—";
       const m = map.get(key) ?? { clients: 0, revenue: 0, profit: 0 };
       m.clients += 1;
-      m.revenue += toUsd(c);
+      m.revenue += toUsd(c, getRate);
       m.profit += netProfit(c);
       map.set(key, m);
     }
@@ -370,7 +389,7 @@ function Dashboard() {
   }, [filtered]);
 
   const debtorsTotalUsd = useMemo(
-    () => debtors.reduce((s, c) => s + toUsd(c), 0),
+    () => debtors.reduce((s, c) => s + toUsd(c, getRate), 0),
     [debtors],
   );
 
