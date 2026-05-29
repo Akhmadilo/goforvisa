@@ -373,8 +373,8 @@ function EmployeeFormDialog({
       setUploading(false);
       return;
     }
-    const { data } = supabase.storage.from("employee-photos").getPublicUrl(path);
-    setAvatarUrl(data.publicUrl);
+    // Bucket is private — store the storage path; display uses signed URLs.
+    setAvatarUrl(path);
     setUploading(false);
   };
 
