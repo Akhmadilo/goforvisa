@@ -431,8 +431,9 @@ function EmployeeFormDialog({
         <div className="space-y-3">
           <div className="flex items-center gap-3">
             {avatarUrl ? (
-              <img src={avatarUrl} alt="" className="h-20 w-20 rounded-full object-cover border-2 border-border" />
-            ) : (
+              <DialogAvatarPreview stored={avatarUrl} />
+            ) : null}
+            {!avatarUrl && (
               <div className="h-20 w-20 rounded-full bg-muted border-2 border-border flex items-center justify-center">
                 <Camera className="h-7 w-7 text-muted-foreground" />
               </div>
