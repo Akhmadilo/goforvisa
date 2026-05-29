@@ -508,3 +508,18 @@ function EmployeeFormDialog({
     </Dialog>
   );
 }
+
+function DialogAvatarPreview({ stored }: { stored: string | null }) {
+  const url = useEmployeePhotoUrl(stored);
+  if (!stored) {
+    return (
+      <div className="h-20 w-20 rounded-full bg-muted border-2 border-border flex items-center justify-center">
+        <Camera className="h-7 w-7 text-muted-foreground" />
+      </div>
+    );
+  }
+  if (!url) {
+    return <div className="h-20 w-20 rounded-full bg-muted border-2 border-border animate-pulse" />;
+  }
+  return <img src={url} alt="" className="h-20 w-20 rounded-full object-cover border-2 border-border" />;
+}
