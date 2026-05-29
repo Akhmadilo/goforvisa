@@ -270,6 +270,7 @@ function EmployeeCard({
     .map((s) => s[0]?.toUpperCase() ?? "")
     .join("");
   const terminated = !!emp.terminated_at;
+  const photoUrl = useEmployeePhotoUrl(emp.avatar_url);
 
   return (
     <Card className={cn("p-4 space-y-3 transition-shadow hover:shadow-lg", terminated && "opacity-70")}>
