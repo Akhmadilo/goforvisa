@@ -301,24 +301,30 @@ function FinancePage() {
     p ? (currency === "UZS" ? p.uzs : p.usd) : 0;
 
   const allMonths = useMemo(() => {
-    const s = new Set<string>([...revenueByMonth.keys(), ...expenseByMonth.keys()]);
+    const s = new Set<string>([
+      ...revenueByMonth.keys(),
+      ...expenseByMonth.keys(),
+      ...docCostsByMonth.keys(),
+    ]);
     return Array.from(s).sort();
-  }, [revenueByMonth, expenseByMonth]);
+  }, [revenueByMonth, expenseByMonth, docCostsByMonth]);
 
   const chartData = useMemo(() => {
     return allMonths.map((k) => {
       const [y, mm] = k.split("-");
       const rev = pick(revenueByMonth.get(k));
       const exp = pick(expenseByMonth.get(k));
+      const doc = pick(docCostsByMonth.get(k));
       return {
         name: `${MONTHS[Number(mm) - 1].slice(0, 3)} ${y.slice(2)}`,
         revenue: Math.round(rev),
         expense: Math.round(exp),
-        profit: Math.round(rev - exp),
+        // Sof foyda = Jami daromad − Doc xarajat − Boshqa xarajatlar
+        profit: Math.round(rev - doc - exp),
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allMonths, revenueByMonth, expenseByMonth, currency]);
+  }, [allMonths, revenueByMonth, expenseByMonth, docCostsByMonth, currency]);
 
   const sumPair = (m: Map<string, { uzs: number; usd: number }>) =>
     Array.from(m.values()).reduce((s, v) => ({ uzs: s.uzs + v.uzs, usd: s.usd + v.usd }), { uzs: 0, usd: 0 });
