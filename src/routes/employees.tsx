@@ -43,6 +43,27 @@ type Employee = {
   note: string | null;
 };
 
+/** Resolve a stored avatar_url (storage path, or legacy public URL) to a usable signed URL. */
+function useEmployeePhotoUrl(stored: string | null | undefined): string | null {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!stored) { setUrl(null); return; }
+    // Extract path from legacy public URL if present
+    const marker = "/employee-photos/";
+    let path = stored;
+    const i = stored.indexOf(marker);
+    if (i >= 0) path = stored.slice(i + marker.length).split("?")[0];
+    // If still looks like an absolute URL (different bucket / external), use as-is
+    if (/^https?:\/\//i.test(path)) { setUrl(stored); return; }
+    supabase.storage.from("employee-photos").createSignedUrl(path, 3600).then(({ data }) => {
+      if (!cancelled) setUrl(data?.signedUrl ?? null);
+    });
+    return () => { cancelled = true; };
+  }, [stored]);
+  return url;
+}
+
 function EmployeesPage() {
   const { user, loading } = useAuth();
   const isAdmin = useIsAdmin();
@@ -249,14 +270,15 @@ function EmployeeCard({
     .map((s) => s[0]?.toUpperCase() ?? "")
     .join("");
   const terminated = !!emp.terminated_at;
+  const photoUrl = useEmployeePhotoUrl(emp.avatar_url);
 
   return (
     <Card className={cn("p-4 space-y-3 transition-shadow hover:shadow-lg", terminated && "opacity-70")}>
       <div className="flex items-start gap-3">
         <div className="relative">
-          {emp.avatar_url ? (
+          {photoUrl ? (
             <img
-              src={emp.avatar_url}
+              src={photoUrl}
               alt={emp.full_name}
               className="h-16 w-16 rounded-full object-cover border-2 border-border"
             />
@@ -373,8 +395,8 @@ function EmployeeFormDialog({
       setUploading(false);
       return;
     }
-    const { data } = supabase.storage.from("employee-photos").getPublicUrl(path);
-    setAvatarUrl(data.publicUrl);
+    // Bucket is private — store the storage path; display uses signed URLs.
+    setAvatarUrl(path);
     setUploading(false);
   };
 
@@ -408,13 +430,8 @@ function EmployeeFormDialog({
 
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="" className="h-20 w-20 rounded-full object-cover border-2 border-border" />
-            ) : (
-              <div className="h-20 w-20 rounded-full bg-muted border-2 border-border flex items-center justify-center">
-                <Camera className="h-7 w-7 text-muted-foreground" />
-              </div>
-            )}
+            <DialogAvatarPreview stored={avatarUrl} />
+
             <div className="flex-1">
               <label className="cursor-pointer inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border border-input hover:bg-secondary">
                 <Camera className="h-4 w-4" />
@@ -490,4 +507,19 @@ function EmployeeFormDialog({
       </DialogContent>
     </Dialog>
   );
+}
+
+function DialogAvatarPreview({ stored }: { stored: string | null }) {
+  const url = useEmployeePhotoUrl(stored);
+  if (!stored) {
+    return (
+      <div className="h-20 w-20 rounded-full bg-muted border-2 border-border flex items-center justify-center">
+        <Camera className="h-7 w-7 text-muted-foreground" />
+      </div>
+    );
+  }
+  if (!url) {
+    return <div className="h-20 w-20 rounded-full bg-muted border-2 border-border animate-pulse" />;
+  }
+  return <img src={url} alt="" className="h-20 w-20 rounded-full object-cover border-2 border-border" />;
 }
