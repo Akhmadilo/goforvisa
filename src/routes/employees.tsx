@@ -276,9 +276,9 @@ function EmployeeCard({
     <Card className={cn("p-4 space-y-3 transition-shadow hover:shadow-lg", terminated && "opacity-70")}>
       <div className="flex items-start gap-3">
         <div className="relative">
-          {emp.avatar_url ? (
+          {photoUrl ? (
             <img
-              src={emp.avatar_url}
+              src={photoUrl}
               alt={emp.full_name}
               className="h-16 w-16 rounded-full object-cover border-2 border-border"
             />
