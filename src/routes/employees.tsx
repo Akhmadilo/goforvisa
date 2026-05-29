@@ -43,6 +43,27 @@ type Employee = {
   note: string | null;
 };
 
+/** Resolve a stored avatar_url (storage path, or legacy public URL) to a usable signed URL. */
+function useEmployeePhotoUrl(stored: string | null | undefined): string | null {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!stored) { setUrl(null); return; }
+    // Extract path from legacy public URL if present
+    const marker = "/employee-photos/";
+    let path = stored;
+    const i = stored.indexOf(marker);
+    if (i >= 0) path = stored.slice(i + marker.length).split("?")[0];
+    // If still looks like an absolute URL (different bucket / external), use as-is
+    if (/^https?:\/\//i.test(path)) { setUrl(stored); return; }
+    supabase.storage.from("employee-photos").createSignedUrl(path, 3600).then(({ data }) => {
+      if (!cancelled) setUrl(data?.signedUrl ?? null);
+    });
+    return () => { cancelled = true; };
+  }, [stored]);
+  return url;
+}
+
 function EmployeesPage() {
   const { user, loading } = useAuth();
   const isAdmin = useIsAdmin();
