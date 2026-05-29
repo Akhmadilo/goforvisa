@@ -75,6 +75,16 @@ function contractGrossUsd(c: Contract, getRate: (ym: string) => number, ym: stri
   return 0;
 }
 
+// Cash basis: only contracts that are fully paid.
+// We treat anything other than "Partially" / "No payment" / empty as fully paid.
+function isFullyPaid(c: Contract): boolean {
+  const p = (c.payment || "").trim().toLowerCase();
+  if (!p || p === "-") return false;
+  if (p.startsWith("partial")) return false;
+  if (p.startsWith("no ") || p === "no payment" || p === "nopayment") return false;
+  return true;
+}
+
 
 // MONTHS sourced from i18n via getMonthNames(lang)
 
@@ -208,13 +218,13 @@ function FinancePage() {
       ySet.add(period.year);
       if (year !== "all" && period.year !== year) continue;
       if (months.length > 0 && !months.includes(period.month)) continue;
+      // Cash basis: only fully paid contracts count as revenue/doc costs.
+      if (basis === "cash" && !isFullyPaid(c)) continue;
       const key = period.key;
       const rate = getRate(key);
       const grossUsd = contractGrossUsd(c, getRate, key);
       add(revenueByMonth, key, { uzs: grossUsd * rate, usd: grossUsd });
-      // Boshqaruv panelidagi "Sof daromad" aynan c.commission yig'indisi.
-      // Moliyaviy hisobotda Yalpi foyda shu qiymatga teng bo'lishi uchun
-      // Doc xarajat = Jami daromad − Sof daromad qilib chiqariladi.
+      // Doc xarajat = Jami daromad − Sof daromad (komissiya), boshqaruv paneliga mos.
       const commissionUsd = Number(c.commission) || 0;
       const docUsd = grossUsd - commissionUsd;
       if (docUsd !== 0) add(docCostsByMonth, key, { uzs: docUsd * rate, usd: docUsd });
@@ -291,24 +301,30 @@ function FinancePage() {
     p ? (currency === "UZS" ? p.uzs : p.usd) : 0;
 
   const allMonths = useMemo(() => {
-    const s = new Set<string>([...revenueByMonth.keys(), ...expenseByMonth.keys()]);
+    const s = new Set<string>([
+      ...revenueByMonth.keys(),
+      ...expenseByMonth.keys(),
+      ...docCostsByMonth.keys(),
+    ]);
     return Array.from(s).sort();
-  }, [revenueByMonth, expenseByMonth]);
+  }, [revenueByMonth, expenseByMonth, docCostsByMonth]);
 
   const chartData = useMemo(() => {
     return allMonths.map((k) => {
       const [y, mm] = k.split("-");
       const rev = pick(revenueByMonth.get(k));
       const exp = pick(expenseByMonth.get(k));
+      const doc = pick(docCostsByMonth.get(k));
       return {
         name: `${MONTHS[Number(mm) - 1].slice(0, 3)} ${y.slice(2)}`,
         revenue: Math.round(rev),
         expense: Math.round(exp),
-        profit: Math.round(rev - exp),
+        // Sof foyda = Jami daromad − Doc xarajat − Boshqa xarajatlar
+        profit: Math.round(rev - doc - exp),
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [allMonths, revenueByMonth, expenseByMonth, currency]);
+  }, [allMonths, revenueByMonth, expenseByMonth, docCostsByMonth, currency]);
 
   const sumPair = (m: Map<string, { uzs: number; usd: number }>) =>
     Array.from(m.values()).reduce((s, v) => ({ uzs: s.uzs + v.uzs, usd: s.usd + v.usd }), { uzs: 0, usd: 0 });
