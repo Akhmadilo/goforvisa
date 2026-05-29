@@ -75,6 +75,16 @@ function contractGrossUsd(c: Contract, getRate: (ym: string) => number, ym: stri
   return 0;
 }
 
+// Cash basis: only contracts that are fully paid.
+// We treat anything other than "Partially" / "No payment" / empty as fully paid.
+function isFullyPaid(c: Contract): boolean {
+  const p = (c.payment || "").trim().toLowerCase();
+  if (!p || p === "-") return false;
+  if (p.startsWith("partial")) return false;
+  if (p.startsWith("no ") || p === "no payment" || p === "nopayment") return false;
+  return true;
+}
+
 
 // MONTHS sourced from i18n via getMonthNames(lang)
 
