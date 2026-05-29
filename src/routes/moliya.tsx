@@ -218,13 +218,13 @@ function FinancePage() {
       ySet.add(period.year);
       if (year !== "all" && period.year !== year) continue;
       if (months.length > 0 && !months.includes(period.month)) continue;
+      // Cash basis: only fully paid contracts count as revenue/doc costs.
+      if (basis === "cash" && !isFullyPaid(c)) continue;
       const key = period.key;
       const rate = getRate(key);
       const grossUsd = contractGrossUsd(c, getRate, key);
       add(revenueByMonth, key, { uzs: grossUsd * rate, usd: grossUsd });
-      // Boshqaruv panelidagi "Sof daromad" aynan c.commission yig'indisi.
-      // Moliyaviy hisobotda Yalpi foyda shu qiymatga teng bo'lishi uchun
-      // Doc xarajat = Jami daromad − Sof daromad qilib chiqariladi.
+      // Doc xarajat = Jami daromad − Sof daromad (komissiya), boshqaruv paneliga mos.
       const commissionUsd = Number(c.commission) || 0;
       const docUsd = grossUsd - commissionUsd;
       if (docUsd !== 0) add(docCostsByMonth, key, { uzs: docUsd * rate, usd: docUsd });
