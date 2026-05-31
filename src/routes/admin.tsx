@@ -47,6 +47,7 @@ import {
   KeyRound,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useT, localeOf, type I18nKey } from "@/lib/i18n";
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
@@ -57,6 +58,7 @@ function AdminPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { t, lang } = useT();
 
   const fetchUsers = useServerFn(listUsers);
   const setRoleFn = useServerFn(setUserRole);
@@ -80,7 +82,7 @@ function AdminPage() {
       setRoleFn({ data: v }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-users"] });
-      toast.success("Yangilandi");
+      toast.success(t("admin.toast.updated"));
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -89,7 +91,7 @@ function AdminPage() {
     mutationFn: (userId: string) => deleteFn({ data: { userId } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-users"] });
-      toast.success("O'chirildi");
+      toast.success(t("admin.toast.deleted"));
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -115,7 +117,7 @@ function AdminPage() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-users"] });
-      toast.success("Foydalanuvchi yaratildi");
+      toast.success(t("admin.toast.created"));
       setCreateOpen(false);
       setNEmail("");
       setNName("");
@@ -136,7 +138,7 @@ function AdminPage() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-users"] });
-      toast.success("Ruxsatlar saqlandi");
+      toast.success(t("admin.toast.permsSaved"));
       setEditUser(null);
     },
     onError: (e: Error) => toast.error(e.message),
@@ -150,7 +152,7 @@ function AdminPage() {
     mutationFn: () =>
       resetPwFn({ data: { userId: pwUser!.id, password: pwValue } }),
     onSuccess: () => {
-      toast.success("Parol yangilandi");
+      toast.success(t("admin.toast.pwUpdated"));
       setPwUser(null);
       setPwValue("");
     },
@@ -181,16 +183,16 @@ function AdminPage() {
           <div className="flex items-center gap-3">
             <Shield className="h-6 w-6 text-primary" />
             <div>
-              <h1 className="text-xl font-bold tracking-tight">Admin Panel</h1>
+              <h1 className="text-xl font-bold tracking-tight">{t("admin.title")}</h1>
               <p className="text-xs text-muted-foreground">
-                Foydalanuvchilarni va ruxsatlarni boshqarish
+                {t("admin.subtitle")}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Link to="/">
               <Button variant="outline" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-1" /> Dashboard
+                <ArrowLeft className="h-4 w-4 mr-1" /> {t("admin.dashboard")}
               </Button>
             </Link>
             <Button
@@ -201,7 +203,7 @@ function AdminPage() {
                 navigate({ to: "/auth" });
               }}
             >
-              <LogOut className="h-4 w-4 mr-1" /> Chiqish
+              <LogOut className="h-4 w-4 mr-1" /> {t("common.logout")}
             </Button>
           </div>
         </div>
@@ -210,31 +212,31 @@ function AdminPage() {
       <main className="mx-auto max-w-[1200px] px-6 py-6 space-y-4">
         <div className="flex justify-end">
           <Button onClick={() => setCreateOpen(true)}>
-            <UserPlus className="h-4 w-4 mr-1" /> Yangi foydalanuvchi
+            <UserPlus className="h-4 w-4 mr-1" /> {t("admin.newUser")}
           </Button>
         </div>
 
         <Card className="p-4">
           {isAccessError ? (
             <p className="text-destructive text-sm">
-              Bu sahifaga faqat adminlar kira oladi.
+              {t("admin.adminOnly")}
             </p>
           ) : isLoading ? (
-            <p className="text-sm text-muted-foreground">Yuklanmoqda...</p>
+            <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
           ) : error ? (
             <p className="text-destructive text-sm">
-              Xatolik: {(error as Error).message}
+              {t("common.error")}: {(error as Error).message}
             </p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Ism</TableHead>
-                  <TableHead>Ruxsatlar</TableHead>
-                  <TableHead>Oxirgi kirish</TableHead>
-                  <TableHead>Admin</TableHead>
-                  <TableHead className="text-right">Amal</TableHead>
+                  <TableHead>{t("admin.col.email")}</TableHead>
+                  <TableHead>{t("admin.col.name")}</TableHead>
+                  <TableHead>{t("admin.col.permissions")}</TableHead>
+                  <TableHead>{t("admin.col.lastLogin")}</TableHead>
+                  <TableHead>{t("admin.col.admin")}</TableHead>
+                  <TableHead className="text-right">{t("common.action")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -245,21 +247,21 @@ function AdminPage() {
                     <TableRow key={u.id}>
                       <TableCell className="font-medium">
                         {u.email}{" "}
-                        {isSelf && <Badge variant="outline">siz</Badge>}
+                        {isSelf && <Badge variant="outline">{t("common.you")}</Badge>}
                       </TableCell>
                       <TableCell>{u.display_name ?? "—"}</TableCell>
                       <TableCell className="text-xs">
                         {isAdmin ? (
-                          <Badge>hammasi (admin)</Badge>
+                          <Badge>{t("admin.allAdmin")}</Badge>
                         ) : (
                           <span className="text-muted-foreground">
-                            {u.widgets.length} / {WIDGETS.length} bo'lim
+                            {u.widgets.length} / {WIDGETS.length} {t("admin.sections")}
                           </span>
                         )}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {u.last_sign_in_at
-                          ? new Date(u.last_sign_in_at).toLocaleString("uz-UZ")
+                          ? new Date(u.last_sign_in_at).toLocaleString(localeOf(lang))
                           : "—"}
                       </TableCell>
                       <TableCell>
@@ -283,8 +285,8 @@ function AdminPage() {
                             disabled={isAdmin}
                             title={
                               isAdmin
-                                ? "Admin hamma narsani ko'radi"
-                                : "Ruxsatlarni tahrirlash"
+                                ? t("admin.adminSeesAll")
+                                : t("admin.editPermissions")
                             }
                             onClick={() => openEdit(u)}
                           >
@@ -293,7 +295,7 @@ function AdminPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            title="Parolni yangilash"
+                            title={t("admin.resetPassword")}
                             onClick={() => {
                               setPwUser(u);
                               setPwValue("");
@@ -308,7 +310,7 @@ function AdminPage() {
                             onClick={() => {
                               if (
                                 confirm(
-                                  `${u.email} foydalanuvchisini o'chirishni tasdiqlaysizmi?`,
+                                  t("admin.confirmDelete", { email: u.email }),
                                 )
                               ) {
                                 delMut.mutate(u.id);
@@ -332,14 +334,14 @@ function AdminPage() {
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Yangi foydalanuvchi yaratish</DialogTitle>
+            <DialogTitle>{t("admin.create.title")}</DialogTitle>
             <DialogDescription>
-              Foydalanuvchi ko'rishi mumkin bo'lgan bo'limlarni belgilang.
+              {t("admin.create.desc")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label>Email</Label>
+              <Label>{t("admin.email")}</Label>
               <Input
                 type="email"
                 value={nEmail}
@@ -347,14 +349,14 @@ function AdminPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Ism</Label>
+              <Label>{t("admin.name")}</Label>
               <Input
                 value={nName}
                 onChange={(e) => setNName(e.target.value)}
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Parol (kamida 6 belgi)</Label>
+              <Label>{t("admin.password")}</Label>
               <Input
                 type="text"
                 value={nPass}
@@ -362,13 +364,13 @@ function AdminPage() {
               />
             </div>
             <div className="space-y-2 pt-2">
-              <Label>Ko'rish ruxsatlari</Label>
+              <Label>{t("admin.viewPerms")}</Label>
               <GroupedWidgetPicker value={nWidgets} onChange={setNWidgets} />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>
-              Bekor qilish
+              {t("common.cancel")}
             </Button>
             <Button
               disabled={
@@ -378,7 +380,7 @@ function AdminPage() {
               }
               onClick={() => createMut.mutate()}
             >
-              {createMut.isPending ? "..." : "Yaratish"}
+              {createMut.isPending ? "..." : t("common.create")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -391,21 +393,21 @@ function AdminPage() {
       >
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Ko'rish ruxsatlari</DialogTitle>
+            <DialogTitle>{t("admin.edit.title")}</DialogTitle>
             <DialogDescription>
-              {editUser?.email} — qaysi bo'limlarni ko'ra oladi?
+              {t("admin.edit.desc", { email: editUser?.email ?? "" })}
             </DialogDescription>
           </DialogHeader>
           <GroupedWidgetPicker value={editWidgets} onChange={setEditWidgets} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditUser(null)}>
-              Bekor qilish
+              {t("common.cancel")}
             </Button>
             <Button
               disabled={widgetsMut.isPending}
               onClick={() => widgetsMut.mutate()}
             >
-              {widgetsMut.isPending ? "..." : "Saqlash"}
+              {widgetsMut.isPending ? "..." : t("common.save")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -415,14 +417,13 @@ function AdminPage() {
       <Dialog open={!!pwUser} onOpenChange={(o) => !o && setPwUser(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Parolni yangilash</DialogTitle>
+            <DialogTitle>{t("admin.pw.title")}</DialogTitle>
             <DialogDescription>
-              {pwUser?.email} uchun yangi parol o'rnating. Foydalanuvchi shu
-              parol bilan tizimga kira oladi.
+              {t("admin.pw.desc", { email: pwUser?.email ?? "" })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-1.5">
-            <Label>Yangi parol (kamida 6 belgi)</Label>
+            <Label>{t("admin.pw.newPassword")}</Label>
             <Input
               type="text"
               value={pwValue}
@@ -432,13 +433,13 @@ function AdminPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPwUser(null)}>
-              Bekor qilish
+              {t("common.cancel")}
             </Button>
             <Button
               onClick={() => pwMut.mutate()}
               disabled={pwValue.length < 6 || pwMut.isPending}
             >
-              {pwMut.isPending ? "..." : "Yangilash"}
+              {pwMut.isPending ? "..." : t("common.update")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -454,6 +455,7 @@ function GroupedWidgetPicker({
   value: string[];
   onChange: (v: string[]) => void;
 }) {
+  const { t } = useT();
   const set = (next: string[]) => onChange(Array.from(new Set(next)));
   const toggleOne = (key: string, on: boolean) =>
     set(on ? [...value, key] : value.filter((k) => k !== key));
@@ -466,14 +468,14 @@ function GroupedWidgetPicker({
           className="text-xs underline text-muted-foreground"
           onClick={() => set(WIDGETS.map((w) => w.key))}
         >
-          Hammasi
+          {t("common.all")}
         </button>
         <button
           type="button"
           className="text-xs underline text-muted-foreground"
           onClick={() => onChange([])}
         >
-          Hech biri
+          {t("admin.none")}
         </button>
       </div>
       {WIDGET_GROUPS.map((g) => {
@@ -495,7 +497,7 @@ function GroupedWidgetPicker({
                     )
                   }
                 />
-                <span className="text-sm font-semibold">{g.label}</span>
+                <span className="text-sm font-semibold">{t(`wg.${g.key}` as I18nKey)}</span>
               </div>
               <span className="text-xs text-muted-foreground">
                 {groupKeys.filter((k) => value.includes(k)).length} / {groupKeys.length}
@@ -511,7 +513,7 @@ function GroupedWidgetPicker({
                     checked={value.includes(w.key)}
                     onCheckedChange={(v) => toggleOne(w.key, !!v)}
                   />
-                  <span className="text-sm">{w.label}</span>
+                  <span className="text-sm">{t(`w.${w.key}` as I18nKey)}</span>
                 </label>
               ))}
             </div>
@@ -521,4 +523,3 @@ function GroupedWidgetPicker({
     </div>
   );
 }
-

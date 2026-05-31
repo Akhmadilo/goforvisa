@@ -19,8 +19,8 @@ import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { supabase } from "@/integrations/supabase/client";
-import logoUrl from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
+import { useT, localeOf } from "@/lib/i18n";
 
 export const Route = createFileRoute("/employees")({
   component: EmployeesPage,
@@ -65,6 +65,7 @@ function useEmployeePhotoUrl(stored: string | null | undefined): string | null {
 }
 
 function EmployeesPage() {
+  const { t, lang } = useT();
   const { user, loading } = useAuth();
   const isAdmin = useIsAdmin();
   const { can, loading: permsLoading } = useWidgetPermissions();
@@ -131,10 +132,17 @@ function EmployeesPage() {
   const [editing, setEditing] = useState<Employee | null>(null);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Ishchini o'chirishni xohlaysizmi?")) return;
+    if (!confirm(t("emp.confirm.delete"))) return;
     const { error } = await supabase.from("employees").delete().eq("id", id);
-    if (error) toast.error(error.message); else toast.success("O'chirildi");
+    if (error) toast.error(error.message); else toast.success(t("emp.toast.deleted"));
   };
+
+  // filter chip labels
+  const filterChips = [
+    { key: "active" as const,     label: t("emp.filter.active") },
+    { key: "terminated" as const, label: t("emp.filter.terminated") },
+    { key: "all" as const,        label: t("emp.filter.all") },
+  ];
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
@@ -150,8 +158,8 @@ function EmployeesPage() {
                 <Users className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold tracking-tight">Ishchilar</h1>
-                <p className="text-xs text-muted-foreground">Kompaniya jamoasi</p>
+                <h1 className="text-xl font-bold tracking-tight">{t("emp.title")}</h1>
+                <p className="text-xs text-muted-foreground">{t("emp.subtitle")}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -160,7 +168,7 @@ function EmployeesPage() {
                   onClick={() => { setEditing(null); setFormOpen(true); }}
                   className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
-                  <Plus className="h-4 w-4" /> <span className="hidden sm:inline">Ishchi qo'shish</span>
+                  <Plus className="h-4 w-4" /> <span className="hidden sm:inline">{t("emp.add")}</span>
                 </Button>
               )}
               {isAdmin && (
@@ -171,7 +179,7 @@ function EmployeesPage() {
               <button
                 onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/auth" }); }}
                 className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary flex items-center justify-center"
-                title="Chiqish"
+                title={t("common.logout")}
               >
                 <LogOut className="h-4 w-4" />
               </button>
@@ -182,15 +190,15 @@ function EmployeesPage() {
         <main className="mx-auto max-w-[1500px] px-6 py-6 space-y-6">
           <div className="grid grid-cols-3 gap-3">
             <Card className="p-4">
-              <div className="text-xs text-muted-foreground">Jami ishchilar</div>
+              <div className="text-xs text-muted-foreground">{t("emp.stat.total")}</div>
               <div className="mt-1 text-2xl font-bold">{stats.total}</div>
             </Card>
             <Card className="p-4">
-              <div className="text-xs text-muted-foreground">Faol</div>
+              <div className="text-xs text-muted-foreground">{t("emp.stat.active")}</div>
               <div className="mt-1 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.active}</div>
             </Card>
             <Card className="p-4">
-              <div className="text-xs text-muted-foreground">Ishdan ketgan</div>
+              <div className="text-xs text-muted-foreground">{t("emp.stat.terminated")}</div>
               <div className="mt-1 text-2xl font-bold text-muted-foreground">{stats.terminated}</div>
             </Card>
           </div>
@@ -200,27 +208,23 @@ function EmployeesPage() {
               <div className="relative flex-1">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Ism, telefon yoki lavozim..."
+                  placeholder={t("emp.search.placeholder")}
                   className="pl-8"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />
               </div>
               <div className="flex gap-1.5">
-                {([
-                  ["active", "Faol"],
-                  ["terminated", "Ketganlar"],
-                  ["all", "Barchasi"],
-                ] as const).map(([k, l]) => (
+                {filterChips.map(({ key, label }) => (
                   <button
-                    key={k}
-                    onClick={() => setFilter(k)}
+                    key={key}
+                    onClick={() => setFilter(key)}
                     className={cn(
                       "px-3 py-1.5 text-xs rounded-md border transition-colors",
-                      filter === k ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-secondary"
+                      filter === key ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-secondary"
                     )}
                   >
-                    {l}
+                    {label}
                   </button>
                 ))}
               </div>
@@ -229,7 +233,7 @@ function EmployeesPage() {
 
           {filtered.length === 0 ? (
             <Card className="p-10 text-center text-muted-foreground">
-              Ishchilar topilmadi.
+              {t("emp.empty")}
             </Card>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -264,6 +268,7 @@ function EmployeeCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const { t } = useT();
   const initials = emp.full_name
     .split(/\s+/)
     .slice(0, 2)
@@ -321,7 +326,9 @@ function EmployeeCard({
               : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
           )}
         >
-          {terminated ? <><UserX className="h-3 w-3" /> Ishdan ketgan</> : <><UserCheck className="h-3 w-3" /> Faol</>}
+          {terminated
+            ? <><UserX className="h-3 w-3" /> {t("emp.status.terminated")}</>
+            : <><UserCheck className="h-3 w-3" /> {t("emp.status.active")}</>}
         </Badge>
         {emp.hired_at && (
           <span className="text-muted-foreground">{emp.hired_at}{terminated && emp.terminated_at ? ` → ${emp.terminated_at}` : ""}</span>
@@ -335,14 +342,14 @@ function EmployeeCard({
       {canEdit && (
         <div className="flex gap-1.5 pt-1">
           <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={onEdit}>
-            <Pencil className="h-3 w-3" /> Tahrirlash
+            <Pencil className="h-3 w-3" /> {t("common.edit")}
           </Button>
           <Button
             variant="outline"
             size="sm"
             className="h-8 w-8 p-0 hover:bg-destructive hover:text-destructive-foreground"
             onClick={onDelete}
-            title="O'chirish"
+            title={t("common.delete")}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
@@ -359,6 +366,7 @@ function EmployeeFormDialog({
   onOpenChange: (o: boolean) => void;
   employee: Employee | null;
 }) {
+  const { t } = useT();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [position, setPosition] = useState("");
@@ -401,7 +409,7 @@ function EmployeeFormDialog({
   };
 
   const handleSave = async () => {
-    if (!fullName.trim()) { toast.error("Ism kiritilmagan"); return; }
+    if (!fullName.trim()) { toast.error(t("emp.form.nameRequired")); return; }
     setSaving(true);
     const payload = {
       full_name: fullName.trim(),
@@ -417,7 +425,7 @@ function EmployeeFormDialog({
       : await supabase.from("employees").insert(payload);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success(employee ? "Yangilandi" : "Qo'shildi");
+    toast.success(employee ? t("emp.toast.updated") : t("emp.toast.added"));
     onOpenChange(false);
   };
 
@@ -425,7 +433,7 @@ function EmployeeFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{employee ? "Ishchini tahrirlash" : "Yangi ishchi"}</DialogTitle>
+          <DialogTitle>{employee ? t("emp.form.editTitle") : t("emp.form.addTitle")}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-3">
@@ -435,7 +443,7 @@ function EmployeeFormDialog({
             <div className="flex-1">
               <label className="cursor-pointer inline-flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border border-input hover:bg-secondary">
                 <Camera className="h-4 w-4" />
-                {uploading ? "Yuklanmoqda..." : avatarUrl ? "Rasmni o'zgartirish" : "Rasm yuklash"}
+                {uploading ? t("emp.form.uploading") : avatarUrl ? t("emp.form.changePhoto") : t("emp.form.uploadPhoto")}
                 <input
                   type="file"
                   accept="image/*"
@@ -449,59 +457,59 @@ function EmployeeFormDialog({
                   onClick={() => setAvatarUrl(null)}
                   className="text-xs text-destructive hover:underline mt-1.5 block"
                 >
-                  Rasmni olib tashlash
+                  {t("emp.form.removePhoto")}
                 </button>
               )}
             </div>
           </div>
 
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">To'liq ism *</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("emp.form.fullName")} *</label>
             <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Telefon</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("emp.form.phone")}</label>
               <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+998..." />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Lavozim</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("emp.form.position")}</label>
               <Input value={position} onChange={(e) => setPosition(e.target.value)} />
             </div>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Ishga olingan sana</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("emp.form.hiredAt")}</label>
             <Input type="date" value={hiredAt} onChange={(e) => setHiredAt(e.target.value)} />
           </div>
 
           <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
             <div className="text-sm">
-              <div className="font-medium">Ishdan ketgan</div>
-              <div className="text-xs text-muted-foreground">Belgilang agar ishchi ketgan bo'lsa</div>
+              <div className="font-medium">{t("emp.form.terminated")}</div>
+              <div className="text-xs text-muted-foreground">{t("emp.form.terminatedHint")}</div>
             </div>
             <Switch checked={terminated} onCheckedChange={setTerminated} />
           </div>
           {terminated && (
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Ketgan sana</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("emp.form.terminatedAt")}</label>
               <Input type="date" value={terminatedAt} onChange={(e) => setTerminatedAt(e.target.value)} />
             </div>
           )}
 
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Izoh</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("emp.form.notes")}</label>
             <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} />
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Bekor qilish</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
           <Button
             onClick={handleSave}
             disabled={saving || uploading}
             className="bg-emerald-600 hover:bg-emerald-700 text-white"
           >
-            {saving ? "Saqlanmoqda..." : "Saqlash"}
+            {saving ? t("common.saving") : t("common.save")}
           </Button>
         </DialogFooter>
       </DialogContent>
