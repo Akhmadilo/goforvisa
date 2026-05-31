@@ -25,6 +25,7 @@ import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { supabase } from "@/integrations/supabase/client";
 import logoUrl from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
+import { useT, getMonthNames, getMonthNamesShort, localeOf } from "@/lib/i18n";
 
 export const Route = createFileRoute("/salaries")({
   component: SalariesPage,
@@ -35,11 +36,6 @@ export const Route = createFileRoute("/salaries")({
     ],
   }),
 });
-
-const UZ_MONTHS = [
-  "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
-  "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr",
-];
 
 type SalaryRow = {
   id: string;
@@ -55,6 +51,7 @@ type SalaryRow = {
 };
 
 function SalariesPage() {
+  const { t, lang } = useT();
   const { user, loading } = useAuth();
   const isAdmin = useIsAdmin();
   const { can, loading: permsLoading } = useWidgetPermissions();
@@ -179,14 +176,16 @@ function SalariesPage() {
   );
 
   const fmt = (n: number) =>
-    new Intl.NumberFormat("uz-UZ").format(Math.round(n)) + " so'm";
+    new Intl.NumberFormat(localeOf(lang)).format(Math.round(n)) + " " + t("sal.uzs");
 
   const onDelete = async (id: string) => {
-    if (!confirm("O'chirishni tasdiqlaysizmi?")) return;
+    if (!confirm(t("sal.confirm.delete"))) return;
     const { error } = await supabase.from("salaries").delete().eq("id", id);
     if (error) toast.error(error.message);
-    else toast.success("O'chirildi");
+    else toast.success(t("sal.toast.deleted"));
   };
+
+  const monthNames = getMonthNames(lang);
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
@@ -221,10 +220,8 @@ function SalariesPage() {
                 <Wallet className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold tracking-tight">Ishchilar oyliklari</h1>
-                <p className="text-xs text-muted-foreground">
-                  Oylik = O'zgarmas + Bonus (KPI) − Jarima
-                </p>
+                <h1 className="text-xl font-bold tracking-tight">{t("sal.title")}</h1>
+                <p className="text-xs text-muted-foreground">{t("sal.subtitle")}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -233,7 +230,7 @@ function SalariesPage() {
                   size="sm"
                   onClick={() => { setEditing(null); setOpenForm(true); }}
                 >
-                  <Plus className="h-4 w-4 mr-1" /> Oylik qo'shish
+                  <Plus className="h-4 w-4 mr-1" /> {t("sal.add")}
                 </Button>
               )}
               {isAdmin && (
@@ -251,7 +248,7 @@ function SalariesPage() {
                   navigate({ to: "/auth" });
                 }}
                 className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary flex items-center justify-center"
-                title="Chiqish"
+                title={t("common.logout")}
               >
                 <LogOut className="h-4 w-4" />
               </button>
@@ -264,11 +261,11 @@ function SalariesPage() {
           <Card className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Yil</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t("common.year")}</label>
                 <Select value={year} onValueChange={(v) => { setYear(v); setSelectedMonths([]); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Barcha yillar</SelectItem>
+                    <SelectItem value="all">{t("common.allYears")}</SelectItem>
                     {years.map((y) => (
                       <SelectItem key={y} value={String(y)}>{y}</SelectItem>
                     ))}
@@ -276,7 +273,7 @@ function SalariesPage() {
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Oylar</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t("common.months")}</label>
                 <MonthsMultiSelect
                   available={months}
                   selected={selectedMonths}
@@ -284,20 +281,20 @@ function SalariesPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Ishchilar</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t("sal.filter.employees")}</label>
                 <MultiSelect
                   options={employees}
                   selected={selectedEmployees}
                   onChange={setSelectedEmployees}
-                  placeholder="Barcha ishchilar"
+                  placeholder={t("sal.filter.allEmployees")}
                 />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Qidiruv</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t("common.search")}</label>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Ism..."
+                    placeholder={t("sal.filter.search.placeholder")}
                     className="pl-8"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
@@ -309,10 +306,10 @@ function SalariesPage() {
 
           {canTotals && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <SumCard label="Jami o'zgarmas" value={fmt(totals.fixed)} />
-              <SumCard label="Jami bonus (KPI)" value={`+${fmt(totals.kpi)}`} accent="primary" />
-              <SumCard label="Jami jarima" value={`−${fmt(totals.penalty)}`} accent="destructive" />
-              <SumCard label="Jami to'lanadigan" value={fmt(totals.total)} accent="primary" bold />
+              <SumCard label={t("sal.stat.fixed")} value={fmt(totals.fixed)} />
+              <SumCard label={t("sal.stat.bonus")} value={`+${fmt(totals.kpi)}`} accent="primary" />
+              <SumCard label={t("sal.stat.penalty")} value={`−${fmt(totals.penalty)}`} accent="destructive" />
+              <SumCard label={t("sal.stat.payable")} value={fmt(totals.total)} accent="primary" bold />
             </div>
           )}
 
@@ -321,35 +318,35 @@ function SalariesPage() {
           {canTable && (
             <Card className="p-4">
               <div className="flex items-center justify-between mb-3">
-                <div className="text-sm font-semibold">Oylik to'lovlar</div>
-                <div className="text-xs text-muted-foreground">{rows.length} yozuv</div>
+                <div className="text-sm font-semibold">{t("sal.list.title")}</div>
+                <div className="text-xs text-muted-foreground">{rows.length} {t("common.records")}</div>
               </div>
               <div className="overflow-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Yil</TableHead>
-                      <TableHead>Oy</TableHead>
-                      <TableHead>Ishchi</TableHead>
-                      <TableHead className="text-right">O'zgarmas</TableHead>
-                      <TableHead className="text-right">Bonus</TableHead>
-                      <TableHead className="text-right">Jarima</TableHead>
-                      <TableHead className="text-right">Oylik</TableHead>
-                      <TableHead>Izoh</TableHead>
-                      <TableHead>Yaratuvchi</TableHead>
+                      <TableHead>{t("sal.col.year")}</TableHead>
+                      <TableHead>{t("sal.col.month")}</TableHead>
+                      <TableHead>{t("sal.col.employee")}</TableHead>
+                      <TableHead className="text-right">{t("sal.col.fixed")}</TableHead>
+                      <TableHead className="text-right">{t("sal.col.bonus")}</TableHead>
+                      <TableHead className="text-right">{t("sal.col.penalty")}</TableHead>
+                      <TableHead className="text-right">{t("sal.col.salary")}</TableHead>
+                      <TableHead>{t("sal.col.note")}</TableHead>
+                      <TableHead>{t("sal.col.creator")}</TableHead>
                       {canCreate && <TableHead className="w-[100px]"></TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoading ? (
-                      <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-10">Yuklanmoqda...</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-10">{t("common.loading")}</TableCell></TableRow>
                     ) : rows.length === 0 ? (
-                      <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-10">Ma'lumot topilmadi.</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-10">{t("common.notFound")}</TableCell></TableRow>
                     ) : (
                       rows.map((e) => (
                         <TableRow key={e.id}>
                           <TableCell className="text-muted-foreground">{e.year}</TableCell>
-                          <TableCell>{UZ_MONTHS[e.month - 1]}</TableCell>
+                          <TableCell>{monthNames[e.month - 1]}</TableCell>
                           <TableCell className="font-medium">
                             <button
                               className="hover:underline"
@@ -411,6 +408,7 @@ function SalaryFormDialog({
   userId: string | null;
   knownEmployees: string[];
 }) {
+  const { t, lang } = useT();
   const now = new Date();
   const [employeeName, setEmployeeName] = useState("");
   const [year, setYear] = useState<number>(now.getFullYear());
@@ -445,7 +443,7 @@ function SalaryFormDialog({
     (parseFloat(fixed) || 0) + (parseFloat(kpi) || 0) - (parseFloat(penalty) || 0);
 
   const onSubmit = async () => {
-    if (!employeeName.trim()) { toast.error("Ishchi ismini kiriting"); return; }
+    if (!employeeName.trim()) { toast.error(t("sal.toast.nameRequired")); return; }
     setSaving(true);
     const payload = {
       employee_name: employeeName.trim(),
@@ -461,24 +459,26 @@ function SalaryFormDialog({
       : await supabase.from("salaries").insert({ ...payload, created_by: userId });
     setSaving(false);
     if (res.error) { toast.error(res.error.message); return; }
-    toast.success(editing ? "Yangilandi" : "Qo'shildi");
+    toast.success(editing ? t("sal.toast.updated") : t("sal.toast.added"));
     onOpenChange(false);
   };
+
+  const monthNames = getMonthNames(lang);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{editing ? "Oylikni tahrirlash" : "Yangi oylik qo'shish"}</DialogTitle>
+          <DialogTitle>{editing ? t("sal.form.editTitle") : t("sal.form.addTitle")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Ishchi</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("sal.form.employee")}</label>
             <Input
               list="employee-names"
               value={employeeName}
               onChange={(e) => setEmployeeName(e.target.value)}
-              placeholder="Ism"
+              placeholder={t("sal.form.namePh")}
             />
             <datalist id="employee-names">
               {knownEmployees.map((n) => <option key={n} value={n} />)}
@@ -486,15 +486,15 @@ function SalaryFormDialog({
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Yil</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("common.year")}</label>
               <Input type="number" value={year} onChange={(e) => setYear(parseInt(e.target.value) || now.getFullYear())} />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Oy</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("common.month")}</label>
               <Select value={String(month)} onValueChange={(v) => setMonth(parseInt(v))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {UZ_MONTHS.map((m, i) => (
+                  {monthNames.map((m, i) => (
                     <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
                   ))}
                 </SelectContent>
@@ -502,31 +502,31 @@ function SalaryFormDialog({
             </div>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">O'zgarmas oylik (so'm)</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("sal.form.fixed")}</label>
             <Input type="number" inputMode="decimal" value={fixed} onChange={(e) => setFixed(e.target.value)} />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Bonus / KPI (so'm)</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("sal.form.bonus")}</label>
             <Input type="number" inputMode="decimal" value={kpi} onChange={(e) => setKpi(e.target.value)} />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Jarima (so'm)</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("sal.form.penalty")}</label>
             <Input type="number" inputMode="decimal" value={penalty} onChange={(e) => setPenalty(e.target.value)} />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Izoh</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("common.note")}</label>
             <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
           </div>
           <div className="text-sm flex items-center justify-between rounded-md bg-secondary px-3 py-2">
-            <span className="text-muted-foreground">Jami oylik:</span>
+            <span className="text-muted-foreground">{t("sal.form.total")}</span>
             <span className="font-semibold">
-              {new Intl.NumberFormat("uz-UZ").format(Math.round(total))} so'm
+              {new Intl.NumberFormat(localeOf(lang)).format(Math.round(total))} {t("sal.uzs")}
             </span>
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Bekor qilish</Button>
-          <Button onClick={onSubmit} disabled={saving}>{saving ? "Saqlanmoqda..." : "Saqlash"}</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("common.cancel")}</Button>
+          <Button onClick={onSubmit} disabled={saving}>{saving ? t("common.saving") : t("common.save")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -540,14 +540,16 @@ function MonthsMultiSelect({
   selected: number[];
   onChange: (v: number[]) => void;
 }) {
+  const { t, lang } = useT();
+  const monthNames = getMonthNames(lang);
   const toggle = (v: number) =>
     onChange(selected.includes(v) ? selected.filter((s) => s !== v) : [...selected, v]);
   const label =
     selected.length === 0
-      ? "Barcha oylar"
+      ? t("sal.ms.allMonths")
       : selected.length === 1
-      ? UZ_MONTHS[selected[0] - 1]
-      : `${selected.length} oy tanlangan`;
+      ? monthNames[selected[0] - 1]
+      : t("sal.ms.monthsSelected", { n: selected.length });
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -561,14 +563,14 @@ function MonthsMultiSelect({
       </PopoverTrigger>
       <PopoverContent className="w-56 p-2" align="start">
         <div className="flex items-center justify-between px-2 py-1 mb-1">
-          <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={() => onChange([])}>Tozalash</button>
-          <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={() => onChange([...available])}>Hammasi</button>
+          <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={() => onChange([])}>{t("common.clear")}</button>
+          <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={() => onChange([...available])}>{t("sal.ms.all")}</button>
         </div>
         <div className="max-h-64 overflow-auto space-y-1">
           {available.map((m) => (
             <label key={m} className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm">
               <Checkbox checked={selected.includes(m)} onCheckedChange={() => toggle(m)} />
-              <span>{UZ_MONTHS[m - 1]}</span>
+              <span>{monthNames[m - 1]}</span>
             </label>
           ))}
         </div>
@@ -585,6 +587,7 @@ function MultiSelect({
   onChange: (v: string[]) => void;
   placeholder: string;
 }) {
+  const { t } = useT();
   const toggle = (v: string) =>
     onChange(selected.includes(v) ? selected.filter((s) => s !== v) : [...selected, v]);
   const label =
@@ -592,7 +595,7 @@ function MultiSelect({
       ? placeholder
       : selected.length === 1
       ? selected[0]
-      : `${selected.length} tanlangan`;
+      : `${selected.length} ${t("common.selected")}`;
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -606,8 +609,8 @@ function MultiSelect({
       </PopoverTrigger>
       <PopoverContent className="w-64 p-2" align="start">
         <div className="flex items-center justify-between px-2 py-1 mb-1">
-          <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={() => onChange([])}>Tozalash</button>
-          <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={() => onChange([...options])}>Hammasi</button>
+          <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={() => onChange([])}>{t("common.clear")}</button>
+          <button type="button" className="text-xs text-muted-foreground hover:text-foreground" onClick={() => onChange([...options])}>{t("sal.ms.all")}</button>
         </div>
         <div className="max-h-64 overflow-auto space-y-1">
           {options.map((o) => (
@@ -617,7 +620,7 @@ function MultiSelect({
             </label>
           ))}
           {options.length === 0 && (
-            <div className="text-xs text-muted-foreground px-2 py-3 text-center">Bo'sh</div>
+            <div className="text-xs text-muted-foreground px-2 py-3 text-center">{t("common.empty")}</div>
           )}
         </div>
       </PopoverContent>
@@ -658,6 +661,9 @@ type PivotRow = {
 };
 
 function PivotTable({ rows, fmt }: { rows: PivotRow[]; fmt: (n: number) => string }) {
+  const { t, lang } = useT();
+  const monthNamesShort = getMonthNamesShort(lang);
+
   const cols = Array.from(
     new Map(rows.map((r) => [`${r.year}-${r.month}`, { year: r.year, month: r.month }])).values(),
   ).sort((a, b) => a.year !== b.year ? a.year - b.year : a.month - b.month);
@@ -688,33 +694,33 @@ function PivotTable({ rows, fmt }: { rows: PivotRow[]; fmt: (n: number) => strin
     names.reduce((s, n) => s + (grid.get(n)?.get(`${c.year}-${c.month}`) ?? 0), 0),
   );
   const grandTotal = colTotals.reduce((a, b) => a + b, 0);
-  const short = (m: number) => UZ_MONTHS[m - 1].slice(0, 3);
+  const short = (m: number) => monthNamesShort[m - 1];
 
   return (
     <Card className="p-4">
       <div className="flex items-center justify-between mb-3">
-        <div className="text-sm font-semibold">Ishchilar bo'yicha oylik to'lovlar (jadval)</div>
-        <div className="text-xs text-muted-foreground">{names.length} ishchi × {cols.length} oy</div>
+        <div className="text-sm font-semibold">{t("sal.pivot.title")}</div>
+        <div className="text-xs text-muted-foreground">{t("sal.pivot.subtitle", { e: names.length, m: cols.length })}</div>
       </div>
       <div className="overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="sticky left-0 bg-card z-10 min-w-[140px]">Ishchi</TableHead>
+              <TableHead className="sticky left-0 bg-card z-10 min-w-[140px]">{t("sal.col.employee")}</TableHead>
               {cols.map((c) => (
                 <TableHead key={`${c.year}-${c.month}`} className="text-right whitespace-nowrap">
                   <div>{short(c.month)}</div>
                   <div className="text-[10px] text-muted-foreground font-normal">{c.year}</div>
                 </TableHead>
               ))}
-              <TableHead className="text-right whitespace-nowrap">Jami</TableHead>
+              <TableHead className="text-right whitespace-nowrap">{t("common.total")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {names.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={cols.length + 2} className="text-center text-muted-foreground py-10">
-                  Ma'lumot topilmadi.
+                  {t("common.notFound")}
                 </TableCell>
               </TableRow>
             ) : (
@@ -748,10 +754,10 @@ function PivotTable({ rows, fmt }: { rows: PivotRow[]; fmt: (n: number) => strin
             )}
             {names.length > 0 && (
               <TableRow className="border-t-2 bg-muted/30">
-                <TableCell className="sticky left-0 bg-muted/30 z-10 font-semibold">Jami</TableCell>
-                {colTotals.map((t, i) => (
+                <TableCell className="sticky left-0 bg-muted/30 z-10 font-semibold">{t("common.total")}</TableCell>
+                {colTotals.map((tv, i) => (
                   <TableCell key={i} className="text-right font-semibold whitespace-nowrap tabular-nums">
-                    {t === 0 ? "—" : fmt(t)}
+                    {tv === 0 ? "—" : fmt(tv)}
                   </TableCell>
                 ))}
                 <TableCell className="text-right font-bold whitespace-nowrap tabular-nums text-primary">
