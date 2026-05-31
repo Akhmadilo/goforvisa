@@ -64,6 +64,7 @@ import { Link } from "@tanstack/react-router";
 import { LogOut, Shield } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { AppSidebar } from "@/components/app-sidebar";
+import { useT, format, localeOf } from "@/lib/i18n";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -148,6 +149,7 @@ function Dashboard() {
   const isAdmin = useIsAdmin();
   const { can } = useWidgetPermissions();
   const navigate = Route.useNavigate();
+  const { t, lang } = useT();
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -448,10 +450,10 @@ function Dashboard() {
               </div>
               <div>
                 <h1 className="text-xl font-bold tracking-tight">
-                  Shartnomalar Dashboard
+                  {t("dash.title")}
                 </h1>
                 <p className="text-xs text-muted-foreground">
-                  CFO View · Mijozlar bazasi · Real-time
+                  {t("dash.subtitle")}
                 </p>
               </div>
             </div>
@@ -460,11 +462,11 @@ function Dashboard() {
             <div className="text-right hidden sm:block">
               <div className="flex items-center gap-2 text-xs text-muted-foreground justify-end">
                 <span className={`h-2 w-2 rounded-full ${isFetching ? "bg-accent animate-pulse" : "bg-primary"}`} />
-                {isFetching ? "Yangilanmoqda..." : "Live · har 30s"}
+                {isFetching ? t("common.updating") : t("common.live")}
               </div>
               <div className="text-[11px] text-muted-foreground mt-0.5">
                 {dataUpdatedAt
-                  ? `Oxirgi: ${new Date(dataUpdatedAt).toLocaleTimeString("uz-UZ")}`
+                  ? `${t("common.last")}: ${new Date(dataUpdatedAt).toLocaleTimeString(localeOf(lang))}`
                   : "—"}
               </div>
             </div>
@@ -480,7 +482,7 @@ function Dashboard() {
                 <div className="hidden md:block leading-tight">
                   <div className="text-sm font-medium">{displayName}</div>
                   <div className="text-[11px] text-muted-foreground">
-                    {isAdmin ? "Admin" : "Foydalanuvchi"}
+                    {isAdmin ? "Admin" : t("common.user")}
                   </div>
                 </div>
               </div>
@@ -489,7 +491,7 @@ function Dashboard() {
               onClick={() => refetch()}
               disabled={isFetching}
               className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary transition-colors flex items-center justify-center disabled:opacity-50"
-              title="Hozir yangilash"
+              title={t("common.refresh")}
             >
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
             </button>
@@ -508,7 +510,7 @@ function Dashboard() {
                 navigate({ to: "/auth" });
               }}
               className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary transition-colors flex items-center justify-center"
-              title="Chiqish"
+              title={t("common.logout")}
             >
               <LogOut className="h-4 w-4" />
             </button>
@@ -519,7 +521,7 @@ function Dashboard() {
       <main className="mx-auto max-w-[1500px] px-6 py-6 space-y-6">
         {error && (
           <Card className="p-4 border-destructive/50 text-destructive">
-            Xatolik: {(error as Error).message}
+            {t("common.error")}: {(error as Error).message}
           </Card>
         )}
 
@@ -527,49 +529,49 @@ function Dashboard() {
         <Card className="p-4 shadow-[var(--shadow-card)]">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
             <FilterSelect
-              label="Yil"
+              label={t("dash.filter.year")}
               value={year}
               onChange={setYear}
               options={opts.years}
             />
             <MultiFilter
-              label="Oy"
+              label={t("dash.filter.month")}
               values={months}
               onChange={setMonths}
               options={opts.months}
             />
             <MultiFilter
-              label="Sotuv menejer"
+              label={t("dash.filter.salesManager")}
               values={managers}
               onChange={setManagers}
               options={opts.managers}
             />
             <MultiFilter
-              label="Back office"
+              label={t("dash.filter.backOffice")}
               values={backOffices}
               onChange={setBackOffices}
               options={opts.backOffices}
             />
             <MultiFilter
-              label="Visa"
+              label={t("dash.filter.visa")}
               values={visas}
               onChange={setVisas}
               options={opts.visas}
             />
             <MultiFilter
-              label="Kompaniya"
+              label={t("dash.filter.company")}
               values={companies}
               onChange={setCompanies}
               options={opts.companies}
             />
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">
-                Qidirish
+                {t("common.search")}
               </label>
               <div className="relative">
                 <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Ism, raqam, telefon"
+                  placeholder={t("dash.search.placeholder")}
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-8 h-9"
@@ -584,42 +586,42 @@ function Dashboard() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <Kpi
             icon={<DollarSign className="h-4 w-4" />}
-            label="Jami shartnoma"
+            label={t("dash.kpi.totalContracts")}
             value={fmtUsd(kpis.totalUsd)}
-            sub={`${kpis.clients} ta mijoz`}
+            sub={`${kpis.clients} ${t("dash.kpi.clients")}`}
             tone="primary"
           />
           <Kpi
             icon={<TrendingUp className="h-4 w-4" />}
-            label="Sof daromad"
+            label={t("dash.kpi.netRevenue")}
             value={fmtUsd(kpis.commission)}
-            sub={`${kpis.marginPct.toFixed(1)}% · fee − doc xarajat`}
+            sub={`${kpis.marginPct.toFixed(1)}% · ${t("dash.kpi.netRevenueSub")}`}
             tone="primary"
           />
           <Kpi
             icon={<DollarSign className="h-4 w-4" />}
-            label="Doc xarajat"
+            label={t("dash.kpi.docCost")}
             value={fmtUsd(kpis.docsTotal)}
-            sub={`O'rtacha sof ${fmtUsd(kpis.avgComm)}`}
+            sub={`${t("dash.kpi.avgNet")} ${fmtUsd(kpis.avgComm)}`}
             tone="accent"
           />
           <Kpi
             icon={<Users className="h-4 w-4" />}
-            label="Mijozlar"
+            label={t("dash.kpi.clientsLabel")}
             value={kpis.clients.toLocaleString()}
-            sub={`${kpis.visaTaken} visa olingan`}
+            sub={`${kpis.visaTaken} ${t("dash.kpi.visaTaken")}`}
           />
           <Kpi
             icon={<CheckCircle2 className="h-4 w-4" />}
-            label="Visa Success"
+            label={t("dash.kpi.visaSuccess")}
             value={kpis.successRate.toFixed(1) + "%"}
-            sub={`${kpis.visaTaken} / ${kpis.clients} · ${kpis.visaRejected} rejected · ${kpis.visaInProcess} jarayonda`}
+            sub={`${kpis.visaTaken} / ${kpis.clients} · ${kpis.visaRejected} ${t("dash.kpi.rejected")} · ${kpis.visaInProcess} ${t("dash.kpi.inProcess")}`}
           />
           <Kpi
             icon={<AlertTriangle className="h-4 w-4" />}
-            label="Qarzdorlar"
+            label={t("dash.kpi.debtors")}
             value={debtors.length.toString()}
-            sub={`Jami qarz ${fmtUsd(debtorsTotalUsd)}`}
+            sub={`${t("dash.kpi.totalDebt")} ${fmtUsd(debtorsTotalUsd)}`}
             tone="danger"
           />
         </div>
@@ -631,8 +633,8 @@ function Dashboard() {
           {can("monthly_revenue") && (
           <Card className="p-5 lg:col-span-2 shadow-[var(--shadow-card)]">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Oylik daromad va sof foyda</h3>
-              <Badge variant="secondary">{monthlyData.length} oy</Badge>
+              <h3 className="font-semibold">{t("dash.chart.monthly")}</h3>
+              <Badge variant="secondary">{monthlyData.length} {t("dash.chart.monthsCount")}</Badge>
             </div>
             <ResponsiveContainer width="100%" height={280}>
               <LineChart data={monthlyData}>
@@ -652,7 +654,7 @@ function Dashboard() {
                   dataKey="revenue"
                   stroke="var(--color-chart-1)"
                   strokeWidth={2.5}
-                  name="Daromad $"
+                  name={t("dash.chart.revenueUsd")}
                   dot={{ r: 3 }}
                 />
                 <Line
@@ -660,7 +662,7 @@ function Dashboard() {
                   dataKey="commission"
                   stroke="var(--color-chart-3)"
                   strokeWidth={2.5}
-                  name="Sof daromad $"
+                  name={t("dash.chart.netUsd")}
                   dot={{ r: 3 }}
                 />
               </LineChart>
@@ -670,7 +672,7 @@ function Dashboard() {
 
           {can("visa_results") && (
           <Card className="p-5 shadow-[var(--shadow-card)]">
-            <h3 className="font-semibold mb-4">Visa natijalari</h3>
+            <h3 className="font-semibold mb-4">{t("dash.chart.visaResults")}</h3>
             <ResponsiveContainer width="100%" height={280}>
               <PieChart>
                 <Pie
@@ -705,7 +707,7 @@ function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {can("managers_revenue") && (
           <Card className="p-5 shadow-[var(--shadow-card)]">
-            <h3 className="font-semibold mb-4">Sotuv menejerlari · daromad va sof foyda</h3>
+            <h3 className="font-semibold mb-4">{t("dash.chart.salesManagersRevenue")}</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={managerData} layout="vertical">
                 <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
@@ -725,8 +727,8 @@ function Dashboard() {
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: "12px" }} />
-                <Bar dataKey="revenue" fill="var(--color-chart-1)" name="Daromad $" radius={[0, 4, 4, 0]} />
-                <Bar dataKey="commission" fill="var(--color-chart-3)" name="Sof daromad $" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="revenue" fill="var(--color-chart-1)" name={t("dash.chart.revenueUsd")} radius={[0, 4, 4, 0]} />
+                <Bar dataKey="commission" fill="var(--color-chart-3)" name={t("dash.chart.netUsd")} radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
@@ -734,7 +736,7 @@ function Dashboard() {
 
           {can("contract_types") && (
           <Card className="p-5 shadow-[var(--shadow-card)]">
-            <h3 className="font-semibold mb-4">Shartnoma turlari</h3>
+            <h3 className="font-semibold mb-4">{t("dash.chart.contractTypes")}</h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={typeData}>
                 <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
@@ -747,7 +749,7 @@ function Dashboard() {
                     borderRadius: "8px",
                   }}
                 />
-                <Bar dataKey="value" fill="var(--color-chart-2)" name="Soni" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="value" fill="var(--color-chart-2)" name={t("dash.chart.count")} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
@@ -761,7 +763,7 @@ function Dashboard() {
           {can("managers_clients") && (
           <Card className="p-5 shadow-[var(--shadow-card)]">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Menejerlar bo'yicha mijozlar soni</h3>
+              <h3 className="font-semibold">{t("dash.chart.managersClients")}</h3>
               <Badge variant="secondary">{managerData.length}</Badge>
             </div>
             <ResponsiveContainer width="100%" height={300}>
@@ -776,7 +778,7 @@ function Dashboard() {
                     borderRadius: "8px",
                   }}
                 />
-                <Bar dataKey="clients" fill="var(--color-chart-2)" name="Mijozlar" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="clients" fill="var(--color-chart-2)" name={t("dash.kpi.clientsLabel")} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
@@ -785,7 +787,7 @@ function Dashboard() {
           {can("companies_sales_pie") && (
           <Card className="p-5 shadow-[var(--shadow-card)]">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Kompaniyalar bo'yicha sotuvlar</h3>
+              <h3 className="font-semibold">{t("dash.chart.companiesSales")}</h3>
               <Badge variant="secondary">{companyData.length}</Badge>
             </div>
             <ResponsiveContainer width="100%" height={300}>
@@ -821,7 +823,7 @@ function Dashboard() {
 
         {can("companies_revenue") && (
         <Card className="p-5 shadow-[var(--shadow-card)]">
-          <h3 className="font-semibold mb-4">Kompaniyalar · daromad va sof foyda</h3>
+          <h3 className="font-semibold mb-4">{t("dash.chart.companiesRevenue")}</h3>
           <ResponsiveContainer width="100%" height={320}>
             <BarChart data={companyData}>
               <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
@@ -835,8 +837,8 @@ function Dashboard() {
                 }}
               />
               <Legend wrapperStyle={{ fontSize: "12px" }} />
-              <Bar dataKey="revenue" fill="var(--color-chart-1)" name="Daromad $" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="profit" fill="var(--color-chart-3)" name="Sof daromad $" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="revenue" fill="var(--color-chart-1)" name={t("dash.chart.revenueUsd")} radius={[4, 4, 0, 0]} />
+              <Bar dataKey="profit" fill="var(--color-chart-3)" name={t("dash.chart.netUsd")} radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </Card>
@@ -844,21 +846,21 @@ function Dashboard() {
 
         {can("sales_monthly") && (
         <MonthlySeriesCard
-          title="Sotuv menejerlari · oylik sotuvlar (mijoz soni)"
+          title={t("dash.chart.salesMonthly")}
           data={salesMonthly}
           colors={PIE_COLORS}
         />
         )}
         {can("backoffice_monthly") && (
         <MonthlySeriesCard
-          title="Back office · oylik hujjat topshirilgan mijozlar"
+          title={t("dash.chart.backOfficeMonthly")}
           data={backOfficeMonthly}
           colors={PIE_COLORS}
         />
         )}
         {can("companies_monthly") && (
         <MonthlySeriesCard
-          title="Kompaniyalar · oylik sotuvlar (mijoz soni)"
+          title={t("dash.chart.companiesMonthly")}
           data={companyMonthly}
           colors={PIE_COLORS}
         />
@@ -873,18 +875,18 @@ function Dashboard() {
               </div>
               <div>
                 <h3 className="font-semibold">
-                  Qarzdorlar{" "}
+                  {t("dash.debtors.title")}{" "}
                   <span className="text-muted-foreground font-normal">
                     ({debtors.length})
                   </span>
                 </h3>
                 <p className="text-xs text-muted-foreground">
-                  Partially yoki No payment · shartnoma sanasidan o'tgan kunlar
+                  {t("dash.debtors.subtitle")}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-xs text-muted-foreground">Jami qarz</div>
+              <div className="text-xs text-muted-foreground">{t("dash.kpi.totalDebt")}</div>
               <div className="text-lg font-bold text-destructive">
                 {fmtUsd(debtorsTotalUsd)}
               </div>
@@ -893,21 +895,21 @@ function Dashboard() {
           <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
             {debtors.length === 0 ? (
               <div className="p-10 text-center text-sm text-muted-foreground">
-                Qarzdorlar yo'q. Barchasi to'liq to'lagan ✓
+                {t("dash.debtors.none")}
               </div>
             ) : (
               <Table>
                 <TableHeader className="sticky top-0 bg-card z-10">
                   <TableRow>
                     <TableHead>№</TableHead>
-                    <TableHead>Mijoz</TableHead>
-                    <TableHead>Telefon</TableHead>
-                    <TableHead>Sana</TableHead>
-                    <TableHead className="text-right">Kun o'tdi</TableHead>
-                    <TableHead className="text-right">Shartnoma</TableHead>
-                    <TableHead>To'lov</TableHead>
-                    <TableHead>Menejer</TableHead>
-                    <TableHead>Izoh</TableHead>
+                    <TableHead>{t("dash.table.client")}</TableHead>
+                    <TableHead>{t("dash.table.phone")}</TableHead>
+                    <TableHead>{t("common.date")}</TableHead>
+                    <TableHead className="text-right">{t("dash.table.daysOverdue")}</TableHead>
+                    <TableHead className="text-right">{t("dash.table.contract")}</TableHead>
+                    <TableHead>{t("dash.table.payment")}</TableHead>
+                    <TableHead>{t("dash.table.manager")}</TableHead>
+                    <TableHead>{t("common.note")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -970,14 +972,14 @@ function Dashboard() {
         <Card className="shadow-[var(--shadow-card)] overflow-hidden">
           <div className="p-5 border-b border-border flex items-center justify-between">
             <h3 className="font-semibold">
-              Shartnomalar ro'yxati{" "}
+              {t("dash.table.contractsList")}{" "}
               <span className="text-muted-foreground font-normal">
                 ({filtered.length})
               </span>
             </h3>
             {isLoading && (
               <span className="text-xs text-muted-foreground">
-                Yuklanmoqda...
+                {t("common.loading")}
               </span>
             )}
           </div>
@@ -986,16 +988,16 @@ function Dashboard() {
               <TableHeader className="sticky top-0 bg-card z-10">
                 <TableRow>
                   <TableHead>№</TableHead>
-                  <TableHead>Sana</TableHead>
-                  <TableHead>Mijoz</TableHead>
-                  <TableHead>Telefon</TableHead>
-                  <TableHead>Tur</TableHead>
-                  <TableHead className="text-right">Narx</TableHead>
-                  <TableHead className="text-right">Doc xarajat</TableHead>
-                  <TableHead className="text-right">Sof daromad</TableHead>
-                  <TableHead>Menejer</TableHead>
-                  <TableHead>Visa</TableHead>
-                  <TableHead>To'lov</TableHead>
+                  <TableHead>{t("common.date")}</TableHead>
+                  <TableHead>{t("dash.table.client")}</TableHead>
+                  <TableHead>{t("dash.table.phone")}</TableHead>
+                  <TableHead>{t("dash.table.type")}</TableHead>
+                  <TableHead className="text-right">{t("dash.table.price")}</TableHead>
+                  <TableHead className="text-right">{t("dash.table.docCost")}</TableHead>
+                  <TableHead className="text-right">{t("dash.table.netRevenue")}</TableHead>
+                  <TableHead>{t("dash.table.manager")}</TableHead>
+                  <TableHead>{t("dash.table.visa")}</TableHead>
+                  <TableHead>{t("dash.table.payment")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -1041,7 +1043,7 @@ function Dashboard() {
           </div>
           {filtered.length > 300 && (
             <div className="p-3 text-xs text-center text-muted-foreground border-t border-border">
-              Ko'rsatilmoqda 300 / {filtered.length}. Filtrlardan foydalaning.
+              {format(t("dash.table.showingOf"), { n: filtered.length })}
             </div>
           )}
         </Card>
@@ -1063,6 +1065,7 @@ function FilterSelect({
   onChange: (v: string) => void;
   options: string[];
 }) {
+  const { t } = useT();
   return (
     <div>
       <label className="text-xs text-muted-foreground mb-1 block">{label}</label>
@@ -1071,7 +1074,7 @@ function FilterSelect({
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">Barchasi</SelectItem>
+          <SelectItem value="all">{t("common.all")}</SelectItem>
           {options.map((o) => (
             <SelectItem key={o} value={o}>
               {o}
@@ -1123,6 +1126,7 @@ function Kpi({
 }
 
 function DaysBadge({ days }: { days: number }) {
+  const { t } = useT();
   if (days <= 0)
     return <span className="text-xs text-muted-foreground">—</span>;
   let cls = "bg-muted text-muted-foreground border-border";
@@ -1131,7 +1135,7 @@ function DaysBadge({ days }: { days: number }) {
   else if (days >= 7) cls = "bg-chart-3/20 text-chart-3 border-chart-3/40";
   return (
     <Badge className={`${cls} font-mono`}>
-      {days} kun
+      {days} {t("dash.days")}
     </Badge>
   );
 }
@@ -1170,16 +1174,17 @@ function MultiFilter({
   onChange: (v: string[]) => void;
   options: string[];
 }) {
+  const { t } = useT();
   const toggle = (o: string) => {
     if (values.includes(o)) onChange(values.filter((v) => v !== o));
     else onChange([...values, o]);
   };
   const display =
     values.length === 0
-      ? "Barchasi"
+      ? t("common.all")
       : values.length === 1
         ? values[0]
-        : `${values.length} ta tanlangan`;
+        : `${values.length} ${t("common.selected")}`;
   return (
     <div>
       <label className="text-xs text-muted-foreground mb-1 block">{label}</label>
@@ -1195,14 +1200,14 @@ function MultiFilter({
         </PopoverTrigger>
         <PopoverContent align="start" className="w-64 p-2">
           <div className="flex items-center justify-between px-1 pb-2 border-b border-border mb-2">
-            <span className="text-xs text-muted-foreground">{values.length} tanlangan</span>
+            <span className="text-xs text-muted-foreground">{values.length} {t("common.selected")}</span>
             {values.length > 0 && (
               <button
                 type="button"
                 onClick={() => onChange([])}
                 className="text-xs text-primary hover:underline"
               >
-                Tozalash
+                {t("common.clear")}
               </button>
             )}
           </div>
@@ -1234,15 +1239,17 @@ function MonthlySeriesCard({
   data: { rows: Array<Record<string, number | string>>; keys: string[] };
   colors: string[];
 }) {
+  const { t } = useT();
+  const suffix = t("common.countSuffix");
   return (
     <Card className="p-5 shadow-[var(--shadow-card)]">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold">{title}</h3>
-        <Badge variant="secondary">{data.keys.length} ta</Badge>
+        <Badge variant="secondary">{data.keys.length}{suffix ? ` ${suffix}` : ""}</Badge>
       </div>
       {data.rows.length === 0 ? (
         <div className="h-[320px] flex items-center justify-center text-sm text-muted-foreground">
-          Ma'lumot yo'q
+          {t("common.noData")}
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={320}>

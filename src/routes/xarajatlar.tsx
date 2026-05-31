@@ -38,6 +38,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUsdRates } from "@/lib/usd-rates";
 import logoUrl from "@/assets/logo.png";
 import { cn } from "@/lib/utils";
+import { useT, getMonthNames, getMonthNamesShort, localeOf } from "@/lib/i18n";
 
 
 export const Route = createFileRoute("/xarajatlar")({
@@ -93,16 +94,14 @@ function categoryColor(name: string) {
   return CATEGORY_PALETTE[h % CATEGORY_PALETTE.length];
 }
 
-const PAYMENT_METHODS = [
-  { value: "cash", label: "Naqd pul" },
-  { value: "bank_transfer", label: "Bank o'tkazmasi" },
-  { value: "card", label: "Karta" },
-];
+const PAYMENT_METHOD_VALUES = ["cash", "bank_transfer", "card"] as const;
 
-const fmt = (n: number, currency = "UZS") =>
-  new Intl.NumberFormat("uz-UZ").format(Math.round(n)) + " " + (currency === "USD" ? "$" : "so'm");
+const fmt = (n: number, currency = "UZS", locale = "uz-UZ") =>
+  new Intl.NumberFormat(locale).format(Math.round(n)) + " " + (currency === "USD" ? "$" : "so'm");
 
 function ExpensesPage() {
+  const { t, lang } = useT();
+  const fmtL = (n: number, c?: string) => fmt(n, c ?? "UZS", localeOf(lang));
   const { user, loading } = useAuth();
   const isAdmin = useIsAdmin();
   const { can, loading: permsLoading } = useWidgetPermissions();
@@ -317,10 +316,10 @@ function ExpensesPage() {
   const [detailExpense, setDetailExpense] = useState<Expense | null>(null);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Xarajatni o'chirishni xohlaysizmi?")) return;
+    if (!confirm(t("exp.confirm.deleteExpense"))) return;
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) toast.error(error.message);
-    else toast.success("O'chirildi");
+    else toast.success(t("exp.toast.deleted"));
   };
 
   return (
@@ -356,9 +355,9 @@ function ExpensesPage() {
                 <Receipt className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold tracking-tight">Xarajatlar</h1>
+                <h1 className="text-xl font-bold tracking-tight">{t("exp.title")}</h1>
                 <p className="text-xs text-muted-foreground">
-                  Kompaniya xarajatlari va to'lovlari
+                  {t("exp.subtitle")}
                 </p>
               </div>
             </div>
@@ -369,7 +368,7 @@ function ExpensesPage() {
                   className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
                   <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">Xarajat qo'shish</span>
+                  <span className="hidden sm:inline">{t("exp.add")}</span>
                 </Button>
               )}
               {isAdmin && (
@@ -387,7 +386,7 @@ function ExpensesPage() {
                   navigate({ to: "/auth" });
                 }}
                 className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary flex items-center justify-center"
-                title="Chiqish"
+                title={t("common.logout")}
               >
                 <LogOut className="h-4 w-4" />
               </button>
@@ -400,11 +399,11 @@ function ExpensesPage() {
           <Card className="p-4 space-y-3">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Yil</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t("common.year")}</label>
                 <Select value={selectedYear} onValueChange={(v) => { setSelectedYear(v); setSelectedMonths([]); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Barcha yillar</SelectItem>
+                    <SelectItem value="all">{t("common.allYears")}</SelectItem>
                     {years.map((y) => (
                       <SelectItem key={y} value={y}>{y}</SelectItem>
                     ))}
@@ -412,18 +411,18 @@ function ExpensesPage() {
                 </Select>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Oylar</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t("common.months")}</label>
                 <MonthsMultiSelect
                   selected={selectedMonths}
                   onChange={setSelectedMonths}
                 />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Kategoriya</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t("exp.filter.category")}</label>
                 <Select value={category} onValueChange={setCategory}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Barchasi</SelectItem>
+                    <SelectItem value="all">{t("common.all")}</SelectItem>
                     {categories.map((c) => (
                       <SelectItem key={c} value={c}>{c}</SelectItem>
                     ))}
@@ -431,11 +430,11 @@ function ExpensesPage() {
                 </Select>
               </div>
               <div className="col-span-2 md:col-span-2">
-                <label className="text-xs text-muted-foreground mb-1 block">Qidiruv</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t("exp.filter.search")}</label>
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Sarlavha yoki yetkazuvchi..."
+                    placeholder={t("exp.search.placeholder")}
                     className="pl-8"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
@@ -445,10 +444,10 @@ function ExpensesPage() {
             </div>
             <div className="flex flex-wrap gap-1.5 pt-1">
               {([
-                ["all", "Barchasi"],
-                ["unpaid", "To'lanmagan"],
-                ["partial", "Qisman"],
-                ["paid", "To'langan"],
+                ["all", t("exp.status.all")],
+                ["unpaid", t("exp.status.unpaid")],
+                ["partial", t("exp.status.partial")],
+                ["paid", t("exp.status.paid")],
               ] as const).map(([k, l]) => (
                 <button
                   key={k}
@@ -471,7 +470,7 @@ function ExpensesPage() {
                   }}
                   className="px-3 py-1.5 text-xs rounded-md border border-border bg-card hover:bg-secondary ml-auto"
                 >
-                  Tozalash
+                  {t("common.clear")}
                 </button>
               )}
             </div>
@@ -479,10 +478,10 @@ function ExpensesPage() {
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <StatCard label="Jami xarajat" value={fmt(stats.total)} />
-            <StatCard label="To'lanmagan" value={fmt(stats.unpaid)} tone="red" />
-            <StatCard label="Qisman to'langan" value={fmt(stats.partial)} tone="orange" />
-            <StatCard label="To'langan" value={fmt(stats.paid)} tone="green" />
+            <StatCard label={t("exp.stat.total")} value={fmtL(stats.total)} />
+            <StatCard label={t("exp.stat.unpaid")} value={fmtL(stats.unpaid)} tone="red" />
+            <StatCard label={t("exp.stat.partial")} value={fmtL(stats.partial)} tone="orange" />
+            <StatCard label={t("exp.stat.paid")} value={fmtL(stats.paid)} tone="green" />
           </div>
 
           {/* Dashboard: monthly trend + top categories (UZS-normalized, includes salaries) */}
@@ -495,29 +494,29 @@ function ExpensesPage() {
           {/* Table */}
           <Card className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-semibold">Xarajatlar ro'yxati</div>
-              <div className="text-xs text-muted-foreground">{rows.length} yozuv</div>
+              <div className="text-sm font-semibold">{t("exp.list.title")}</div>
+              <div className="text-xs text-muted-foreground">{rows.length} {t("common.records")}</div>
             </div>
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Sana</TableHead>
-                    <TableHead>Sarlavha</TableHead>
-                    <TableHead>Kategoriya</TableHead>
-                    <TableHead className="text-right">Jami</TableHead>
-                    <TableHead className="text-right">To'langan</TableHead>
-                    <TableHead className="text-right">Qoldiq</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Yaratuvchi</TableHead>
-                    {canAnyAction && <TableHead className="text-right">Amallar</TableHead>}
+                    <TableHead>{t("exp.col.date")}</TableHead>
+                    <TableHead>{t("exp.col.title")}</TableHead>
+                    <TableHead>{t("exp.col.category")}</TableHead>
+                    <TableHead className="text-right">{t("exp.col.total")}</TableHead>
+                    <TableHead className="text-right">{t("exp.col.paid")}</TableHead>
+                    <TableHead className="text-right">{t("exp.col.remaining")}</TableHead>
+                    <TableHead>{t("exp.col.status")}</TableHead>
+                    <TableHead>{t("exp.col.creator")}</TableHead>
+                    {canAnyAction && <TableHead className="text-right">{t("exp.col.actions")}</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {rows.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={canAnyAction ? 9 : 8} className="text-center text-muted-foreground py-10">
-                        Xarajatlar topilmadi.
+                        {t("exp.list.empty")}
                       </TableCell>
                     </TableRow>
                   ) : rows.map((e) => {
@@ -540,10 +539,10 @@ function ExpensesPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap">
-                          {fmt(Number(e.total_amount), e.currency)}
+                          {fmtL(Number(e.total_amount), e.currency)}
                         </TableCell>
                         <TableCell className="text-right whitespace-nowrap text-emerald-600 dark:text-emerald-400">
-                          {fmt(paid, e.currency)}
+                          {fmtL(paid, e.currency)}
                         </TableCell>
                         <TableCell
                           className={cn(
@@ -551,7 +550,7 @@ function ExpensesPage() {
                             remaining > 0 && "text-destructive font-semibold",
                           )}
                         >
-                          {fmt(remaining, e.currency)}
+                          {fmtL(remaining, e.currency)}
                         </TableCell>
                         <TableCell>
                           <StatusBadge status={e.status} />
@@ -570,13 +569,13 @@ function ExpensesPage() {
                                   className="h-7 gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
                                   onClick={() => setPayExpense(e)}
                                 >
-                                  <Coins className="h-3 w-3" /> To'lov
+                                  <Coins className="h-3 w-3" /> {t("exp.action.pay")}
                                 </Button>
                               )}
                               {canEdit && (
                                 <button
                                   className="h-7 w-7 rounded-md border border-border hover:bg-secondary flex items-center justify-center"
-                                  title="Tahrirlash"
+                                  title={t("exp.action.edit")}
                                   onClick={() => setEditExpense(e)}
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
@@ -585,7 +584,7 @@ function ExpensesPage() {
                               {canDelete && (
                                 <button
                                   className="h-7 w-7 rounded-md border border-border hover:bg-destructive hover:text-destructive-foreground flex items-center justify-center"
-                                  title="O'chirish"
+                                  title={t("exp.action.delete")}
                                   onClick={() => handleDelete(e.id)}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
@@ -666,10 +665,11 @@ function StatCard({
 }
 
 function StatusBadge({ status }: { status: Expense["status"] }) {
+  const { t } = useT();
   const map = {
-    unpaid: { label: "To'lanmagan", cls: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30", dot: "🔴" },
-    partial: { label: "Qisman", cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30", dot: "🟠" },
-    paid: { label: "To'langan", cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30", dot: "🟢" },
+    unpaid: { label: t("exp.status.unpaid"), cls: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30", dot: "🔴" },
+    partial: { label: t("exp.status.partial"), cls: "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30", dot: "🟠" },
+    paid: { label: t("exp.status.paid"), cls: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30", dot: "🟢" },
   };
   const s = map[status];
   return (
@@ -687,6 +687,7 @@ function ExpenseFormDialog({
   expense: Expense | null;
   categories: string[];
 }) {
+  const { t } = useT();
   const today = new Date().toISOString().slice(0, 10);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState(categories[0] ?? "");
@@ -714,7 +715,7 @@ function ExpenseFormDialog({
 
   const handleSave = async () => {
     if (!title.trim() || !category || !totalAmount || !date) {
-      toast.error("Majburiy maydonlarni to'ldiring");
+      toast.error(t("exp.toast.fillRequired"));
       return;
     }
     setSaving(true);
@@ -735,7 +736,7 @@ function ExpenseFormDialog({
       toast.error(error.message);
       return;
     }
-    toast.success(expense ? "Yangilandi" : "Qo'shildi");
+    toast.success(expense ? t("exp.toast.updated") : t("exp.toast.added"));
     onOpenChange(false);
   };
 
@@ -743,19 +744,19 @@ function ExpenseFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{expense ? "Xarajatni tahrirlash" : "Xarajat qo'shish"}</DialogTitle>
+          <DialogTitle>{expense ? t("exp.form.editTitle") : t("exp.form.addTitle")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Sarlavha *</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("exp.form.title")} *</label>
             <Input value={title} onChange={(e) => setTitle(e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Kategoriya *</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("exp.form.category")} *</label>
               <div className="flex gap-1">
                 <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger><SelectValue placeholder="Tanlang" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder={t("exp.form.choose")} /></SelectTrigger>
                   <SelectContent>
                     {categories.map((c) => (
                       <SelectItem key={c} value={c}>{c}</SelectItem>
@@ -766,20 +767,20 @@ function ExpenseFormDialog({
                   type="button"
                   onClick={() => { setNewCatName(""); setNewCatOpen(true); }}
                   className="h-9 w-9 shrink-0 rounded-md border border-input hover:bg-secondary flex items-center justify-center"
-                  title="Yangi kategoriya"
+                  title={t("exp.form.newCategory")}
                 >
                   <Plus className="h-4 w-4" />
                 </button>
               </div>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Sana *</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("exp.form.date")} *</label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Jami summa *</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("exp.form.amount")} *</label>
               <Input
                 type="number"
                 value={totalAmount}
@@ -787,7 +788,7 @@ function ExpenseFormDialog({
               />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Valyuta</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("exp.form.currency")}</label>
               <div className="flex gap-1">
                 {(["UZS", "USD"] as const).map((c) => (
                   <button
@@ -808,40 +809,40 @@ function ExpenseFormDialog({
             </div>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Yetkazuvchi</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("exp.form.vendor")}</label>
             <Input value={vendor} onChange={(e) => setVendor(e.target.value)} />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Izoh</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("exp.form.notes")}</label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Bekor qilish
+            {t("common.cancel")}
           </Button>
           <Button
             onClick={handleSave}
             disabled={saving}
             className="bg-emerald-600 hover:bg-emerald-700 text-white"
           >
-            {saving ? "Saqlanmoqda..." : "Saqlash"}
+            {saving ? t("common.saving") : t("common.save")}
           </Button>
         </DialogFooter>
       </DialogContent>
       <Dialog open={newCatOpen} onOpenChange={setNewCatOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Yangi kategoriya</DialogTitle>
+            <DialogTitle>{t("exp.form.newCategory")}</DialogTitle>
           </DialogHeader>
           <Input
-            placeholder="Kategoriya nomi"
+            placeholder={t("exp.form.categoryName")}
             value={newCatName}
             onChange={(e) => setNewCatName(e.target.value)}
             autoFocus
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setNewCatOpen(false)}>Bekor qilish</Button>
+            <Button variant="outline" onClick={() => setNewCatOpen(false)}>{t("common.cancel")}</Button>
             <Button
               disabled={savingCat || !newCatName.trim()}
               className="bg-emerald-600 hover:bg-emerald-700 text-white"
@@ -852,12 +853,12 @@ function ExpenseFormDialog({
                 const { error } = await supabase.from("expense_categories").insert({ name });
                 setSavingCat(false);
                 if (error) { toast.error(error.message); return; }
-                toast.success("Kategoriya qo'shildi");
+                toast.success(t("exp.toast.catAdded"));
                 setCategory(name);
                 setNewCatOpen(false);
               }}
             >
-              {savingCat ? "Saqlanmoqda..." : "Qo'shish"}
+              {savingCat ? t("common.saving") : t("common.add")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -874,6 +875,8 @@ function PaymentDialog({
   expense: Expense | null;
   paidSoFar: number;
 }) {
+  const { t, lang } = useT();
+  const fmtL = (n: number, c?: string) => fmt(n, c ?? "UZS", localeOf(lang));
   const today = new Date().toISOString().slice(0, 10);
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("cash");
@@ -892,15 +895,21 @@ function PaymentDialog({
     }
   }, [open]);
 
+  const methodOptions = [
+    { value: "cash", label: t("exp.method.cash") },
+    { value: "bank_transfer", label: t("exp.method.bank") },
+    { value: "card", label: t("exp.method.card") },
+  ];
+
   const handleSave = async () => {
     if (!expense) return;
     const amt = Number(amount);
     if (!amt || amt <= 0) {
-      toast.error("To'lov summasi noto'g'ri");
+      toast.error(t("exp.toast.invalidAmt"));
       return;
     }
     if (amt > remaining + 0.001) {
-      toast.error(`Qoldiqdan ko'p bo'lishi mumkin emas: ${fmt(remaining, expense.currency)}`);
+      toast.error(t("exp.toast.overRemaining", { v: fmtL(remaining, expense.currency) }));
       return;
     }
     setSaving(true);
@@ -916,7 +925,7 @@ function PaymentDialog({
       toast.error(error.message);
       return;
     }
-    toast.success("To'lov qo'shildi");
+    toast.success(t("exp.toast.payAdded"));
     onOpenChange(false);
   };
 
@@ -926,31 +935,31 @@ function PaymentDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>To'lov qo'shish</DialogTitle>
+          <DialogTitle>{t("exp.pay.title")}</DialogTitle>
         </DialogHeader>
         <div className="rounded-md border border-border bg-muted/30 p-3 space-y-1 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Xarajat:</span>
+            <span className="text-muted-foreground">{t("exp.pay.expense")}:</span>
             <span className="font-medium">{expense.title}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Jami summa:</span>
-            <span>{fmt(Number(expense.total_amount), expense.currency)}</span>
+            <span className="text-muted-foreground">{t("exp.pay.totalAmount")}:</span>
+            <span>{fmtL(Number(expense.total_amount), expense.currency)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">To'langan:</span>
+            <span className="text-muted-foreground">{t("exp.pay.paid")}:</span>
             <span className="text-emerald-600 dark:text-emerald-400">
-              {fmt(paidSoFar, expense.currency)}
+              {fmtL(paidSoFar, expense.currency)}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Qoldiq:</span>
-            <span className="text-destructive font-bold">{fmt(remaining, expense.currency)}</span>
+            <span className="text-muted-foreground">{t("exp.pay.remaining")}:</span>
+            <span className="text-destructive font-bold">{fmtL(remaining, expense.currency)}</span>
           </div>
         </div>
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">To'lov summasi *</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("exp.pay.amount")} *</label>
             <Input
               type="number"
               value={amount}
@@ -958,41 +967,41 @@ function PaymentDialog({
               max={remaining}
             />
             <div className="text-xs text-muted-foreground mt-1">
-              Qoldiq: {fmt(remaining, expense.currency)}
+              {t("exp.pay.remaining")}: {fmtL(remaining, expense.currency)}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">To'lov usuli *</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("exp.pay.method")} *</label>
               <Select value={method} onValueChange={setMethod}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {PAYMENT_METHODS.map((m) => (
+                  {methodOptions.map((m) => (
                     <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Sana *</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("exp.pay.date")} *</label>
               <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
             </div>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Izoh</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("common.note")}</label>
             <Input value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Bekor qilish
+            {t("common.cancel")}
           </Button>
           <Button
             onClick={handleSave}
             disabled={saving}
             className="bg-emerald-600 hover:bg-emerald-700 text-white"
           >
-            {saving ? "Saqlanmoqda..." : "To'lovni saqlash"}
+            {saving ? t("common.saving") : t("exp.pay.save")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -1011,18 +1020,26 @@ function ExpenseDetailDrawer({
   creatorName: string;
   canPay: boolean;
 }) {
+  const { t, lang } = useT();
+  const fmtL = (n: number, c?: string) => fmt(n, c ?? "UZS", localeOf(lang));
+
+  const methodLabel = (m: string | null) => {
+    if (m === "cash") return t("exp.method.cash");
+    if (m === "bank_transfer") return t("exp.method.bank");
+    if (m === "card") return t("exp.method.card");
+    return m ?? "—";
+  };
+
   if (!expense) return null;
   const total = Number(expense.total_amount);
   const remaining = total - paidSoFar;
   const pct = total > 0 ? Math.min(100, Math.round((paidSoFar / total) * 100)) : 0;
-  const methodLabel = (m: string | null) =>
-    PAYMENT_METHODS.find((p) => p.value === m)?.label ?? m ?? "—";
 
   const handleDeletePayment = async (id: string) => {
-    if (!confirm("To'lovni o'chirishni xohlaysizmi? Status qayta hisoblanadi.")) return;
+    if (!confirm(t("exp.confirm.deletePayment"))) return;
     const { error } = await supabase.from("expense_payments").delete().eq("id", id);
     if (error) toast.error(error.message);
-    else toast.success("To'lov o'chirildi");
+    else toast.success(t("exp.toast.payDeleted"));
   };
 
   return (
@@ -1036,18 +1053,18 @@ function ExpenseDetailDrawer({
         </DrawerHeader>
         <div className="px-4 pb-6 overflow-y-auto space-y-4">
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <Info label="Kategoriya" value={expense.category} />
-            <Info label="Sana" value={expense.expense_date} />
-            <Info label="Yetkazuvchi" value={expense.vendor ?? "—"} />
-            <Info label="Jami" value={fmt(total, expense.currency)} />
-            <Info label="Yaratuvchi" value={creatorName} />
+            <Info label={t("exp.col.category")} value={expense.category} />
+            <Info label={t("exp.col.date")} value={expense.expense_date} />
+            <Info label={t("exp.form.vendor")} value={expense.vendor ?? "—"} />
+            <Info label={t("exp.col.total")} value={fmtL(total, expense.currency)} />
+            <Info label={t("exp.col.creator")} value={creatorName} />
           </div>
-          {expense.notes && <Info label="Izoh" value={expense.notes} />}
+          {expense.notes && <Info label={t("common.notes")} value={expense.notes} />}
           <div className="space-y-1.5">
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">To'langan: {fmt(paidSoFar, expense.currency)}</span>
+              <span className="text-muted-foreground">{t("exp.pay.paid")}: {fmtL(paidSoFar, expense.currency)}</span>
               <span className={remaining > 0 ? "text-destructive font-semibold" : "text-emerald-600 dark:text-emerald-400 font-semibold"}>
-                Qoldiq: {fmt(remaining, expense.currency)}
+                {t("exp.pay.remaining")}: {fmtL(remaining, expense.currency)}
               </span>
             </div>
             <Progress value={pct} />
@@ -1055,14 +1072,14 @@ function ExpenseDetailDrawer({
           </div>
           <div className="rounded-md border border-border">
             <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
-              <div className="text-sm font-semibold">To'lovlar tarixi</div>
+              <div className="text-sm font-semibold">{t("exp.detail.history")}</div>
               {canPay && expense.status !== "paid" && (
                 <Button
                   size="sm"
                   onClick={onAddPayment}
                   className="h-7 gap-1 bg-emerald-600 hover:bg-emerald-700 text-white"
                 >
-                  <Plus className="h-3 w-3" /> Qayta to'lash
+                  <Plus className="h-3 w-3" /> {t("exp.pay.again")}
                 </Button>
               )}
             </div>
@@ -1070,25 +1087,25 @@ function ExpenseDetailDrawer({
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Sana</TableHead>
-                    <TableHead className="text-right">Summa</TableHead>
-                    <TableHead>Usul</TableHead>
-                    <TableHead>Izoh</TableHead>
-                    {canPay && <TableHead className="text-right w-16">Amal</TableHead>}
+                    <TableHead>{t("exp.col.date")}</TableHead>
+                    <TableHead className="text-right">{t("common.amount")}</TableHead>
+                    <TableHead>{t("exp.detail.method")}</TableHead>
+                    <TableHead>{t("common.note")}</TableHead>
+                    {canPay && <TableHead className="text-right w-16">{t("common.action")}</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {payments.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={canPay ? 5 : 4} className="text-center text-muted-foreground py-6">
-                        To'lovlar yo'q
+                        {t("exp.detail.noPayments")}
                       </TableCell>
                     </TableRow>
                   ) : payments.map((p) => (
                     <TableRow key={p.id}>
                       <TableCell className="whitespace-nowrap">{p.paid_at}</TableCell>
                       <TableCell className="text-right whitespace-nowrap font-medium text-emerald-600 dark:text-emerald-400">
-                        {fmt(Number(p.amount), expense.currency)}
+                        {fmtL(Number(p.amount), expense.currency)}
                       </TableCell>
                       <TableCell>{methodLabel(p.payment_method)}</TableCell>
                       <TableCell className="text-muted-foreground">{p.note ?? "—"}</TableCell>
@@ -1096,7 +1113,7 @@ function ExpenseDetailDrawer({
                         <TableCell className="text-right">
                           <button
                             className="h-7 w-7 rounded-md border border-border hover:bg-destructive hover:text-destructive-foreground flex items-center justify-center"
-                            title="To'lovni o'chirish"
+                            title={t("exp.detail.deletePayment")}
                             onClick={() => handleDeletePayment(p.id)}
                           >
                             <Trash2 className="h-3.5 w-3.5" />
@@ -1126,11 +1143,6 @@ function Info({ label, value }: { label: string; value: string }) {
 
 // ============ DASHBOARDS ============
 
-const MONTH_LABELS_UZ = [
-  "Yan", "Fev", "Mar", "Apr", "May", "Iyn",
-  "Iyl", "Avg", "Sen", "Okt", "Noy", "Dek",
-];
-
 function monthsBetween(expenses: Expense[]): string[] {
   if (expenses.length === 0) return [];
   const set = new Set<string>();
@@ -1149,12 +1161,15 @@ function monthsBetween(expenses: Expense[]): string[] {
   return out;
 }
 
-function labelOfMonth(ym: string) {
+function labelOfMonth(ym: string, shortNames: string[]) {
   const [y, m] = ym.split("-").map(Number);
-  return `${MONTH_LABELS_UZ[m - 1]} ${String(y).slice(2)}`;
+  return `${shortNames[m - 1]} ${String(y).slice(2)}`;
 }
 
 function ExpensesDashboard({ expenses }: { expenses: Expense[] }) {
+  const { t, lang } = useT();
+  const fmtL = (n: number, c?: string) => fmt(n, c ?? "UZS", localeOf(lang));
+  const shortNames = getMonthNamesShort(lang);
   const months = useMemo(() => monthsBetween(expenses), [expenses]);
 
   // Monthly totals
@@ -1165,11 +1180,11 @@ function ExpensesDashboard({ expenses }: { expenses: Expense[] }) {
       m.set(k, (m.get(k) ?? 0) + Number(e.total_amount));
     }
     return months.map((ym) => ({
-      month: labelOfMonth(ym),
+      month: labelOfMonth(ym, shortNames),
       raw: ym,
       total: Math.round(m.get(ym) ?? 0),
     }));
-  }, [expenses, months]);
+  }, [expenses, months, shortNames]);
 
   // Top categories (all time)
   const catData = useMemo(() => {
@@ -1204,7 +1219,7 @@ function ExpensesDashboard({ expenses }: { expenses: Expense[] }) {
     "#06b6d4", "#ef4444", "#84cc16", "#6366f1", "#14b8a6",
   ];
 
-  const tooltipFmt = (v: number) => fmt(v);
+  const tooltipFmt = (v: number) => fmtL(v);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
@@ -1212,9 +1227,9 @@ function ExpensesDashboard({ expenses }: { expenses: Expense[] }) {
       <Card className="p-4 lg:col-span-2">
         <div className="flex items-start justify-between mb-2">
           <div>
-            <div className="text-sm font-semibold">Oylik xarajatlar tendensiyasi</div>
+            <div className="text-sm font-semibold">{t("exp.dash.monthlyTrend")}</div>
             <div className="text-xs text-muted-foreground">
-              O'rtacha: {fmt(avgMonthly)}
+              {t("exp.dash.avg")}: {fmtL(avgMonthly)}
             </div>
           </div>
           {delta && (
@@ -1227,7 +1242,7 @@ function ExpensesDashboard({ expenses }: { expenses: Expense[] }) {
               )}
             >
               {delta.pct >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-              {delta.pct >= 0 ? "+" : ""}{delta.pct.toFixed(1)}% oyma-oy
+              {delta.pct >= 0 ? "+" : ""}{delta.pct.toFixed(1)}% {t("exp.dash.momChange")}
             </div>
           )}
         </div>
@@ -1266,8 +1281,8 @@ function ExpensesDashboard({ expenses }: { expenses: Expense[] }) {
 
       {/* Top categories — horizontal bar */}
       <Card className="p-4">
-        <div className="text-sm font-semibold mb-1">Eng katta kategoriyalar</div>
-        <div className="text-xs text-muted-foreground mb-2">Jami summa bo'yicha</div>
+        <div className="text-sm font-semibold mb-1">{t("exp.dash.topCategories")}</div>
+        <div className="text-xs text-muted-foreground mb-2">{t("exp.dash.byTotal")}</div>
         <div className="h-[260px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={catData} layout="vertical" margin={{ top: 4, right: 8, bottom: 0, left: 4 }}>
@@ -1305,6 +1320,9 @@ function ExpensesDashboard({ expenses }: { expenses: Expense[] }) {
 }
 
 function CategoryPivotTable({ expenses }: { expenses: Expense[] }) {
+  const { t, lang } = useT();
+  const fmtL = (n: number, c?: string) => fmt(n, c ?? "UZS", localeOf(lang));
+  const shortNames = getMonthNamesShort(lang);
   const months = useMemo(() => monthsBetween(expenses), [expenses]);
 
   const { grid, categories, colTotals, rowTotals, grandTotal } = useMemo(() => {
@@ -1339,29 +1357,29 @@ function CategoryPivotTable({ expenses }: { expenses: Expense[] }) {
     <Card className="p-4">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <div className="text-sm font-semibold">Kategoriyalar × Oylar (jadval)</div>
+          <div className="text-sm font-semibold">{t("exp.pivot.title")}</div>
           <div className="text-xs text-muted-foreground">
-            {categories.length} kategoriya × {months.length} oy
+            {t("exp.pivot.subtitle", { c: categories.length, m: months.length })}
           </div>
         </div>
         <div className="text-xs text-muted-foreground">
-          Jami: <span className="font-semibold text-foreground">{fmt(grandTotal)}</span>
+          {t("exp.pivot.grand")} <span className="font-semibold text-foreground">{fmtL(grandTotal)}</span>
         </div>
       </div>
       <div className="overflow-auto">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="sticky left-0 bg-card z-10 min-w-[160px]">Kategoriya</TableHead>
+              <TableHead className="sticky left-0 bg-card z-10 min-w-[160px]">{t("exp.col.category")}</TableHead>
               {months.map((ym) => (
                 <TableHead key={ym} className="text-right whitespace-nowrap">
-                  <div>{labelOfMonth(ym).split(" ")[0]}</div>
+                  <div>{labelOfMonth(ym, shortNames).split(" ")[0]}</div>
                   <div className="text-[10px] text-muted-foreground font-normal">
-                    {labelOfMonth(ym).split(" ")[1]}
+                    {labelOfMonth(ym, shortNames).split(" ")[1]}
                   </div>
                 </TableHead>
               ))}
-              <TableHead className="text-right whitespace-nowrap sticky right-0 bg-card z-10">Jami</TableHead>
+              <TableHead className="text-right whitespace-nowrap sticky right-0 bg-card z-10">{t("exp.col.total")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1384,25 +1402,25 @@ function CategoryPivotTable({ expenses }: { expenses: Expense[] }) {
                           v === 0 && "text-muted-foreground/30",
                         )}
                       >
-                        {v === 0 ? "—" : fmt(v)}
+                        {v === 0 ? "—" : fmtL(v)}
                       </TableCell>
                     );
                   })}
                   <TableCell className="text-right font-semibold whitespace-nowrap tabular-nums sticky right-0 bg-card z-10">
-                    {fmt(total)}
+                    {fmtL(total)}
                   </TableCell>
                 </TableRow>
               );
             })}
             <TableRow className="border-t-2 bg-muted/30">
-              <TableCell className="sticky left-0 bg-muted/30 z-10 font-semibold">Jami</TableCell>
-              {colTotals.map((t, i) => (
+              <TableCell className="sticky left-0 bg-muted/30 z-10 font-semibold">{t("exp.col.total")}</TableCell>
+              {colTotals.map((tv, i) => (
                 <TableCell key={i} className="text-right font-semibold whitespace-nowrap tabular-nums text-xs">
-                  {t === 0 ? "—" : fmt(t)}
+                  {tv === 0 ? "—" : fmtL(tv)}
                 </TableCell>
               ))}
               <TableCell className="text-right font-bold whitespace-nowrap tabular-nums sticky right-0 bg-muted/30 z-10 text-primary">
-                {fmt(grandTotal)}
+                {fmtL(grandTotal)}
               </TableCell>
             </TableRow>
           </TableBody>
@@ -1412,26 +1430,26 @@ function CategoryPivotTable({ expenses }: { expenses: Expense[] }) {
   );
 }
 
-const MONTHS_UZ = [
-  ["1", "Yanvar"], ["2", "Fevral"], ["3", "Mart"], ["4", "Aprel"],
-  ["5", "May"], ["6", "Iyun"], ["7", "Iyul"], ["8", "Avgust"],
-  ["9", "Sentyabr"], ["10", "Oktyabr"], ["11", "Noyabr"], ["12", "Dekabr"],
-] as const;
-
 function MonthsMultiSelect({
   selected, onChange,
 }: {
   selected: string[];
   onChange: (v: string[]) => void;
 }) {
+  const { t, lang } = useT();
+  const monthNames = getMonthNames(lang);
+  const months = monthNames.map((name, i) => [String(i + 1), name] as const);
+
   const toggle = (v: string) =>
     onChange(selected.includes(v) ? selected.filter((s) => s !== v) : [...selected, v]);
+
   const label =
     selected.length === 0
-      ? "Barcha oylar"
+      ? t("common.allMonths")
       : selected.length === 1
-      ? MONTHS_UZ.find((m) => m[0] === selected[0])?.[1] ?? selected[0]
-      : `${selected.length} tanlangan`;
+      ? monthNames[Number(selected[0]) - 1] ?? selected[0]
+      : `${selected.length} ${t("common.selected")}`;
+
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -1452,18 +1470,18 @@ function MonthsMultiSelect({
             className="text-xs text-muted-foreground hover:text-foreground"
             onClick={() => onChange([])}
           >
-            Tozalash
+            {t("common.clear")}
           </button>
           <button
             type="button"
             className="text-xs text-muted-foreground hover:text-foreground"
-            onClick={() => onChange(MONTHS_UZ.map((m) => m[0]))}
+            onClick={() => onChange(months.map((m) => m[0]))}
           >
-            Hammasi
+            {t("sal.ms.all")}
           </button>
         </div>
         <div className="max-h-64 overflow-auto space-y-1">
-          {MONTHS_UZ.map(([k, l]) => (
+          {months.map(([k, l]) => (
             <label
               key={k}
               className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent cursor-pointer text-sm"
