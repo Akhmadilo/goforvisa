@@ -607,12 +607,12 @@ function FinancePage() {
                       { label: t("finance.pnl.salaries"), values: sal, total: sum(sal), kind: "money", tone: "muted" },
                       { label: t("finance.pnl.expensesBreakdown"), values: exp, total: sum(exp), kind: "money", tone: "muted" },
                       { label: t("finance.pnl.netProfit"), values: np, total: sum(np), kind: "money", bold: true, border: true },
-                      { label: (t("finance.margin") || "Marja"), values: margin, total: totalRev > 0 ? (sum(np) / totalRev) * 100 : 0, kind: "pct", border: true },
-                      { label: (t("finance.momGrowth") || "Sof foyda o'sishi (MoM)"), values: mom, total: "—", kind: "pct" },
-                      { label: (t("finance.cumNetProfit") || "Kumulyativ sof foyda"), values: cumNp, total: cumNp[cumNp.length - 1] ?? 0, kind: "money", tone: "green" },
-                      { label: (t("finance.contracts") || "Shartnomalar soni"), values: cnt, total: totalCnt, kind: "count", border: true },
-                      { label: (t("finance.arpu") || "O'rtacha chek (ARPU)"), values: arpu, total: totalCnt > 0 ? totalRev / totalCnt : 0, kind: "money" },
-                      { label: (t("finance.opexRatio") || "Xarajat / Daromad"), values: opexRatio, total: totalRev > 0 ? (sum(exp) / totalRev) * 100 : 0, kind: "pct" },
+                      { label: t("finance.margin"), values: margin, total: totalRev > 0 ? (sum(np) / totalRev) * 100 : 0, kind: "pct", border: true },
+                      { label: t("finance.momGrowth"), values: mom, total: "—", kind: "pct" },
+                      { label: t("finance.cumNetProfit"), values: cumNp, total: cumNp[cumNp.length - 1] ?? 0, kind: "money", tone: "green" },
+                      { label: t("finance.contracts"), values: cnt, total: totalCnt, kind: "count", border: true },
+                      { label: t("finance.arpu"), values: arpu, total: totalCnt > 0 ? totalRev / totalCnt : 0, kind: "money" },
+                      { label: t("finance.opexRatio"), values: opexRatio, total: totalRev > 0 ? (sum(exp) / totalRev) * 100 : 0, kind: "pct" },
                     ];
 
                     const fmtCell = (v: number | null, kind: "money" | "count" | "pct" | undefined) => {
