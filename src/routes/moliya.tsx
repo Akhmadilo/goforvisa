@@ -200,6 +200,7 @@ function FinancePage() {
   // For each month key we use that month's rate to convert between UZS and USD.
   const {
     revenueByMonth, expenseByMonth, docCostsByMonth, expenseByCat, allYears, salariesTotalUzs,
+    contractsCountByMonth, salariesByMonth,
   } = useMemo(() => {
     type Pair = { uzs: number; usd: number };
     const add = (m: Map<string, Pair>, k: string, p: Pair) => {
@@ -210,6 +211,8 @@ function FinancePage() {
     const expenseByMonth = new Map<string, Pair>();
     const docCostsByMonth = new Map<string, Pair>();
     const expenseByCat = new Map<string, Pair>();
+    const contractsCountByMonth = new Map<string, number>();
+    const salariesByMonth = new Map<string, Pair>();
     const ySet = new Set<string>();
 
     for (const c of contracts) {
@@ -218,13 +221,12 @@ function FinancePage() {
       ySet.add(period.year);
       if (year !== "all" && period.year !== year) continue;
       if (months.length > 0 && !months.includes(period.month)) continue;
-      // Cash basis: only fully paid contracts count as revenue/doc costs.
       if (basis === "cash" && !isFullyPaid(c)) continue;
       const key = period.key;
       const rate = getRate(key);
       const grossUsd = contractGrossUsd(c, getRate, key);
       add(revenueByMonth, key, { uzs: grossUsd * rate, usd: grossUsd });
-      // Doc xarajat = Jami daromad − Sof daromad (komissiya), boshqaruv paneliga mos.
+      contractsCountByMonth.set(key, (contractsCountByMonth.get(key) ?? 0) + 1);
       const commissionUsd = Number(c.commission) || 0;
       const docUsd = grossUsd - commissionUsd;
       if (docUsd !== 0) add(docCostsByMonth, key, { uzs: docUsd * rate, usd: docUsd });
@@ -272,7 +274,6 @@ function FinancePage() {
       }
     }
 
-    // Salaries — always UZS, counted as expenses each month they're recorded
     let salariesTotalUzs = 0;
     const salariesLabel = t("finance.pnl.salaries");
     for (const s of salaries) {
@@ -285,11 +286,13 @@ function FinancePage() {
       const uzs = Number(s.fixed_amount) + Number(s.kpi_amount) - Number(s.penalty_amount);
       const usd = uzs / rate;
       pushExpense(key, uzs, usd, salariesLabel);
+      add(salariesByMonth, key, { uzs, usd });
       salariesTotalUzs += uzs;
     }
 
     return {
       revenueByMonth, expenseByMonth, docCostsByMonth, expenseByCat, salariesTotalUzs,
+      contractsCountByMonth, salariesByMonth,
       allYears: Array.from(ySet).sort(),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
