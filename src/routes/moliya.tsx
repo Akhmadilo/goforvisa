@@ -200,6 +200,7 @@ function FinancePage() {
   // For each month key we use that month's rate to convert between UZS and USD.
   const {
     revenueByMonth, expenseByMonth, docCostsByMonth, expenseByCat, allYears, salariesTotalUzs,
+    contractsCountByMonth, salariesByMonth,
   } = useMemo(() => {
     type Pair = { uzs: number; usd: number };
     const add = (m: Map<string, Pair>, k: string, p: Pair) => {
@@ -210,6 +211,8 @@ function FinancePage() {
     const expenseByMonth = new Map<string, Pair>();
     const docCostsByMonth = new Map<string, Pair>();
     const expenseByCat = new Map<string, Pair>();
+    const contractsCountByMonth = new Map<string, number>();
+    const salariesByMonth = new Map<string, Pair>();
     const ySet = new Set<string>();
 
     for (const c of contracts) {
@@ -218,13 +221,12 @@ function FinancePage() {
       ySet.add(period.year);
       if (year !== "all" && period.year !== year) continue;
       if (months.length > 0 && !months.includes(period.month)) continue;
-      // Cash basis: only fully paid contracts count as revenue/doc costs.
       if (basis === "cash" && !isFullyPaid(c)) continue;
       const key = period.key;
       const rate = getRate(key);
       const grossUsd = contractGrossUsd(c, getRate, key);
       add(revenueByMonth, key, { uzs: grossUsd * rate, usd: grossUsd });
-      // Doc xarajat = Jami daromad − Sof daromad (komissiya), boshqaruv paneliga mos.
+      contractsCountByMonth.set(key, (contractsCountByMonth.get(key) ?? 0) + 1);
       const commissionUsd = Number(c.commission) || 0;
       const docUsd = grossUsd - commissionUsd;
       if (docUsd !== 0) add(docCostsByMonth, key, { uzs: docUsd * rate, usd: docUsd });
@@ -272,7 +274,6 @@ function FinancePage() {
       }
     }
 
-    // Salaries — always UZS, counted as expenses each month they're recorded
     let salariesTotalUzs = 0;
     const salariesLabel = t("finance.pnl.salaries");
     for (const s of salaries) {
@@ -285,11 +286,13 @@ function FinancePage() {
       const uzs = Number(s.fixed_amount) + Number(s.kpi_amount) - Number(s.penalty_amount);
       const usd = uzs / rate;
       pushExpense(key, uzs, usd, salariesLabel);
+      add(salariesByMonth, key, { uzs, usd });
       salariesTotalUzs += uzs;
     }
 
     return {
       revenueByMonth, expenseByMonth, docCostsByMonth, expenseByCat, salariesTotalUzs,
+      contractsCountByMonth, salariesByMonth,
       allYears: Array.from(ySet).sort(),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -542,6 +545,110 @@ function FinancePage() {
                       {totals.margin.toFixed(1)}%
                     </TableCell>
                   </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+
+          {/* Monthly comparison — CFO view */}
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm font-semibold">{t("finance.monthlyComparison")}</div>
+              <div className="text-[11px] text-muted-foreground">{allMonths.length} {t("finance.months")}</div>
+            </div>
+            <div className="overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="sticky left-0 bg-card z-10 min-w-[200px]">{t("finance.metric")}</TableHead>
+                    {allMonths.map((k) => {
+                      const [y, mm] = k.split("-");
+                      return (
+                        <TableHead key={k} className="text-right whitespace-nowrap">
+                          {MONTHS[Number(mm) - 1].slice(0, 3)} {y.slice(2)}
+                        </TableHead>
+                      );
+                    })}
+                    <TableHead className="text-right font-bold bg-muted/30">{t("common.total")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(() => {
+                    const rev = allMonths.map((k) => pick(revenueByMonth.get(k)));
+                    const doc = allMonths.map((k) => pick(docCostsByMonth.get(k)));
+                    const exp = allMonths.map((k) => pick(expenseByMonth.get(k)));
+                    const sal = allMonths.map((k) => pick(salariesByMonth.get(k)));
+                    const cnt = allMonths.map((k) => contractsCountByMonth.get(k) ?? 0);
+                    const gp = rev.map((r, i) => r - doc[i]);
+                    const np = rev.map((r, i) => r - doc[i] - exp[i]);
+                    const margin = rev.map((r, i) => r > 0 ? (np[i] / r) * 100 : 0);
+                    const arpu = rev.map((r, i) => cnt[i] > 0 ? r / cnt[i] : 0);
+                    const opexRatio = rev.map((r, i) => r > 0 ? (exp[i] / r) * 100 : 0);
+                    const mom = np.map((v, i) => i === 0 ? null : (np[i - 1] !== 0 ? ((v - np[i - 1]) / Math.abs(np[i - 1])) * 100 : null));
+                    let cum = 0;
+                    const cumNp = np.map((v) => (cum += v));
+
+                    const sum = (arr: number[]) => arr.reduce((s, v) => s + v, 0);
+                    const totalRev = sum(rev);
+                    const totalCnt = sum(cnt);
+
+                    const rows: Array<{
+                      label: string;
+                      values: (number | null)[];
+                      total: number | string;
+                      kind?: "money" | "count" | "pct";
+                      bold?: boolean;
+                      tone?: "green" | "red" | "muted";
+                      border?: boolean;
+                    }> = [
+                      { label: t("finance.pnl.revenue"), values: rev, total: sum(rev), kind: "money", bold: true, tone: "green" },
+                      { label: t("finance.pnl.docCosts"), values: doc, total: sum(doc), kind: "money", tone: "muted" },
+                      { label: t("finance.pnl.grossProfit"), values: gp, total: sum(gp), kind: "money", bold: true, border: true },
+                      { label: t("finance.pnl.salaries"), values: sal, total: sum(sal), kind: "money", tone: "muted" },
+                      { label: t("finance.pnl.expensesBreakdown"), values: exp, total: sum(exp), kind: "money", tone: "muted" },
+                      { label: t("finance.pnl.netProfit"), values: np, total: sum(np), kind: "money", bold: true, border: true },
+                      { label: t("finance.margin"), values: margin, total: totalRev > 0 ? (sum(np) / totalRev) * 100 : 0, kind: "pct", border: true },
+                      { label: t("finance.momGrowth"), values: mom, total: "—", kind: "pct" },
+                      { label: t("finance.cumNetProfit"), values: cumNp, total: cumNp[cumNp.length - 1] ?? 0, kind: "money", tone: "green" },
+                      { label: t("finance.contracts"), values: cnt, total: totalCnt, kind: "count", border: true },
+                      { label: t("finance.arpu"), values: arpu, total: totalCnt > 0 ? totalRev / totalCnt : 0, kind: "money" },
+                      { label: t("finance.opexRatio"), values: opexRatio, total: totalRev > 0 ? (sum(exp) / totalRev) * 100 : 0, kind: "pct" },
+                    ];
+
+                    const fmtCell = (v: number | null, kind: "money" | "count" | "pct" | undefined) => {
+                      if (v === null || v === undefined) return "—";
+                      if (kind === "count") return String(Math.round(v));
+                      if (kind === "pct") return `${v.toFixed(1)}%`;
+                      return fmt(v);
+                    };
+                    const toneCls = (tone: "green" | "red" | "muted" | undefined, v: number | null) => {
+                      if (v !== null && v !== undefined && typeof v === "number") {
+                        if (tone === "green" || (v > 0 && tone === undefined)) return v < 0 ? "text-destructive" : "";
+                      }
+                      if (v !== null && v !== undefined && v < 0) return "text-destructive";
+                      if (tone === "muted") return "text-muted-foreground";
+                      return "";
+                    };
+
+                    return rows.map((row, ri) => (
+                      <TableRow key={ri} className={cn(row.border && "border-t-2", row.bold && "bg-muted/20")}>
+                        <TableCell className={cn("sticky left-0 bg-card z-10", row.bold && "font-semibold")}>{row.label}</TableCell>
+                        {row.values.map((v, i) => (
+                          <TableCell key={i} className={cn("text-right tabular-nums whitespace-nowrap text-xs", toneCls(row.tone, v as number | null), row.bold && "font-semibold")}>
+                            {fmtCell(v as number | null, row.kind)}
+                            {row.label.includes("MoM") && typeof v === "number" && (
+                              <span className={cn("ml-1", v >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>
+                                {v >= 0 ? "▲" : "▼"}
+                              </span>
+                            )}
+                          </TableCell>
+                        ))}
+                        <TableCell className={cn("text-right tabular-nums font-bold bg-muted/30 whitespace-nowrap", typeof row.total === "number" && row.total < 0 && "text-destructive")}>
+                          {typeof row.total === "string" ? row.total : fmtCell(row.total, row.kind)}
+                        </TableCell>
+                      </TableRow>
+                    ));
+                  })()}
                 </TableBody>
               </Table>
             </div>
