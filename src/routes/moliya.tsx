@@ -550,6 +550,110 @@ function FinancePage() {
             </div>
           </Card>
 
+          {/* Monthly comparison — CFO view */}
+          <Card className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-sm font-semibold">{t("finance.monthlyComparison") || "Oylar bo'yicha solishtirish"}</div>
+              <div className="text-[11px] text-muted-foreground">{allMonths.length} {t("finance.months") || "oy"}</div>
+            </div>
+            <div className="overflow-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="sticky left-0 bg-card z-10 min-w-[200px]">{t("finance.metric") || "Ko'rsatkich"}</TableHead>
+                    {allMonths.map((k) => {
+                      const [y, mm] = k.split("-");
+                      return (
+                        <TableHead key={k} className="text-right whitespace-nowrap">
+                          {MONTHS[Number(mm) - 1].slice(0, 3)} {y.slice(2)}
+                        </TableHead>
+                      );
+                    })}
+                    <TableHead className="text-right font-bold bg-muted/30">{t("common.total") || "Jami"}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {(() => {
+                    const rev = allMonths.map((k) => pick(revenueByMonth.get(k)));
+                    const doc = allMonths.map((k) => pick(docCostsByMonth.get(k)));
+                    const exp = allMonths.map((k) => pick(expenseByMonth.get(k)));
+                    const sal = allMonths.map((k) => pick(salariesByMonth.get(k)));
+                    const cnt = allMonths.map((k) => contractsCountByMonth.get(k) ?? 0);
+                    const gp = rev.map((r, i) => r - doc[i]);
+                    const np = rev.map((r, i) => r - doc[i] - exp[i]);
+                    const margin = rev.map((r, i) => r > 0 ? (np[i] / r) * 100 : 0);
+                    const arpu = rev.map((r, i) => cnt[i] > 0 ? r / cnt[i] : 0);
+                    const opexRatio = rev.map((r, i) => r > 0 ? (exp[i] / r) * 100 : 0);
+                    const mom = np.map((v, i) => i === 0 ? null : (np[i - 1] !== 0 ? ((v - np[i - 1]) / Math.abs(np[i - 1])) * 100 : null));
+                    let cum = 0;
+                    const cumNp = np.map((v) => (cum += v));
+
+                    const sum = (arr: number[]) => arr.reduce((s, v) => s + v, 0);
+                    const totalRev = sum(rev);
+                    const totalCnt = sum(cnt);
+
+                    const rows: Array<{
+                      label: string;
+                      values: (number | null)[];
+                      total: number | string;
+                      kind?: "money" | "count" | "pct";
+                      bold?: boolean;
+                      tone?: "green" | "red" | "muted";
+                      border?: boolean;
+                    }> = [
+                      { label: t("finance.pnl.revenue"), values: rev, total: sum(rev), kind: "money", bold: true, tone: "green" },
+                      { label: t("finance.pnl.docCosts"), values: doc, total: sum(doc), kind: "money", tone: "muted" },
+                      { label: t("finance.pnl.grossProfit"), values: gp, total: sum(gp), kind: "money", bold: true, border: true },
+                      { label: t("finance.pnl.salaries"), values: sal, total: sum(sal), kind: "money", tone: "muted" },
+                      { label: t("finance.pnl.expensesBreakdown"), values: exp, total: sum(exp), kind: "money", tone: "muted" },
+                      { label: t("finance.pnl.netProfit"), values: np, total: sum(np), kind: "money", bold: true, border: true },
+                      { label: (t("finance.margin") || "Marja"), values: margin, total: totalRev > 0 ? (sum(np) / totalRev) * 100 : 0, kind: "pct", border: true },
+                      { label: (t("finance.momGrowth") || "Sof foyda o'sishi (MoM)"), values: mom, total: "—", kind: "pct" },
+                      { label: (t("finance.cumNetProfit") || "Kumulyativ sof foyda"), values: cumNp, total: cumNp[cumNp.length - 1] ?? 0, kind: "money", tone: "green" },
+                      { label: (t("finance.contracts") || "Shartnomalar soni"), values: cnt, total: totalCnt, kind: "count", border: true },
+                      { label: (t("finance.arpu") || "O'rtacha chek (ARPU)"), values: arpu, total: totalCnt > 0 ? totalRev / totalCnt : 0, kind: "money" },
+                      { label: (t("finance.opexRatio") || "Xarajat / Daromad"), values: opexRatio, total: totalRev > 0 ? (sum(exp) / totalRev) * 100 : 0, kind: "pct" },
+                    ];
+
+                    const fmtCell = (v: number | null, kind: "money" | "count" | "pct" | undefined) => {
+                      if (v === null || v === undefined) return "—";
+                      if (kind === "count") return String(Math.round(v));
+                      if (kind === "pct") return `${v.toFixed(1)}%`;
+                      return fmt(v);
+                    };
+                    const toneCls = (tone: "green" | "red" | "muted" | undefined, v: number | null) => {
+                      if (v !== null && v !== undefined && typeof v === "number") {
+                        if (tone === "green" || (v > 0 && tone === undefined)) return v < 0 ? "text-destructive" : "";
+                      }
+                      if (v !== null && v !== undefined && v < 0) return "text-destructive";
+                      if (tone === "muted") return "text-muted-foreground";
+                      return "";
+                    };
+
+                    return rows.map((row, ri) => (
+                      <TableRow key={ri} className={cn(row.border && "border-t-2", row.bold && "bg-muted/20")}>
+                        <TableCell className={cn("sticky left-0 bg-card z-10", row.bold && "font-semibold")}>{row.label}</TableCell>
+                        {row.values.map((v, i) => (
+                          <TableCell key={i} className={cn("text-right tabular-nums whitespace-nowrap text-xs", toneCls(row.tone, v as number | null), row.bold && "font-semibold")}>
+                            {fmtCell(v as number | null, row.kind)}
+                            {row.label.includes("MoM") && typeof v === "number" && (
+                              <span className={cn("ml-1", v >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>
+                                {v >= 0 ? "▲" : "▼"}
+                              </span>
+                            )}
+                          </TableCell>
+                        ))}
+                        <TableCell className={cn("text-right tabular-nums font-bold bg-muted/30 whitespace-nowrap", typeof row.total === "number" && row.total < 0 && "text-destructive")}>
+                          {typeof row.total === "string" ? row.total : fmtCell(row.total, row.kind)}
+                        </TableCell>
+                      </TableRow>
+                    ));
+                  })()}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+
           <Card className="p-4">
             <div className="text-sm font-semibold mb-3">{t("finance.topCategories")}</div>
             <div className="overflow-auto">
