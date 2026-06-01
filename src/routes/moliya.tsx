@@ -553,14 +553,14 @@ function FinancePage() {
           {/* Monthly comparison — CFO view */}
           <Card className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <div className="text-sm font-semibold">{t("finance.monthlyComparison") || "Oylar bo'yicha solishtirish"}</div>
-              <div className="text-[11px] text-muted-foreground">{allMonths.length} {t("finance.months") || "oy"}</div>
+              <div className="text-sm font-semibold">{t("finance.monthlyComparison")}</div>
+              <div className="text-[11px] text-muted-foreground">{allMonths.length} {t("finance.months")}</div>
             </div>
             <div className="overflow-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="sticky left-0 bg-card z-10 min-w-[200px]">{t("finance.metric") || "Ko'rsatkich"}</TableHead>
+                    <TableHead className="sticky left-0 bg-card z-10 min-w-[200px]">{t("finance.metric")}</TableHead>
                     {allMonths.map((k) => {
                       const [y, mm] = k.split("-");
                       return (
@@ -569,7 +569,7 @@ function FinancePage() {
                         </TableHead>
                       );
                     })}
-                    <TableHead className="text-right font-bold bg-muted/30">{t("common.total") || "Jami"}</TableHead>
+                    <TableHead className="text-right font-bold bg-muted/30">{t("common.total")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
