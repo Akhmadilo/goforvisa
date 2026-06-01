@@ -310,7 +310,7 @@ function AdminPage() {
                             onClick={() => {
                               if (
                                 confirm(
-                                  t("admin.confirmDelete", { email: u.email }),
+                                  t("admin.confirmDelete", { email: u.email ?? "" }),
                                 )
                               ) {
                                 delMut.mutate(u.id);
