@@ -10,6 +10,7 @@ const dict = {
     "nav.expenses": "Xarajatlar",
     "nav.employees": "Ishchilar",
     "nav.finance": "Moliyaviy hisobot",
+    "nav.contracts": "Shartnomalar",
     "nav.admin": "Admin panel",
     "nav.settings": "Sozlamalar",
     // Common
@@ -380,6 +381,7 @@ const dict = {
     "nav.expenses": "Expenses",
     "nav.employees": "Employees",
     "nav.finance": "Financial report",
+    "nav.contracts": "Contracts",
     "nav.admin": "Admin panel",
     "nav.settings": "Settings",
     "common.language": "Language",
@@ -741,6 +743,7 @@ const dict = {
     "nav.expenses": "Расходы",
     "nav.employees": "Сотрудники",
     "nav.finance": "Финансовый отчёт",
+    "nav.contracts": "Контракты",
     "nav.admin": "Админ-панель",
     "nav.settings": "Настройки",
     "common.language": "Язык",
