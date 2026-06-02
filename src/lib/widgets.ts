@@ -47,6 +47,9 @@ export const WIDGETS = [
   { key: "finance_section", group: "finance", label: "Bo'limga kirish (sahifa)" },
   // Contracts
   { key: "contracts_section", group: "contracts", label: "Bo'limga kirish (sahifa)" },
+  { key: "contracts_create", group: "contracts", label: "Shartnoma qo'shish" },
+  { key: "contracts_edit", group: "contracts", label: "Shartnoma tahrirlash" },
+  { key: "contracts_delete", group: "contracts", label: "Shartnoma o'chirish" },
 ] as const;
 
 export type WidgetKey = (typeof WIDGETS)[number]["key"];
