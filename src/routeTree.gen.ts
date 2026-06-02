@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as XarajatlarRouteImport } from './routes/xarajatlar'
+import { Route as ShartnomalarRouteImport } from './routes/shartnomalar'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SalariesRouteImport } from './routes/salaries'
 import { Route as MoliyaRouteImport } from './routes/moliya'
@@ -21,6 +22,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const XarajatlarRoute = XarajatlarRouteImport.update({
   id: '/xarajatlar',
   path: '/xarajatlar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShartnomalarRoute = ShartnomalarRouteImport.update({
+  id: '/shartnomalar',
+  path: '/shartnomalar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SettingsRoute = SettingsRouteImport.update({
@@ -67,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/moliya': typeof MoliyaRoute
   '/salaries': typeof SalariesRoute
   '/settings': typeof SettingsRoute
+  '/shartnomalar': typeof ShartnomalarRoute
   '/xarajatlar': typeof XarajatlarRoute
 }
 export interface FileRoutesByTo {
@@ -77,6 +84,7 @@ export interface FileRoutesByTo {
   '/moliya': typeof MoliyaRoute
   '/salaries': typeof SalariesRoute
   '/settings': typeof SettingsRoute
+  '/shartnomalar': typeof ShartnomalarRoute
   '/xarajatlar': typeof XarajatlarRoute
 }
 export interface FileRoutesById {
@@ -88,6 +96,7 @@ export interface FileRoutesById {
   '/moliya': typeof MoliyaRoute
   '/salaries': typeof SalariesRoute
   '/settings': typeof SettingsRoute
+  '/shartnomalar': typeof ShartnomalarRoute
   '/xarajatlar': typeof XarajatlarRoute
 }
 export interface FileRouteTypes {
@@ -100,6 +109,7 @@ export interface FileRouteTypes {
     | '/moliya'
     | '/salaries'
     | '/settings'
+    | '/shartnomalar'
     | '/xarajatlar'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -110,6 +120,7 @@ export interface FileRouteTypes {
     | '/moliya'
     | '/salaries'
     | '/settings'
+    | '/shartnomalar'
     | '/xarajatlar'
   id:
     | '__root__'
@@ -120,6 +131,7 @@ export interface FileRouteTypes {
     | '/moliya'
     | '/salaries'
     | '/settings'
+    | '/shartnomalar'
     | '/xarajatlar'
   fileRoutesById: FileRoutesById
 }
@@ -131,6 +143,7 @@ export interface RootRouteChildren {
   MoliyaRoute: typeof MoliyaRoute
   SalariesRoute: typeof SalariesRoute
   SettingsRoute: typeof SettingsRoute
+  ShartnomalarRoute: typeof ShartnomalarRoute
   XarajatlarRoute: typeof XarajatlarRoute
 }
 
@@ -141,6 +154,13 @@ declare module '@tanstack/react-router' {
       path: '/xarajatlar'
       fullPath: '/xarajatlar'
       preLoaderRoute: typeof XarajatlarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/shartnomalar': {
+      id: '/shartnomalar'
+      path: '/shartnomalar'
+      fullPath: '/shartnomalar'
+      preLoaderRoute: typeof ShartnomalarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/settings': {
@@ -203,6 +223,7 @@ const rootRouteChildren: RootRouteChildren = {
   MoliyaRoute: MoliyaRoute,
   SalariesRoute: SalariesRoute,
   SettingsRoute: SettingsRoute,
+  ShartnomalarRoute: ShartnomalarRoute,
   XarajatlarRoute: XarajatlarRoute,
 }
 export const routeTree = rootRouteImport
