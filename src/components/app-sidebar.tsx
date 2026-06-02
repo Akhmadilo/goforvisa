@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Wallet, Receipt, Users, LineChart, Settings } from "lucide-react";
+import { LayoutDashboard, Wallet, Receipt, Users, LineChart, FileText, Settings } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { useT, LANGUAGES, type Lang } from "@/lib/i18n";
@@ -15,6 +15,7 @@ export function AppSidebar() {
     { to: "/xarajatlar", label: t("nav.expenses"), icon: Receipt, widget: "expenses_section" },
     { to: "/employees", label: t("nav.employees"), icon: Users, widget: "employees_section" },
     { to: "/moliya", label: t("nav.finance"), icon: LineChart, widget: "finance_section" },
+    { to: "/shartnomalar", label: t("nav.contracts"), icon: FileText, widget: "contracts_section" },
   ] as const;
 
   return (
