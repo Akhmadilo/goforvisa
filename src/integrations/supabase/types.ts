@@ -14,6 +14,96 @@ export type Database = {
   }
   public: {
     Tables: {
+      contracts: {
+        Row: {
+          back_office_manager: string | null
+          call_centre: string | null
+          client_name: string
+          commission: number
+          company: string | null
+          contract_date: string | null
+          contract_no: string | null
+          contract_type: string | null
+          created_at: string
+          created_by: string | null
+          docs_usd: number
+          id: string
+          kpi_back_office: number
+          kpi_sales: number
+          month: string | null
+          note: string | null
+          payment: string | null
+          people: number
+          phone: string | null
+          price_usd: number
+          price_uzs: number
+          sales_manager: string | null
+          total: number
+          updated_at: string
+          visa_fee: number
+          visa_result: string | null
+          year: string | null
+        }
+        Insert: {
+          back_office_manager?: string | null
+          call_centre?: string | null
+          client_name: string
+          commission?: number
+          company?: string | null
+          contract_date?: string | null
+          contract_no?: string | null
+          contract_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          docs_usd?: number
+          id?: string
+          kpi_back_office?: number
+          kpi_sales?: number
+          month?: string | null
+          note?: string | null
+          payment?: string | null
+          people?: number
+          phone?: string | null
+          price_usd?: number
+          price_uzs?: number
+          sales_manager?: string | null
+          total?: number
+          updated_at?: string
+          visa_fee?: number
+          visa_result?: string | null
+          year?: string | null
+        }
+        Update: {
+          back_office_manager?: string | null
+          call_centre?: string | null
+          client_name?: string
+          commission?: number
+          company?: string | null
+          contract_date?: string | null
+          contract_no?: string | null
+          contract_type?: string | null
+          created_at?: string
+          created_by?: string | null
+          docs_usd?: number
+          id?: string
+          kpi_back_office?: number
+          kpi_sales?: number
+          month?: string | null
+          note?: string | null
+          payment?: string | null
+          people?: number
+          phone?: string | null
+          price_usd?: number
+          price_uzs?: number
+          sales_manager?: string | null
+          total?: number
+          updated_at?: string
+          visa_fee?: number
+          visa_result?: string | null
+          year?: string | null
+        }
+        Relationships: []
+      }
       employees: {
         Row: {
           avatar_url: string | null
