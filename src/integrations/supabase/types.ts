@@ -14,22 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      contract_payments: {
+        Row: {
+          amount: number
+          contract_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          method: string | null
+          note: string | null
+          paid_at: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          contract_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          method?: string | null
+          note?: string | null
+          paid_at?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          contract_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          method?: string | null
+          note?: string | null
+          paid_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contract_payments_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contracts: {
         Row: {
           back_office_manager: string | null
           call_centre: string | null
           client_name: string
+          client_photo_url: string | null
           commission: number
           company: string | null
           contract_date: string | null
           contract_no: string | null
+          contract_pdf_url: string | null
           contract_type: string | null
           created_at: string
           created_by: string | null
           docs_usd: number
           id: string
-          kpi_back_office: number
-          kpi_sales: number
           month: string | null
           note: string | null
           payment: string | null
@@ -38,9 +85,7 @@ export type Database = {
           price_usd: number
           price_uzs: number
           sales_manager: string | null
-          total: number
           updated_at: string
-          visa_fee: number
           visa_result: string | null
           year: string | null
         }
@@ -48,17 +93,17 @@ export type Database = {
           back_office_manager?: string | null
           call_centre?: string | null
           client_name: string
+          client_photo_url?: string | null
           commission?: number
           company?: string | null
           contract_date?: string | null
           contract_no?: string | null
+          contract_pdf_url?: string | null
           contract_type?: string | null
           created_at?: string
           created_by?: string | null
           docs_usd?: number
           id?: string
-          kpi_back_office?: number
-          kpi_sales?: number
           month?: string | null
           note?: string | null
           payment?: string | null
@@ -67,9 +112,7 @@ export type Database = {
           price_usd?: number
           price_uzs?: number
           sales_manager?: string | null
-          total?: number
           updated_at?: string
-          visa_fee?: number
           visa_result?: string | null
           year?: string | null
         }
@@ -77,17 +120,17 @@ export type Database = {
           back_office_manager?: string | null
           call_centre?: string | null
           client_name?: string
+          client_photo_url?: string | null
           commission?: number
           company?: string | null
           contract_date?: string | null
           contract_no?: string | null
+          contract_pdf_url?: string | null
           contract_type?: string | null
           created_at?: string
           created_by?: string | null
           docs_usd?: number
           id?: string
-          kpi_back_office?: number
-          kpi_sales?: number
           month?: string | null
           note?: string | null
           payment?: string | null
@@ -96,9 +139,7 @@ export type Database = {
           price_usd?: number
           price_uzs?: number
           sales_manager?: string | null
-          total?: number
           updated_at?: string
-          visa_fee?: number
           visa_result?: string | null
           year?: string | null
         }
