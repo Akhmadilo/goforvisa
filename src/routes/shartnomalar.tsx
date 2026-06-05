@@ -244,6 +244,7 @@ function ShartnomalarPage() {
     setPdfFile(null);
     setPhotoUrl(null);
     setPdfUrl(null);
+    setCommissionManual(false);
     setDialogOpen(true);
   };
   const openEdit = (row: ContractRow) => {
