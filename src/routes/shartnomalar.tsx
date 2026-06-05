@@ -170,6 +170,22 @@ function ShartnomalarPage() {
     },
   });
 
+  const { data: employees } = useQuery({
+    queryKey: ["employees-for-contracts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("id, full_name, position")
+        .order("full_name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const employeeNames = useMemo(
+    () => (employees ?? []).map((e) => e.full_name).filter(Boolean),
+    [employees],
+  );
+
   const paidByContract = useMemo(() => {
     const map = new Map<string, number>();
     (payments ?? []).forEach((p) => {
