@@ -24,12 +24,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { useT, localeOf } from "@/lib/i18n";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, RefreshCw, Upload, FileText, Wallet } from "lucide-react";
+
+const VISA_RESULTS = ["Topshirildi", "Olindi", "Rad etildi", "Jarayonda", "Bekor qilindi"] as const;
+const CONTRACT_TYPES = ["Tourist", "Student", "Work", "Business", "Family", "Boshqa"] as const;
+const PAYMENT_STATUSES = ["To'lanmagan", "Qisman", "To'langan"] as const;
+const CALL_CENTRES = ["Ichki", "Tashqi", "Instagram", "Telegram", "Boshqa"] as const;
+const COMPANIES = ["GoForVisa", "Boshqa"] as const;
 
 export const Route = createFileRoute("/shartnomalar")({
   component: ShartnomalarPage,
