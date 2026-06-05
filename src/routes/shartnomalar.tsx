@@ -690,6 +690,36 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+function SelectBox({
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  placeholder?: string;
+}) {
+  return (
+    <Select value={value || undefined} onValueChange={onChange}>
+      <SelectTrigger>
+        <SelectValue placeholder={placeholder ?? "Tanlang"} />
+      </SelectTrigger>
+      <SelectContent>
+        {options.length === 0 ? (
+          <div className="px-2 py-1.5 text-xs text-muted-foreground">Yo'q</div>
+        ) : (
+          options.map((o) => (
+            <SelectItem key={o} value={o}>
+              {o}
+            </SelectItem>
+          ))
+        )}
+      </SelectContent>
+    </Select>
+  );
+
 function PaymentsDialog({
   open,
   onOpenChange,
