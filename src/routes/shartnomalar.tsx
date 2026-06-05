@@ -274,6 +274,7 @@ function ShartnomalarPage() {
     setPdfFile(null);
     setPhotoUrl(row.client_photo_url);
     setPdfUrl(row.contract_pdf_url);
+    setCommissionManual(true); // preserve stored commission
     setDialogOpen(true);
   };
 
