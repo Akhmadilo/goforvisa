@@ -228,6 +228,14 @@ function ShartnomalarPage() {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [commissionManual, setCommissionManual] = useState(false);
+
+  // Auto-calculate commission = price_usd - docs_usd (unless manually edited)
+  useEffect(() => {
+    if (commissionManual) return;
+    const calc = Number(form.price_usd || 0) - Number(form.docs_usd || 0);
+    setForm((f) => (f.commission === calc ? f : { ...f, commission: calc }));
+  }, [form.price_usd, form.docs_usd, commissionManual]);
 
   const openCreate = () => {
     setEditing(null);
