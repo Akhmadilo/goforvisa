@@ -719,6 +719,8 @@ function SelectBox({
       </SelectContent>
     </Select>
   );
+}
+
 
 function PaymentsDialog({
   open,
