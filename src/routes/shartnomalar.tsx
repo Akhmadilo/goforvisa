@@ -562,32 +562,74 @@ function ShartnomalarPage() {
             <Field label="Doc xarajat (USD)">
               <Input type="number" value={form.docs_usd} onChange={(e) => setForm({ ...form, docs_usd: num(e.target.value) })} />
             </Field>
-            <Field label="Komissiya">
-              <Input type="number" value={form.commission} onChange={(e) => setForm({ ...form, commission: num(e.target.value) })} />
+            <Field label="Komissiya (USD) — avto">
+              <Input
+                type="number"
+                value={form.commission}
+                onChange={(e) => {
+                  setCommissionManual(true);
+                  setForm({ ...form, commission: num(e.target.value) });
+                }}
+              />
             </Field>
-            <Field label="To'lov holati (izoh)">
-              <Input value={form.payment} onChange={(e) => setForm({ ...form, payment: e.target.value })} />
+            <Field label="To'lov holati">
+              <SelectBox
+                value={form.payment}
+                onChange={(v) => setForm({ ...form, payment: v })}
+                options={PAYMENT_STATUSES as unknown as string[]}
+                placeholder="Tanlang"
+              />
             </Field>
             <Field label="Odam soni">
               <Input type="number" value={form.people} onChange={(e) => setForm({ ...form, people: num(e.target.value) })} />
             </Field>
             <Field label="Shartnoma turi">
-              <Input value={form.contract_type} onChange={(e) => setForm({ ...form, contract_type: e.target.value })} />
+              <SelectBox
+                value={form.contract_type}
+                onChange={(v) => setForm({ ...form, contract_type: v })}
+                options={CONTRACT_TYPES as unknown as string[]}
+                placeholder="Tanlang"
+              />
             </Field>
             <Field label="Call centre">
-              <Input value={form.call_centre} onChange={(e) => setForm({ ...form, call_centre: e.target.value })} />
+              <SelectBox
+                value={form.call_centre}
+                onChange={(v) => setForm({ ...form, call_centre: v })}
+                options={CALL_CENTRES as unknown as string[]}
+                placeholder="Tanlang"
+              />
             </Field>
             <Field label="Sotuv menejer">
-              <Input value={form.sales_manager} onChange={(e) => setForm({ ...form, sales_manager: e.target.value })} />
+              <SelectBox
+                value={form.sales_manager}
+                onChange={(v) => setForm({ ...form, sales_manager: v })}
+                options={employeeNames}
+                placeholder="Xodimni tanlang"
+              />
             </Field>
             <Field label="Back office menejer">
-              <Input value={form.back_office_manager} onChange={(e) => setForm({ ...form, back_office_manager: e.target.value })} />
+              <SelectBox
+                value={form.back_office_manager}
+                onChange={(v) => setForm({ ...form, back_office_manager: v })}
+                options={employeeNames}
+                placeholder="Xodimni tanlang"
+              />
             </Field>
             <Field label="Kompaniya">
-              <Input value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
+              <SelectBox
+                value={form.company}
+                onChange={(v) => setForm({ ...form, company: v })}
+                options={COMPANIES as unknown as string[]}
+                placeholder="Tanlang"
+              />
             </Field>
             <Field label="Visa natijasi">
-              <Input value={form.visa_result} onChange={(e) => setForm({ ...form, visa_result: e.target.value })} />
+              <SelectBox
+                value={form.visa_result}
+                onChange={(v) => setForm({ ...form, visa_result: v })}
+                options={VISA_RESULTS as unknown as string[]}
+                placeholder="Tanlang"
+              />
             </Field>
 
             <Field label="Klient rasmi">
