@@ -24,12 +24,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { useT, localeOf } from "@/lib/i18n";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, RefreshCw, Upload, FileText, Wallet } from "lucide-react";
+
+const VISA_RESULTS = ["Topshirildi", "Olindi", "Rad etildi", "Jarayonda", "Bekor qilindi"] as const;
+const CONTRACT_TYPES = ["Tourist", "Student", "Work", "Business", "Family", "Boshqa"] as const;
+const PAYMENT_STATUSES = ["To'lanmagan", "Qisman", "To'langan"] as const;
+const CALL_CENTRES = ["Ichki", "Tashqi", "Instagram", "Telegram", "Boshqa"] as const;
+const COMPANIES = ["GoForVisa", "Boshqa"] as const;
 
 export const Route = createFileRoute("/shartnomalar")({
   component: ShartnomalarPage,
@@ -157,6 +170,22 @@ function ShartnomalarPage() {
     },
   });
 
+  const { data: employees } = useQuery({
+    queryKey: ["employees-for-contracts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("id, full_name, position")
+        .order("full_name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const employeeNames = useMemo(
+    () => (employees ?? []).map((e) => e.full_name).filter(Boolean),
+    [employees],
+  );
+
   const paidByContract = useMemo(() => {
     const map = new Map<string, number>();
     (payments ?? []).forEach((p) => {
@@ -199,6 +228,14 @@ function ShartnomalarPage() {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [commissionManual, setCommissionManual] = useState(false);
+
+  // Auto-calculate commission = price_usd - docs_usd (unless manually edited)
+  useEffect(() => {
+    if (commissionManual) return;
+    const calc = Number(form.price_usd || 0) - Number(form.docs_usd || 0);
+    setForm((f) => (f.commission === calc ? f : { ...f, commission: calc }));
+  }, [form.price_usd, form.docs_usd, commissionManual]);
 
   const openCreate = () => {
     setEditing(null);
@@ -207,6 +244,7 @@ function ShartnomalarPage() {
     setPdfFile(null);
     setPhotoUrl(null);
     setPdfUrl(null);
+    setCommissionManual(false);
     setDialogOpen(true);
   };
   const openEdit = (row: ContractRow) => {
@@ -236,6 +274,7 @@ function ShartnomalarPage() {
     setPdfFile(null);
     setPhotoUrl(row.client_photo_url);
     setPdfUrl(row.contract_pdf_url);
+    setCommissionManual(true); // preserve stored commission
     setDialogOpen(true);
   };
 
@@ -523,32 +562,74 @@ function ShartnomalarPage() {
             <Field label="Doc xarajat (USD)">
               <Input type="number" value={form.docs_usd} onChange={(e) => setForm({ ...form, docs_usd: num(e.target.value) })} />
             </Field>
-            <Field label="Komissiya">
-              <Input type="number" value={form.commission} onChange={(e) => setForm({ ...form, commission: num(e.target.value) })} />
+            <Field label="Komissiya (USD) — avto">
+              <Input
+                type="number"
+                value={form.commission}
+                onChange={(e) => {
+                  setCommissionManual(true);
+                  setForm({ ...form, commission: num(e.target.value) });
+                }}
+              />
             </Field>
-            <Field label="To'lov holati (izoh)">
-              <Input value={form.payment} onChange={(e) => setForm({ ...form, payment: e.target.value })} />
+            <Field label="To'lov holati">
+              <SelectBox
+                value={form.payment}
+                onChange={(v) => setForm({ ...form, payment: v })}
+                options={PAYMENT_STATUSES as unknown as string[]}
+                placeholder="Tanlang"
+              />
             </Field>
             <Field label="Odam soni">
               <Input type="number" value={form.people} onChange={(e) => setForm({ ...form, people: num(e.target.value) })} />
             </Field>
             <Field label="Shartnoma turi">
-              <Input value={form.contract_type} onChange={(e) => setForm({ ...form, contract_type: e.target.value })} />
+              <SelectBox
+                value={form.contract_type}
+                onChange={(v) => setForm({ ...form, contract_type: v })}
+                options={CONTRACT_TYPES as unknown as string[]}
+                placeholder="Tanlang"
+              />
             </Field>
             <Field label="Call centre">
-              <Input value={form.call_centre} onChange={(e) => setForm({ ...form, call_centre: e.target.value })} />
+              <SelectBox
+                value={form.call_centre}
+                onChange={(v) => setForm({ ...form, call_centre: v })}
+                options={CALL_CENTRES as unknown as string[]}
+                placeholder="Tanlang"
+              />
             </Field>
             <Field label="Sotuv menejer">
-              <Input value={form.sales_manager} onChange={(e) => setForm({ ...form, sales_manager: e.target.value })} />
+              <SelectBox
+                value={form.sales_manager}
+                onChange={(v) => setForm({ ...form, sales_manager: v })}
+                options={employeeNames}
+                placeholder="Xodimni tanlang"
+              />
             </Field>
             <Field label="Back office menejer">
-              <Input value={form.back_office_manager} onChange={(e) => setForm({ ...form, back_office_manager: e.target.value })} />
+              <SelectBox
+                value={form.back_office_manager}
+                onChange={(v) => setForm({ ...form, back_office_manager: v })}
+                options={employeeNames}
+                placeholder="Xodimni tanlang"
+              />
             </Field>
             <Field label="Kompaniya">
-              <Input value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
+              <SelectBox
+                value={form.company}
+                onChange={(v) => setForm({ ...form, company: v })}
+                options={COMPANIES as unknown as string[]}
+                placeholder="Tanlang"
+              />
             </Field>
             <Field label="Visa natijasi">
-              <Input value={form.visa_result} onChange={(e) => setForm({ ...form, visa_result: e.target.value })} />
+              <SelectBox
+                value={form.visa_result}
+                onChange={(v) => setForm({ ...form, visa_result: v })}
+                options={VISA_RESULTS as unknown as string[]}
+                placeholder="Tanlang"
+              />
             </Field>
 
             <Field label="Klient rasmi">
@@ -608,6 +689,38 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
+
+function SelectBox({
+  value,
+  onChange,
+  options,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  placeholder?: string;
+}) {
+  return (
+    <Select value={value || undefined} onValueChange={onChange}>
+      <SelectTrigger>
+        <SelectValue placeholder={placeholder ?? "Tanlang"} />
+      </SelectTrigger>
+      <SelectContent>
+        {options.length === 0 ? (
+          <div className="px-2 py-1.5 text-xs text-muted-foreground">Yo'q</div>
+        ) : (
+          options.map((o) => (
+            <SelectItem key={o} value={o}>
+              {o}
+            </SelectItem>
+          ))
+        )}
+      </SelectContent>
+    </Select>
+  );
+}
+
 
 function PaymentsDialog({
   open,
