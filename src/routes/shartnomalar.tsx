@@ -731,7 +731,22 @@ function PaymentsDialog({
 }) {
   const qc = useQueryClient();
   const { lang } = useT();
+  const { user } = useAuth();
   const fmt = (n: number) => Number(n).toLocaleString(localeOf(lang), { maximumFractionDigits: 2 });
+
+  const [photoSignedUrl, setPhotoSignedUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    if (open && contract?.client_photo_url) {
+      supabase.storage
+        .from("contract-files")
+        .createSignedUrl(contract.client_photo_url, 3600)
+        .then(({ data }) => { if (active) setPhotoSignedUrl(data?.signedUrl ?? null); });
+    } else {
+      setPhotoSignedUrl(null);
+    }
+    return () => { active = false; };
+  }, [open, contract?.id, contract?.client_photo_url]);
 
   const { data: list, refetch } = useQuery({
     queryKey: ["contract-payments", contract?.id],
@@ -747,6 +762,29 @@ function PaymentsDialog({
     },
     enabled: !!contract && open,
   });
+
+  const payerIds = useMemo(
+    () => Array.from(new Set((list ?? []).map((p) => p.created_by).filter(Boolean) as string[])),
+    [list],
+  );
+  const { data: payerProfiles } = useQuery({
+    queryKey: ["payer-profiles", payerIds.join(",")],
+    queryFn: async () => {
+      if (payerIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", payerIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: payerIds.length > 0,
+  });
+  const payerNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    (payerProfiles ?? []).forEach((p) => m.set(p.id, p.display_name ?? "—"));
+    return m;
+  }, [payerProfiles]);
 
   const [amount, setAmount] = useState<number>(0);
   const [currency, setCurrency] = useState<string>("UZS");
