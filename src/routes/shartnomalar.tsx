@@ -568,14 +568,6 @@ function ShartnomalarPage() {
                 }}
               />
             </Field>
-            <Field label="To'lov holati">
-              <SelectBox
-                value={form.payment}
-                onChange={(v) => setForm({ ...form, payment: v })}
-                options={PAYMENT_STATUSES as unknown as string[]}
-                placeholder="Tanlang"
-              />
-            </Field>
             <Field label="Odam soni">
               <Input type="number" value={form.people} onChange={(e) => setForm({ ...form, people: num(e.target.value) })} />
             </Field>
@@ -587,28 +579,28 @@ function ShartnomalarPage() {
                 placeholder="Tanlang"
               />
             </Field>
-            <Field label="Call centre">
+            <Field label="Call centre operator">
               <SelectBox
                 value={form.call_centre}
                 onChange={(v) => setForm({ ...form, call_centre: v })}
-                options={CALL_CENTRES as unknown as string[]}
-                placeholder="Tanlang"
+                options={callCentreOptions}
+                placeholder="Operatorni tanlang"
               />
             </Field>
             <Field label="Sotuv menejer">
               <SelectBox
                 value={form.sales_manager}
                 onChange={(v) => setForm({ ...form, sales_manager: v })}
-                options={employeeNames}
-                placeholder="Xodimni tanlang"
+                options={salesOptions}
+                placeholder="Sotuv operatorini tanlang"
               />
             </Field>
             <Field label="Back office menejer">
               <SelectBox
                 value={form.back_office_manager}
                 onChange={(v) => setForm({ ...form, back_office_manager: v })}
-                options={employeeNames}
-                placeholder="Xodimni tanlang"
+                options={backOfficeOptions}
+                placeholder="Back office operatorini tanlang"
               />
             </Field>
             <Field label="Kompaniya">
