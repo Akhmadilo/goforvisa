@@ -921,6 +921,7 @@ function PaymentsDialog({
                 <TableHead className="text-right">Summa</TableHead>
                 <TableHead>Valyuta</TableHead>
                 <TableHead>Usul</TableHead>
+                <TableHead>Kim qo'shgan</TableHead>
                 <TableHead>Izoh</TableHead>
                 {canDelete && <TableHead></TableHead>}
               </TableRow>
@@ -928,7 +929,7 @@ function PaymentsDialog({
             <TableBody>
               {(list ?? []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={canDelete ? 6 : 5} className="text-center text-muted-foreground text-sm py-6">
+                  <TableCell colSpan={canDelete ? 7 : 6} className="text-center text-muted-foreground text-sm py-6">
                     To'lovlar yo'q
                   </TableCell>
                 </TableRow>
@@ -936,9 +937,12 @@ function PaymentsDialog({
                 (list ?? []).map((p) => (
                   <TableRow key={p.id}>
                     <TableCell className="whitespace-nowrap">{p.paid_at}</TableCell>
-                    <TableCell className="text-right font-medium">{fmt(Number(p.amount))}</TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">{fmt(Number(p.amount))}</TableCell>
                     <TableCell>{p.currency}</TableCell>
                     <TableCell>{p.method ?? "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                      {p.created_by ? (payerNameById.get(p.created_by) ?? "—") : "—"}
+                    </TableCell>
                     <TableCell>{p.note ?? "—"}</TableCell>
                     {canDelete && (
                       <TableCell className="text-right">
