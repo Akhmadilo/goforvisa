@@ -78,8 +78,121 @@ function SettingsPage() {
         </Card>
 
         {isAdmin && <UsdRatesCard />}
+        {isAdmin && <OperatorsCard />}
       </div>
     </div>
+  );
+}
+
+type OperatorKind = "call_centre" | "sales" | "back_office";
+type OperatorRow = { id: string; kind: OperatorKind; name: string };
+
+const KIND_LABELS: Record<OperatorKind, string> = {
+  call_centre: "Call centre",
+  sales: "Sotuv (Sales)",
+  back_office: "Back office",
+};
+
+function OperatorsCard() {
+  const qc = useQueryClient();
+  const [kind, setKind] = useState<OperatorKind>("sales");
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ["operators_admin"],
+    queryFn: async (): Promise<OperatorRow[]> => {
+      const { data, error } = await (supabase as any)
+        .from("operators")
+        .select("id, kind, name")
+        .order("kind")
+        .order("name");
+      if (error) throw error;
+      return (data ?? []) as OperatorRow[];
+    },
+  });
+
+  const add = async () => {
+    const n = name.trim();
+    if (!n) { toast.error("Ism kiriting"); return; }
+    setSaving(true);
+    const { error } = await (supabase as any).from("operators").insert({ kind, name: n });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Qo'shildi");
+    setName("");
+    qc.invalidateQueries({ queryKey: ["operators_admin"] });
+    qc.invalidateQueries({ queryKey: ["operators"] });
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("O'chirilsinmi?")) return;
+    const { error } = await (supabase as any).from("operators").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("O'chirildi");
+    qc.invalidateQueries({ queryKey: ["operators_admin"] });
+    qc.invalidateQueries({ queryKey: ["operators"] });
+  };
+
+  const grouped: Record<OperatorKind, OperatorRow[]> = {
+    call_centre: [], sales: [], back_office: [],
+  };
+  rows.forEach((r) => grouped[r.kind]?.push(r));
+
+  return (
+    <Card className="p-6">
+      <h2 className="text-lg font-semibold">Operatorlar</h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Call centre, sotuv va back office xodimlarini boshqaring. Shartnoma yaratishda shu ro'yxatdan tanlanadi.
+      </p>
+
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Bo'lim</label>
+          <Select value={kind} onValueChange={(v) => setKind(v as OperatorKind)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {(Object.keys(KIND_LABELS) as OperatorKind[]).map((k) => (
+                <SelectItem key={k} value={k}>{KIND_LABELS[k]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="sm:col-span-2">
+          <label className="text-xs text-muted-foreground mb-1 block">Ism familiya</label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Masalan: Aziz Karimov" />
+        </div>
+        <Button onClick={add} disabled={saving} className="gap-1.5">
+          <Plus className="h-4 w-4" />
+          {saving ? "Saqlanmoqda..." : "Qo'shish"}
+        </Button>
+      </div>
+
+      <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+        {(Object.keys(KIND_LABELS) as OperatorKind[]).map((k) => (
+          <div key={k} className="rounded-md border border-border">
+            <div className="border-b border-border bg-muted/40 px-3 py-2 text-sm font-medium">
+              {KIND_LABELS[k]} <span className="text-muted-foreground">({grouped[k].length})</span>
+            </div>
+            <div className="p-2 space-y-1">
+              {isLoading ? (
+                <div className="text-xs text-muted-foreground p-2">Yuklanmoqda...</div>
+              ) : grouped[k].length === 0 ? (
+                <div className="text-xs text-muted-foreground p-2">Hali qo'shilmagan</div>
+              ) : grouped[k].map((r) => (
+                <div key={r.id} className="flex items-center justify-between rounded px-2 py-1 hover:bg-muted/50">
+                  <span className="text-sm">{r.name}</span>
+                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"
+                    onClick={() => remove(r.id)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 }
 
