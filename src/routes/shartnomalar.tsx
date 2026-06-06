@@ -37,11 +37,10 @@ import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { useT, localeOf } from "@/lib/i18n";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, RefreshCw, Upload, FileText, Wallet } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const VISA_RESULTS = ["Topshirildi", "Olindi", "Rad etildi", "Jarayonda", "Bekor qilindi"] as const;
 const CONTRACT_TYPES = ["Tourist", "Student", "Work", "Business", "Family", "Boshqa"] as const;
-const PAYMENT_STATUSES = ["To'lanmagan", "Qisman", "To'langan"] as const;
-const CALL_CENTRES = ["Ichki", "Tashqi", "Instagram", "Telegram", "Boshqa"] as const;
 const COMPANIES = ["GoForVisa", "Boshqa"] as const;
 
 export const Route = createFileRoute("/shartnomalar")({
@@ -82,6 +81,7 @@ type PaymentRow = {
   paid_at: string;
   method: string | null;
   note: string | null;
+  created_by: string | null;
 };
 
 type FormState = {
@@ -95,7 +95,6 @@ type FormState = {
   price_usd: number;
   docs_usd: number;
   commission: number;
-  payment: string;
   people: number;
   contract_type: string;
   call_centre: string;
@@ -117,7 +116,6 @@ const emptyForm: FormState = {
   price_usd: 0,
   docs_usd: 0,
   commission: 0,
-  payment: "",
   people: 1,
   contract_type: "",
   call_centre: "",
@@ -170,21 +168,22 @@ function ShartnomalarPage() {
     },
   });
 
-  const { data: employees } = useQuery({
-    queryKey: ["employees-for-contracts"],
+  const { data: operators } = useQuery({
+    queryKey: ["operators"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("id, full_name, position")
-        .order("full_name");
+      const { data, error } = await (supabase as any)
+        .from("operators")
+        .select("id, kind, name")
+        .order("name");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as { id: string; kind: string; name: string }[];
     },
   });
-  const employeeNames = useMemo(
-    () => (employees ?? []).map((e) => e.full_name).filter(Boolean),
-    [employees],
-  );
+  const opByKind = (k: string) =>
+    (operators ?? []).filter((o) => o.kind === k).map((o) => o.name);
+  const salesOptions = useMemo(() => opByKind("sales"), [operators]);
+  const backOfficeOptions = useMemo(() => opByKind("back_office"), [operators]);
+  const callCentreOptions = useMemo(() => opByKind("call_centre"), [operators]);
 
   const paidByContract = useMemo(() => {
     const map = new Map<string, number>();
@@ -260,7 +259,6 @@ function ShartnomalarPage() {
       price_usd: Number(row.price_usd ?? 0),
       docs_usd: Number(row.docs_usd ?? 0),
       commission: Number(row.commission ?? 0),
-      payment: row.payment ?? "",
       people: row.people ?? 1,
       contract_type: row.contract_type ?? "",
       call_centre: row.call_centre ?? "",
@@ -318,7 +316,6 @@ function ShartnomalarPage() {
         month: form.month || null,
         contract_no: form.contract_no || null,
         phone: form.phone || null,
-        payment: form.payment || null,
         contract_type: form.contract_type || null,
         call_centre: form.call_centre || null,
         sales_manager: form.sales_manager || null,
@@ -425,8 +422,7 @@ function ShartnomalarPage() {
                         <TableHead>Ism familiya</TableHead>
                         <TableHead>Shartnoma №</TableHead>
                         <TableHead>Telefon</TableHead>
-                        <TableHead className="text-right">Narx UZS</TableHead>
-                        <TableHead className="text-right">Narx USD</TableHead>
+                        <TableHead className="text-right">Narx</TableHead>
                         <TableHead className="text-right">To'langan</TableHead>
                         <TableHead className="text-right">Qoldiq</TableHead>
                         <TableHead>Holat</TableHead>
@@ -476,10 +472,16 @@ function ShartnomalarPage() {
                             <TableCell className="font-medium whitespace-nowrap">{c.client_name}</TableCell>
                             <TableCell className="whitespace-nowrap">{c.contract_no ?? "—"}</TableCell>
                             <TableCell className="whitespace-nowrap">{c.phone ?? "—"}</TableCell>
-                            <TableCell className="text-right">{fmt(c.price_uzs)}</TableCell>
-                            <TableCell className="text-right">{fmt(c.price_usd)}</TableCell>
-                            <TableCell className="text-right">{fmt(paid)}</TableCell>
-                            <TableCell className="text-right">{fmt(remaining)}</TableCell>
+                            <TableCell className="text-right whitespace-nowrap">
+                              <div className="font-semibold tabular-nums">${fmt(c.price_usd)}</div>
+                              {c.price_uzs ? (
+                                <div className="text-[10px] text-muted-foreground tabular-nums">
+                                  {fmt(c.price_uzs)} so'm
+                                </div>
+                              ) : null}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">{fmt(paid)}</TableCell>
+                            <TableCell className="text-right tabular-nums">{fmt(remaining)}</TableCell>
                             <TableCell>
                               <Badge variant={variant as "default" | "secondary" | "destructive" | "outline"}>{status}</Badge>
                             </TableCell>
@@ -572,14 +574,6 @@ function ShartnomalarPage() {
                 }}
               />
             </Field>
-            <Field label="To'lov holati">
-              <SelectBox
-                value={form.payment}
-                onChange={(v) => setForm({ ...form, payment: v })}
-                options={PAYMENT_STATUSES as unknown as string[]}
-                placeholder="Tanlang"
-              />
-            </Field>
             <Field label="Odam soni">
               <Input type="number" value={form.people} onChange={(e) => setForm({ ...form, people: num(e.target.value) })} />
             </Field>
@@ -591,28 +585,28 @@ function ShartnomalarPage() {
                 placeholder="Tanlang"
               />
             </Field>
-            <Field label="Call centre">
+            <Field label="Call centre operator">
               <SelectBox
                 value={form.call_centre}
                 onChange={(v) => setForm({ ...form, call_centre: v })}
-                options={CALL_CENTRES as unknown as string[]}
-                placeholder="Tanlang"
+                options={callCentreOptions}
+                placeholder="Operatorni tanlang"
               />
             </Field>
             <Field label="Sotuv menejer">
               <SelectBox
                 value={form.sales_manager}
                 onChange={(v) => setForm({ ...form, sales_manager: v })}
-                options={employeeNames}
-                placeholder="Xodimni tanlang"
+                options={salesOptions}
+                placeholder="Sotuv operatorini tanlang"
               />
             </Field>
             <Field label="Back office menejer">
               <SelectBox
                 value={form.back_office_manager}
                 onChange={(v) => setForm({ ...form, back_office_manager: v })}
-                options={employeeNames}
-                placeholder="Xodimni tanlang"
+                options={backOfficeOptions}
+                placeholder="Back office operatorini tanlang"
               />
             </Field>
             <Field label="Kompaniya">
@@ -737,7 +731,22 @@ function PaymentsDialog({
 }) {
   const qc = useQueryClient();
   const { lang } = useT();
+  const { user } = useAuth();
   const fmt = (n: number) => Number(n).toLocaleString(localeOf(lang), { maximumFractionDigits: 2 });
+
+  const [photoSignedUrl, setPhotoSignedUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true;
+    if (open && contract?.client_photo_url) {
+      supabase.storage
+        .from("contract-files")
+        .createSignedUrl(contract.client_photo_url, 3600)
+        .then(({ data }) => { if (active) setPhotoSignedUrl(data?.signedUrl ?? null); });
+    } else {
+      setPhotoSignedUrl(null);
+    }
+    return () => { active = false; };
+  }, [open, contract?.id, contract?.client_photo_url]);
 
   const { data: list, refetch } = useQuery({
     queryKey: ["contract-payments", contract?.id],
@@ -753,6 +762,29 @@ function PaymentsDialog({
     },
     enabled: !!contract && open,
   });
+
+  const payerIds = useMemo(
+    () => Array.from(new Set((list ?? []).map((p) => p.created_by).filter(Boolean) as string[])),
+    [list],
+  );
+  const { data: payerProfiles } = useQuery({
+    queryKey: ["payer-profiles", payerIds.join(",")],
+    queryFn: async () => {
+      if (payerIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", payerIds);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: payerIds.length > 0,
+  });
+  const payerNameById = useMemo(() => {
+    const m = new Map<string, string>();
+    (payerProfiles ?? []).forEach((p) => m.set(p.id, p.display_name ?? "—"));
+    return m;
+  }, [payerProfiles]);
 
   const [amount, setAmount] = useState<number>(0);
   const [currency, setCurrency] = useState<string>("UZS");
@@ -789,6 +821,7 @@ function PaymentsDialog({
       paid_at: paidAt,
       method: method || null,
       note: note || null,
+      created_by: user?.id ?? null,
     });
     setSaving(false);
     if (error) {
@@ -819,7 +852,22 @@ function PaymentsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>To'lovlar — {contract?.client_name}</DialogTitle>
+          <div className="flex items-start gap-3 pr-8">
+            <Avatar className="h-14 w-14 border">
+              {photoSignedUrl ? <AvatarImage src={photoSignedUrl} alt={contract?.client_name} /> : null}
+              <AvatarFallback>
+                {(contract?.client_name ?? "?").slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="truncate">{contract?.client_name}</DialogTitle>
+              <div className="mt-0.5 text-xs text-muted-foreground">
+                {contract?.contract_no ? `№ ${contract.contract_no}` : ""}
+                {contract?.contract_date ? ` · ${contract.contract_date}` : ""}
+                {contract?.phone ? ` · ${contract.phone}` : ""}
+              </div>
+            </div>
+          </div>
         </DialogHeader>
         <div className="grid grid-cols-3 gap-2 text-sm">
           <div className="rounded-md border p-2">
@@ -873,6 +921,7 @@ function PaymentsDialog({
                 <TableHead className="text-right">Summa</TableHead>
                 <TableHead>Valyuta</TableHead>
                 <TableHead>Usul</TableHead>
+                <TableHead>Kim qo'shgan</TableHead>
                 <TableHead>Izoh</TableHead>
                 {canDelete && <TableHead></TableHead>}
               </TableRow>
@@ -880,7 +929,7 @@ function PaymentsDialog({
             <TableBody>
               {(list ?? []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={canDelete ? 6 : 5} className="text-center text-muted-foreground text-sm py-6">
+                  <TableCell colSpan={canDelete ? 7 : 6} className="text-center text-muted-foreground text-sm py-6">
                     To'lovlar yo'q
                   </TableCell>
                 </TableRow>
@@ -888,9 +937,12 @@ function PaymentsDialog({
                 (list ?? []).map((p) => (
                   <TableRow key={p.id}>
                     <TableCell className="whitespace-nowrap">{p.paid_at}</TableCell>
-                    <TableCell className="text-right font-medium">{fmt(Number(p.amount))}</TableCell>
+                    <TableCell className="text-right font-medium tabular-nums">{fmt(Number(p.amount))}</TableCell>
                     <TableCell>{p.currency}</TableCell>
                     <TableCell>{p.method ?? "—"}</TableCell>
+                    <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                      {p.created_by ? (payerNameById.get(p.created_by) ?? "—") : "—"}
+                    </TableCell>
                     <TableCell>{p.note ?? "—"}</TableCell>
                     {canDelete && (
                       <TableCell className="text-right">
