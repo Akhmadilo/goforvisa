@@ -852,7 +852,22 @@ function PaymentsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>To'lovlar — {contract?.client_name}</DialogTitle>
+          <div className="flex items-start gap-3 pr-8">
+            <Avatar className="h-14 w-14 border">
+              {photoSignedUrl ? <AvatarImage src={photoSignedUrl} alt={contract?.client_name} /> : null}
+              <AvatarFallback>
+                {(contract?.client_name ?? "?").slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="truncate">{contract?.client_name}</DialogTitle>
+              <div className="mt-0.5 text-xs text-muted-foreground">
+                {contract?.contract_no ? `№ ${contract.contract_no}` : ""}
+                {contract?.contract_date ? ` · ${contract.contract_date}` : ""}
+                {contract?.phone ? ` · ${contract.phone}` : ""}
+              </div>
+            </div>
+          </div>
         </DialogHeader>
         <div className="grid grid-cols-3 gap-2 text-sm">
           <div className="rounded-md border p-2">
