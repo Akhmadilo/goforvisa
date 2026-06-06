@@ -471,10 +471,16 @@ function ShartnomalarPage() {
                             <TableCell className="font-medium whitespace-nowrap">{c.client_name}</TableCell>
                             <TableCell className="whitespace-nowrap">{c.contract_no ?? "—"}</TableCell>
                             <TableCell className="whitespace-nowrap">{c.phone ?? "—"}</TableCell>
-                            <TableCell className="text-right">{fmt(c.price_uzs)}</TableCell>
-                            <TableCell className="text-right">{fmt(c.price_usd)}</TableCell>
-                            <TableCell className="text-right">{fmt(paid)}</TableCell>
-                            <TableCell className="text-right">{fmt(remaining)}</TableCell>
+                            <TableCell className="text-right whitespace-nowrap">
+                              <div className="font-semibold tabular-nums">${fmt(c.price_usd)}</div>
+                              {c.price_uzs ? (
+                                <div className="text-[10px] text-muted-foreground tabular-nums">
+                                  {fmt(c.price_uzs)} so'm
+                                </div>
+                              ) : null}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">{fmt(paid)}</TableCell>
+                            <TableCell className="text-right tabular-nums">{fmt(remaining)}</TableCell>
                             <TableCell>
                               <Badge variant={variant as "default" | "secondary" | "destructive" | "outline"}>{status}</Badge>
                             </TableCell>
