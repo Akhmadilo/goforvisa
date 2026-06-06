@@ -421,8 +421,7 @@ function ShartnomalarPage() {
                         <TableHead>Ism familiya</TableHead>
                         <TableHead>Shartnoma №</TableHead>
                         <TableHead>Telefon</TableHead>
-                        <TableHead className="text-right">Narx UZS</TableHead>
-                        <TableHead className="text-right">Narx USD</TableHead>
+                        <TableHead className="text-right">Narx</TableHead>
                         <TableHead className="text-right">To'langan</TableHead>
                         <TableHead className="text-right">Qoldiq</TableHead>
                         <TableHead>Holat</TableHead>
