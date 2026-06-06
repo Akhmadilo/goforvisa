@@ -94,7 +94,6 @@ type FormState = {
   price_usd: number;
   docs_usd: number;
   commission: number;
-  payment: string;
   people: number;
   contract_type: string;
   call_centre: string;
@@ -116,7 +115,6 @@ const emptyForm: FormState = {
   price_usd: 0,
   docs_usd: 0,
   commission: 0,
-  payment: "",
   people: 1,
   contract_type: "",
   call_centre: "",
