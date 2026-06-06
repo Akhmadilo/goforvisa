@@ -81,6 +81,7 @@ type PaymentRow = {
   paid_at: string;
   method: string | null;
   note: string | null;
+  created_by: string | null;
 };
 
 type FormState = {
