@@ -167,21 +167,22 @@ function ShartnomalarPage() {
     },
   });
 
-  const { data: employees } = useQuery({
-    queryKey: ["employees-for-contracts"],
+  const { data: operators } = useQuery({
+    queryKey: ["operators"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("id, full_name, position")
-        .order("full_name");
+      const { data, error } = await (supabase as any)
+        .from("operators")
+        .select("id, kind, name")
+        .order("name");
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []) as { id: string; kind: string; name: string }[];
     },
   });
-  const employeeNames = useMemo(
-    () => (employees ?? []).map((e) => e.full_name).filter(Boolean),
-    [employees],
-  );
+  const opByKind = (k: string) =>
+    (operators ?? []).filter((o) => o.kind === k).map((o) => o.name);
+  const salesOptions = useMemo(() => opByKind("sales"), [operators]);
+  const backOfficeOptions = useMemo(() => opByKind("back_office"), [operators]);
+  const callCentreOptions = useMemo(() => opByKind("call_centre"), [operators]);
 
   const paidByContract = useMemo(() => {
     const map = new Map<string, number>();
