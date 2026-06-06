@@ -821,6 +821,7 @@ function PaymentsDialog({
       paid_at: paidAt,
       method: method || null,
       note: note || null,
+      created_by: user?.id ?? null,
     });
     setSaving(false);
     if (error) {
