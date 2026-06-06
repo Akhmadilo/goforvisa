@@ -315,7 +315,6 @@ function ShartnomalarPage() {
         month: form.month || null,
         contract_no: form.contract_no || null,
         phone: form.phone || null,
-        payment: form.payment || null,
         contract_type: form.contract_type || null,
         call_centre: form.call_centre || null,
         sales_manager: form.sales_manager || null,
