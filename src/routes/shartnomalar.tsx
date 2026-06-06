@@ -258,7 +258,6 @@ function ShartnomalarPage() {
       price_usd: Number(row.price_usd ?? 0),
       docs_usd: Number(row.docs_usd ?? 0),
       commission: Number(row.commission ?? 0),
-      payment: row.payment ?? "",
       people: row.people ?? 1,
       contract_type: row.contract_type ?? "",
       call_centre: row.call_centre ?? "",
