@@ -40,8 +40,6 @@ import { Plus, Pencil, Trash2, Search, RefreshCw, Upload, FileText, Wallet } fro
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const VISA_RESULTS = ["Topshirildi", "Olindi", "Rad etildi", "Jarayonda", "Bekor qilindi"] as const;
-const CONTRACT_TYPES = ["Tourist", "Student", "Work", "Business", "Family", "Boshqa"] as const;
-const COMPANIES = ["GoForVisa", "Boshqa"] as const;
 
 export const Route = createFileRoute("/shartnomalar")({
   component: ShartnomalarPage,
