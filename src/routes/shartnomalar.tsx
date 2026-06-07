@@ -253,6 +253,17 @@ function ShartnomalarPage() {
     setForm((f) => (f.commission === calc ? f : { ...f, commission: calc }));
   }, [form.price_usd, form.docs_usd, commissionManual]);
 
+  // Auto-generate contract_date when year and month are selected
+  useEffect(() => {
+    if (form.year && form.month) {
+      const monthNum = Number(form.month);
+      if (!isNaN(monthNum) && monthNum >= 1 && monthNum <= 12) {
+        const dateStr = `${form.year}-${String(monthNum).padStart(2, "0")}-01`;
+        setForm((f) => (f.contract_date === dateStr ? f : { ...f, contract_date: dateStr }));
+      }
+    }
+  }, [form.year, form.month]);
+
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm);
