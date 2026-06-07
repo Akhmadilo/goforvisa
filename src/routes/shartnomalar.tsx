@@ -183,6 +183,25 @@ function ShartnomalarPage() {
   const backOfficeOptions = useMemo(() => opByKind("back_office"), [operators]);
   const callCentreOptions = useMemo(() => opByKind("call_centre"), [operators]);
 
+  const { data: contractTypes } = useQuery({
+    queryKey: ["contract_types"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("contract_types").select("name").order("name");
+      if (error) throw error;
+      return (data ?? []).map((r: { name: string }) => r.name) as string[];
+    },
+  });
+  const { data: companies } = useQuery({
+    queryKey: ["companies"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("companies").select("name").order("name");
+      if (error) throw error;
+      return (data ?? []).map((r: { name: string }) => r.name) as string[];
+    },
+  });
+  const contractTypeOptions = contractTypes ?? [];
+  const companyOptions = companies ?? [];
+
   const paidByContract = useMemo(() => {
     const map = new Map<string, number>();
     (payments ?? []).forEach((p) => {
