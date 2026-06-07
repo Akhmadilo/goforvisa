@@ -40,8 +40,6 @@ import { Plus, Pencil, Trash2, Search, RefreshCw, Upload, FileText, Wallet } fro
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const VISA_RESULTS = ["Topshirildi", "Olindi", "Rad etildi", "Jarayonda", "Bekor qilindi"] as const;
-const CONTRACT_TYPES = ["Tourist", "Student", "Work", "Business", "Family", "Boshqa"] as const;
-const COMPANIES = ["GoForVisa", "Boshqa"] as const;
 
 export const Route = createFileRoute("/shartnomalar")({
   component: ShartnomalarPage,
@@ -184,6 +182,25 @@ function ShartnomalarPage() {
   const salesOptions = useMemo(() => opByKind("sales"), [operators]);
   const backOfficeOptions = useMemo(() => opByKind("back_office"), [operators]);
   const callCentreOptions = useMemo(() => opByKind("call_centre"), [operators]);
+
+  const { data: contractTypes } = useQuery({
+    queryKey: ["contract_types"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("contract_types").select("name").order("name");
+      if (error) throw error;
+      return (data ?? []).map((r: { name: string }) => r.name) as string[];
+    },
+  });
+  const { data: companies } = useQuery({
+    queryKey: ["companies"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("companies").select("name").order("name");
+      if (error) throw error;
+      return (data ?? []).map((r: { name: string }) => r.name) as string[];
+    },
+  });
+  const contractTypeOptions = contractTypes ?? [];
+  const companyOptions = companies ?? [];
 
   const paidByContract = useMemo(() => {
     const map = new Map<string, number>();
@@ -581,7 +598,7 @@ function ShartnomalarPage() {
               <SelectBox
                 value={form.contract_type}
                 onChange={(v) => setForm({ ...form, contract_type: v })}
-                options={CONTRACT_TYPES as unknown as string[]}
+                options={contractTypeOptions}
                 placeholder="Tanlang"
               />
             </Field>
@@ -613,7 +630,7 @@ function ShartnomalarPage() {
               <SelectBox
                 value={form.company}
                 onChange={(v) => setForm({ ...form, company: v })}
-                options={COMPANIES as unknown as string[]}
+                options={companyOptions}
                 placeholder="Tanlang"
               />
             </Field>
@@ -872,7 +889,10 @@ function PaymentsDialog({
         <div className="grid grid-cols-3 gap-2 text-sm">
           <div className="rounded-md border p-2">
             <div className="text-muted-foreground text-xs">Jami narx</div>
-            <div className="font-semibold">{fmt(total)}</div>
+            <div className="font-semibold">${fmt(Number(contract?.price_usd || 0))}</div>
+            {contract?.price_uzs ? (
+              <div className="text-[10px] text-muted-foreground">{fmt(total)} so'm</div>
+            ) : null}
           </div>
           <div className="rounded-md border p-2">
             <div className="text-muted-foreground text-xs">To'langan</div>
