@@ -79,6 +79,85 @@ function SettingsPage() {
 
         {isAdmin && <UsdRatesCard />}
         {isAdmin && <OperatorsCard />}
+        {isAdmin && <LookupCard tableName="contract_types" title="Shartnoma turlari" hint="Shartnoma yaratishda tanlanadigan turlar (Tourist, Student, Work…)." invalidateKey="contract_types" />}
+        {isAdmin && <LookupCard tableName="companies" title="Kompaniyalar" hint="Shartnoma yaratishda tanlanadigan kompaniyalar (Dream, Go for Visa…)." invalidateKey="companies" />}
+        {isAdmin && <LookupCard tableName="expense_categories" title="Xarajat kategoriyalari" hint="Xarajat yaratishda tanlanadigan kategoriyalar." invalidateKey="expense_categories" />}
+      </div>
+    </div>
+  );
+}
+
+function LookupCard({ tableName, title, hint, invalidateKey }: { tableName: string; title: string; hint: string; invalidateKey: string }) {
+  const qc = useQueryClient();
+  const [name, setName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: [`${tableName}_admin`],
+    queryFn: async (): Promise<{ id: string; name: string }[]> => {
+      const { data, error } = await (supabase as any).from(tableName).select("id, name").order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const add = async () => {
+    const n = name.trim();
+    if (!n) { toast.error("Nom kiriting"); return; }
+    setSaving(true);
+    const { error } = await (supabase as any).from(tableName).insert({ name: n });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Qo'shildi");
+    setName("");
+    qc.invalidateQueries({ queryKey: [`${tableName}_admin`] });
+    qc.invalidateQueries({ queryKey: [invalidateKey] });
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm("O'chirilsinmi?")) return;
+    const { error } = await (supabase as any).from(tableName).delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("O'chirildi");
+    qc.invalidateQueries({ queryKey: [`${tableName}_admin`] });
+    qc.invalidateQueries({ queryKey: [invalidateKey] });
+  };
+
+  return (
+    <Card className="p-6">
+      <h2 className="text-lg font-semibold">{title}</h2>
+      <p className="mt-1 text-sm text-muted-foreground">{hint}</p>
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
+        <div className="sm:col-span-3">
+          <label className="text-xs text-muted-foreground mb-1 block">Nom</label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Yangi nom" onKeyDown={(e) => e.key === "Enter" && add()} />
+        </div>
+        <Button onClick={add} disabled={saving} className="gap-1.5">
+          <Plus className="h-4 w-4" />
+          {saving ? "Saqlanmoqda..." : "Qo'shish"}
+        </Button>
+      </div>
+      <div className="mt-4 rounded-md border border-border">
+        {isLoading ? (
+          <div className="p-3 text-xs text-muted-foreground">Yuklanmoqda...</div>
+        ) : rows.length === 0 ? (
+          <div className="p-3 text-xs text-muted-foreground">Hali qo'shilmagan</div>
+        ) : (
+          <div className="divide-y">
+            {rows.map((r) => (
+              <div key={r.id} className="flex items-center justify-between px-3 py-2 hover:bg-muted/40">
+                <span className="text-sm">{r.name}</span>
+                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => remove(r.id)}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
       </div>
     </div>
   );
