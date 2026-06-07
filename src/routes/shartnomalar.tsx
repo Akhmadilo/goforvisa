@@ -889,7 +889,10 @@ function PaymentsDialog({
         <div className="grid grid-cols-3 gap-2 text-sm">
           <div className="rounded-md border p-2">
             <div className="text-muted-foreground text-xs">Jami narx</div>
-            <div className="font-semibold">{fmt(total)}</div>
+            <div className="font-semibold">${fmt(Number(contract?.price_usd || 0))}</div>
+            {contract?.price_uzs ? (
+              <div className="text-[10px] text-muted-foreground">{fmt(total)} so'm</div>
+            ) : null}
           </div>
           <div className="rounded-md border p-2">
             <div className="text-muted-foreground text-xs">To'langan</div>
