@@ -630,7 +630,7 @@ function ShartnomalarPage() {
               <SelectBox
                 value={form.company}
                 onChange={(v) => setForm({ ...form, company: v })}
-                options={COMPANIES as unknown as string[]}
+                options={companyOptions}
                 placeholder="Tanlang"
               />
             </Field>
