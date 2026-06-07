@@ -158,10 +158,6 @@ function LookupCard({ tableName, title, hint, invalidateKey }: { tableName: stri
     </Card>
   );
 }
-      </div>
-    </div>
-  );
-}
 
 type OperatorKind = "call_centre" | "sales" | "back_office";
 type OperatorRow = { id: string; kind: OperatorKind; name: string };
