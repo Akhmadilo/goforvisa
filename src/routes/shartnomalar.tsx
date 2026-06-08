@@ -253,16 +253,15 @@ function ShartnomalarPage() {
     setForm((f) => (f.commission === calc ? f : { ...f, commission: calc }));
   }, [form.price_usd, form.docs_usd, commissionManual]);
 
-  // Auto-generate contract_date when year and month are selected
+  // Auto-derive year and month FROM the selected contract_date
   useEffect(() => {
-    if (form.year && form.month) {
-      const monthNum = Number(form.month);
-      if (!isNaN(monthNum) && monthNum >= 1 && monthNum <= 12) {
-        const dateStr = `${form.year}-${String(monthNum).padStart(2, "0")}-01`;
-        setForm((f) => (f.contract_date === dateStr ? f : { ...f, contract_date: dateStr }));
-      }
-    }
-  }, [form.year, form.month]);
+    if (!form.contract_date) return;
+    const d = new Date(form.contract_date);
+    if (isNaN(d.getTime())) return;
+    const y = String(d.getFullYear());
+    const m = String(d.getMonth() + 1);
+    setForm((f) => (f.year === y && f.month === m ? f : { ...f, year: y, month: m }));
+  }, [form.contract_date]);
 
   const openCreate = () => {
     setEditing(null);
@@ -515,7 +514,13 @@ function ShartnomalarPage() {
                             </TableCell>
                             <TableCell className="whitespace-nowrap">{c.sales_manager ?? "—"}</TableCell>
                             <TableCell>
-                              {c.visa_result ? <Badge variant="outline">{c.visa_result}</Badge> : "—"}
+                              {canEdit ? (
+                                <VisaResultSelect contractId={c.id} value={c.visa_result} />
+                              ) : c.visa_result ? (
+                                <Badge variant="outline">{c.visa_result}</Badge>
+                              ) : (
+                                "—"
+                              )}
                             </TableCell>
                             <TableCell>
                               {c.contract_pdf_url ? (
@@ -583,20 +588,15 @@ function ShartnomalarPage() {
             <Field label="Sana">
               <Input type="date" value={form.contract_date} onChange={(e) => setForm({ ...form, contract_date: e.target.value })} />
             </Field>
-            <Field label="Yil">
-              <SelectBox
-                value={form.year}
-                onChange={(v) => setForm({ ...form, year: v })}
-                options={Array.from({ length: 12 }, (_, i) => (new Date().getFullYear() - 6 + i).toString())}
-                placeholder="Yil tanlang"
-              />
+            <Field label="Yil (avto)">
+              <Input value={form.year} readOnly disabled placeholder="Sana tanlanganda chiqadi" />
             </Field>
-            <Field label="Oy">
-              <SelectBox
-                value={form.month}
-                onChange={(v) => setForm({ ...form, month: v })}
-                options={["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]}
-                placeholder="Oy tanlang"
+            <Field label="Oy (avto)">
+              <Input
+                value={form.month ? ["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentabr","Oktabr","Noyabr","Dekabr"][Number(form.month)-1] ?? form.month : ""}
+                readOnly
+                disabled
+                placeholder="Sana tanlanganda chiqadi"
               />
             </Field>
             <Field label="Doc xarajat (USD)">
@@ -748,6 +748,31 @@ function SelectBox({
             </SelectItem>
           ))
         )}
+      </SelectContent>
+    </Select>
+  );
+}
+
+function VisaResultSelect({ contractId, value }: { contractId: string; value: string | null }) {
+  const qc = useQueryClient();
+  const [saving, setSaving] = useState(false);
+  const onChange = async (v: string) => {
+    setSaving(true);
+    const { error } = await supabase.from("contracts").update({ visa_result: v || null }).eq("id", contractId);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Visa natijasi yangilandi");
+    qc.invalidateQueries({ queryKey: ["contracts-db"] });
+  };
+  return (
+    <Select value={value || undefined} onValueChange={onChange} disabled={saving}>
+      <SelectTrigger className="h-7 w-[130px] text-xs">
+        <SelectValue placeholder="—" />
+      </SelectTrigger>
+      <SelectContent>
+        {VISA_RESULTS.map((o) => (
+          <SelectItem key={o} value={o}>{o}</SelectItem>
+        ))}
       </SelectContent>
     </Select>
   );
