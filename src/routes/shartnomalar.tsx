@@ -753,6 +753,31 @@ function SelectBox({
   );
 }
 
+function VisaResultSelect({ contractId, value }: { contractId: string; value: string | null }) {
+  const qc = useQueryClient();
+  const [saving, setSaving] = useState(false);
+  const onChange = async (v: string) => {
+    setSaving(true);
+    const { error } = await supabase.from("contracts").update({ visa_result: v || null }).eq("id", contractId);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Visa natijasi yangilandi");
+    qc.invalidateQueries({ queryKey: ["contracts-db"] });
+  };
+  return (
+    <Select value={value || undefined} onValueChange={onChange} disabled={saving}>
+      <SelectTrigger className="h-7 w-[130px] text-xs">
+        <SelectValue placeholder="—" />
+      </SelectTrigger>
+      <SelectContent>
+        {VISA_RESULTS.map((o) => (
+          <SelectItem key={o} value={o}>{o}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
 
 function PaymentsDialog({
   open,
