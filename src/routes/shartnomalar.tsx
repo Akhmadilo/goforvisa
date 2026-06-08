@@ -582,20 +582,15 @@ function ShartnomalarPage() {
             <Field label="Sana">
               <Input type="date" value={form.contract_date} onChange={(e) => setForm({ ...form, contract_date: e.target.value })} />
             </Field>
-            <Field label="Yil">
-              <SelectBox
-                value={form.year}
-                onChange={(v) => setForm({ ...form, year: v })}
-                options={Array.from({ length: 12 }, (_, i) => (new Date().getFullYear() - 6 + i).toString())}
-                placeholder="Yil tanlang"
-              />
+            <Field label="Yil (avto)">
+              <Input value={form.year} readOnly disabled placeholder="Sana tanlanganda chiqadi" />
             </Field>
-            <Field label="Oy">
-              <SelectBox
-                value={form.month}
-                onChange={(v) => setForm({ ...form, month: v })}
-                options={["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"]}
-                placeholder="Oy tanlang"
+            <Field label="Oy (avto)">
+              <Input
+                value={form.month ? ["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentabr","Oktabr","Noyabr","Dekabr"][Number(form.month)-1] ?? form.month : ""}
+                readOnly
+                disabled
+                placeholder="Sana tanlanganda chiqadi"
               />
             </Field>
             <Field label="Doc xarajat (USD)">
