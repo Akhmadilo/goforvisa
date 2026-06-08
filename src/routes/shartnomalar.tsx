@@ -514,7 +514,13 @@ function ShartnomalarPage() {
                             </TableCell>
                             <TableCell className="whitespace-nowrap">{c.sales_manager ?? "—"}</TableCell>
                             <TableCell>
-                              {c.visa_result ? <Badge variant="outline">{c.visa_result}</Badge> : "—"}
+                              {canEdit ? (
+                                <VisaResultSelect contractId={c.id} value={c.visa_result} />
+                              ) : c.visa_result ? (
+                                <Badge variant="outline">{c.visa_result}</Badge>
+                              ) : (
+                                "—"
+                              )}
                             </TableCell>
                             <TableCell>
                               {c.contract_pdf_url ? (
