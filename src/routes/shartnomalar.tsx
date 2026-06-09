@@ -894,9 +894,17 @@ function PaymentsDialog({
     }
   }, [open, contract?.id]);
 
+  const { getRate } = useUsdRates();
+  const totalUsd = Number(contract?.price_usd || 0);
+  const paidUsd = (list ?? []).reduce((s, p) => {
+    const amt = Number(p.amount || 0);
+    if ((p.currency || "").toUpperCase() === "USD") return s + amt;
+    const ym = (p.paid_at || "").slice(0, 7);
+    const r = getRate(ym);
+    return s + (r > 0 ? amt / r : 0);
+  }, 0);
+  const remainingUsd = Math.max(0, totalUsd - paidUsd);
   const total = Number(contract?.price_uzs || 0);
-  const paid = (list ?? []).reduce((s, p) => s + Number(p.amount || 0), 0);
-  const remaining = Math.max(0, total - paid);
 
   const add = async () => {
     if (!contract) return;
