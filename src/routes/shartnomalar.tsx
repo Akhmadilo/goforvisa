@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, RefreshCw, Upload, FileText, Wallet } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUsdRates } from "@/lib/usd-rates";
+import { cn } from "@/lib/utils";
 
 const VISA_RESULTS = ["Topshirildi", "Olindi", "Rad etildi", "Jarayonda", "Bekor qilindi"] as const;
 
@@ -495,14 +496,16 @@ function ShartnomalarPage() {
                                 : "outline";
                         const visaClass =
                           c.visa_result === "Olindi"
-                            ? "bg-green-50 hover:bg-green-100 dark:bg-green-950/30 dark:hover:bg-green-950/50"
+                            ? "bg-emerald-100/70 hover:bg-emerald-200/70 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 border-l-4 border-l-emerald-500"
                             : c.visa_result === "Rad etildi"
-                              ? "bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-950/50"
-                              : c.visa_result === "Topshirildi" || c.visa_result === "Jarayonda"
-                                ? "bg-amber-50/60 hover:bg-amber-100 dark:bg-amber-950/20 dark:hover:bg-amber-950/40"
-                                : c.visa_result === "Bekor qilindi"
-                                  ? "bg-muted/40"
-                                  : "";
+                              ? "bg-rose-100/70 hover:bg-rose-200/70 dark:bg-rose-950/40 dark:hover:bg-rose-950/60 border-l-4 border-l-rose-500"
+                              : c.visa_result === "Topshirildi"
+                                ? "bg-sky-100/60 hover:bg-sky-200/60 dark:bg-sky-950/30 dark:hover:bg-sky-950/50 border-l-4 border-l-sky-500"
+                                : c.visa_result === "Jarayonda"
+                                  ? "bg-amber-100/60 hover:bg-amber-200/60 dark:bg-amber-950/30 dark:hover:bg-amber-950/50 border-l-4 border-l-amber-500"
+                                  : c.visa_result === "Bekor qilindi"
+                                    ? "bg-slate-100/60 hover:bg-slate-200/60 dark:bg-slate-950/30 dark:hover:bg-slate-950/50 border-l-4 border-l-slate-400"
+                                    : "border-l-4 border-l-transparent";
                         return (
                           <TableRow key={c.id} className={visaClass}>
                             <TableCell className="text-muted-foreground">{i + 1}</TableCell>
@@ -545,7 +548,10 @@ function ShartnomalarPage() {
                               {canEdit ? (
                                 <VisaResultSelect contractId={c.id} value={c.visa_result} />
                               ) : c.visa_result ? (
-                                <Badge variant="outline">{c.visa_result}</Badge>
+                                <span className="inline-flex items-center gap-1.5 text-xs">
+                                  <span className={cn("inline-block h-2 w-2 rounded-full", visaResultColor(c.visa_result))} />
+                                  <span className="font-medium">{c.visa_result}</span>
+                                </span>
                               ) : (
                                 "—"
                               )}
@@ -781,6 +787,17 @@ function SelectBox({
   );
 }
 
+function visaResultColor(result: string | null) {
+  switch (result) {
+    case "Olindi": return "bg-emerald-500";
+    case "Rad etildi": return "bg-rose-500";
+    case "Topshirildi": return "bg-sky-500";
+    case "Jarayonda": return "bg-amber-500";
+    case "Bekor qilindi": return "bg-slate-400";
+    default: return "bg-muted";
+  }
+}
+
 function VisaResultSelect({ contractId, value }: { contractId: string; value: string | null }) {
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
@@ -794,12 +811,26 @@ function VisaResultSelect({ contractId, value }: { contractId: string; value: st
   };
   return (
     <Select value={value || undefined} onValueChange={onChange} disabled={saving}>
-      <SelectTrigger className="h-7 w-[130px] text-xs">
-        <SelectValue placeholder="—" />
+      <SelectTrigger className="h-7 w-[150px] text-xs">
+        <SelectValue placeholder="—">
+          {value ? (
+            <span className="inline-flex items-center gap-1.5">
+              <span className={cn("inline-block h-2 w-2 rounded-full", visaResultColor(value))} />
+              {value}
+            </span>
+          ) : (
+            "—"
+          )}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {VISA_RESULTS.map((o) => (
-          <SelectItem key={o} value={o}>{o}</SelectItem>
+          <SelectItem key={o} value={o}>
+            <span className="inline-flex items-center gap-2">
+              <span className={cn("inline-block h-2.5 w-2.5 rounded-full", visaResultColor(o))} />
+              {o}
+            </span>
+          </SelectItem>
         ))}
       </SelectContent>
     </Select>
