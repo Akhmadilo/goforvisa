@@ -461,11 +461,12 @@ function ShartnomalarPage() {
                         <TableHead>Ism familiya</TableHead>
                         <TableHead>Shartnoma №</TableHead>
                         <TableHead>Telefon</TableHead>
-                        <TableHead className="text-right">Narx</TableHead>
-                        <TableHead className="text-right">To'langan</TableHead>
-                        <TableHead className="text-right">Qoldiq</TableHead>
+                        <TableHead className="text-right">Narx (USD)</TableHead>
+                        <TableHead className="text-right">To'langan (USD)</TableHead>
+                        <TableHead className="text-right">Qoldiq (USD)</TableHead>
                         <TableHead>Holat</TableHead>
                         <TableHead>Sotuv menejer</TableHead>
+                        <TableHead>Back office</TableHead>
                         <TableHead>Visa</TableHead>
                         <TableHead>PDF</TableHead>
                         <TableHead></TableHead>
@@ -473,15 +474,15 @@ function ShartnomalarPage() {
                     </TableHeader>
                     <TableBody>
                       {filtered.map((c, i) => {
-                        const paid = paidByContract.get(c.id) ?? 0;
-                        const total = Number(c.price_uzs || 0);
-                        const remaining = Math.max(0, total - paid);
+                        const paidUsd = paidUsdByContract.get(c.id) ?? 0;
+                        const totalUsd = Number(c.price_usd || 0);
+                        const remainingUsd = Math.max(0, totalUsd - paidUsd);
                         const status =
-                          total === 0
+                          totalUsd === 0
                             ? "—"
-                            : paid >= total
+                            : paidUsd + 0.01 >= totalUsd
                               ? "To'langan"
-                              : paid > 0
+                              : paidUsd > 0
                                 ? "Qisman"
                                 : "To'lanmagan";
                         const variant =
@@ -492,8 +493,18 @@ function ShartnomalarPage() {
                               : status === "To'lanmagan"
                                 ? "destructive"
                                 : "outline";
+                        const visaClass =
+                          c.visa_result === "Olindi"
+                            ? "bg-green-50 hover:bg-green-100 dark:bg-green-950/30 dark:hover:bg-green-950/50"
+                            : c.visa_result === "Rad etildi"
+                              ? "bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:hover:bg-red-950/50"
+                              : c.visa_result === "Topshirildi" || c.visa_result === "Jarayonda"
+                                ? "bg-amber-50/60 hover:bg-amber-100 dark:bg-amber-950/20 dark:hover:bg-amber-950/40"
+                                : c.visa_result === "Bekor qilindi"
+                                  ? "bg-muted/40"
+                                  : "";
                         return (
-                          <TableRow key={c.id}>
+                          <TableRow key={c.id} className={visaClass}>
                             <TableCell className="text-muted-foreground">{i + 1}</TableCell>
                             <TableCell>
                               {c.client_photo_url ? (
@@ -519,12 +530,17 @@ function ShartnomalarPage() {
                                 </div>
                               ) : null}
                             </TableCell>
-                            <TableCell className="text-right tabular-nums">{fmt(paid)}</TableCell>
-                            <TableCell className="text-right tabular-nums">{fmt(remaining)}</TableCell>
+                            <TableCell className="text-right tabular-nums font-medium text-green-700 dark:text-green-400">
+                              ${fmt(paidUsd)}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums font-medium text-destructive">
+                              ${fmt(remainingUsd)}
+                            </TableCell>
                             <TableCell>
                               <Badge variant={variant as "default" | "secondary" | "destructive" | "outline"}>{status}</Badge>
                             </TableCell>
                             <TableCell className="whitespace-nowrap">{c.sales_manager ?? "—"}</TableCell>
+                            <TableCell className="whitespace-nowrap">{c.back_office_manager ?? "—"}</TableCell>
                             <TableCell>
                               {canEdit ? (
                                 <VisaResultSelect contractId={c.id} value={c.visa_result} />
