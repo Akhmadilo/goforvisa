@@ -978,11 +978,11 @@ function PaymentsDialog({
           </div>
           <div className="rounded-md border p-2">
             <div className="text-muted-foreground text-xs">To'langan</div>
-            <div className="font-semibold text-green-600">{fmt(paid)}</div>
+            <div className="font-semibold text-green-600">${fmt(paidUsd)}</div>
           </div>
           <div className="rounded-md border p-2">
             <div className="text-muted-foreground text-xs">Qoldiq</div>
-            <div className="font-semibold text-destructive">{fmt(remaining)}</div>
+            <div className="font-semibold text-destructive">${fmt(remainingUsd)}</div>
           </div>
         </div>
 
