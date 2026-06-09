@@ -783,6 +783,17 @@ function SelectBox({
   );
 }
 
+function visaResultColor(result: string | null) {
+  switch (result) {
+    case "Olindi": return "bg-emerald-500";
+    case "Rad etildi": return "bg-rose-500";
+    case "Topshirildi": return "bg-sky-500";
+    case "Jarayonda": return "bg-amber-500";
+    case "Bekor qilindi": return "bg-slate-400";
+    default: return "bg-muted";
+  }
+}
+
 function VisaResultSelect({ contractId, value }: { contractId: string; value: string | null }) {
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
@@ -796,12 +807,26 @@ function VisaResultSelect({ contractId, value }: { contractId: string; value: st
   };
   return (
     <Select value={value || undefined} onValueChange={onChange} disabled={saving}>
-      <SelectTrigger className="h-7 w-[130px] text-xs">
-        <SelectValue placeholder="—" />
+      <SelectTrigger className="h-7 w-[150px] text-xs">
+        <SelectValue placeholder="—">
+          {value ? (
+            <span className="inline-flex items-center gap-1.5">
+              <span className={cn("inline-block h-2 w-2 rounded-full", visaResultColor(value))} />
+              {value}
+            </span>
+          ) : (
+            "—"
+          )}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {VISA_RESULTS.map((o) => (
-          <SelectItem key={o} value={o}>{o}</SelectItem>
+          <SelectItem key={o} value={o}>
+            <span className="inline-flex items-center gap-2">
+              <span className={cn("inline-block h-2.5 w-2.5 rounded-full", visaResultColor(o))} />
+              {o}
+            </span>
+          </SelectItem>
         ))}
       </SelectContent>
     </Select>
