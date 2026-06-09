@@ -203,13 +203,24 @@ function ShartnomalarPage() {
   const contractTypeOptions = contractTypes ?? [];
   const companyOptions = companies ?? [];
 
-  const paidByContract = useMemo(() => {
+  const { getRate } = useUsdRates();
+
+  const paidUsdByContract = useMemo(() => {
     const map = new Map<string, number>();
     (payments ?? []).forEach((p) => {
-      map.set(p.contract_id, (map.get(p.contract_id) ?? 0) + Number(p.amount || 0));
+      const amount = Number(p.amount || 0);
+      let usd = 0;
+      if ((p.currency || "").toUpperCase() === "USD") {
+        usd = amount;
+      } else {
+        const ym = (p.paid_at || "").slice(0, 7); // YYYY-MM
+        const rate = getRate(ym);
+        usd = rate > 0 ? amount / rate : 0;
+      }
+      map.set(p.contract_id, (map.get(p.contract_id) ?? 0) + usd);
     });
     return map;
-  }, [payments]);
+  }, [payments, getRate]);
 
   const [search, setSearch] = useState("");
   const rows = data ?? [];
