@@ -457,19 +457,20 @@ function ShartnomalarPage() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>#</TableHead>
-                        <TableHead>Rasm</TableHead>
-                        <TableHead>Sana</TableHead>
-                        <TableHead>Ism familiya</TableHead>
-                        <TableHead>Shartnoma №</TableHead>
-                        <TableHead>Telefon</TableHead>
-                        <TableHead className="text-right">Narx (USD)</TableHead>
-                        <TableHead className="text-right">To'langan (USD)</TableHead>
-                        <TableHead className="text-right">Qoldiq (USD)</TableHead>
-                        <TableHead>Holat</TableHead>
-                        <TableHead>Sotuv menejer</TableHead>
-                        <TableHead>Back office</TableHead>
-                        <TableHead>Visa</TableHead>
-                        <TableHead>PDF</TableHead>
+                        <TableHead>{t("contracts.col.photo")}</TableHead>
+                        <TableHead>{t("contracts.col.date")}</TableHead>
+                        <TableHead>{t("contracts.col.client")}</TableHead>
+                        <TableHead>{t("contracts.col.no")}</TableHead>
+                        <TableHead>{t("contracts.col.phone")}</TableHead>
+                        <TableHead className="text-right">{t("contracts.col.price")}</TableHead>
+                        <TableHead className="text-right">{t("contracts.col.paid")}</TableHead>
+                        <TableHead className="text-right">{t("contracts.col.remaining")}</TableHead>
+                        <TableHead>{t("contracts.col.status")}</TableHead>
+                        <TableHead>{t("contracts.col.salesManager")}</TableHead>
+                        <TableHead>{t("contracts.col.backOffice")}</TableHead>
+                        <TableHead>{t("contracts.col.company")}</TableHead>
+                        <TableHead>{t("contracts.col.visa")}</TableHead>
+                        <TableHead>{t("contracts.col.pdf")}</TableHead>
                         <TableHead></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -482,18 +483,14 @@ function ShartnomalarPage() {
                           totalUsd === 0
                             ? "—"
                             : paidUsd + 0.01 >= totalUsd
-                              ? "To'langan"
+                              ? t("contracts.status.paid")
                               : paidUsd > 0
-                                ? "Qisman"
-                                : "To'lanmagan";
-                        const variant =
-                          status === "To'langan"
-                            ? "default"
-                            : status === "Qisman"
-                              ? "secondary"
-                              : status === "To'lanmagan"
-                                ? "destructive"
-                                : "outline";
+                                ? t("contracts.status.partial")
+                                : t("contracts.status.unpaid");
+                        const isPaid = totalUsd > 0 && paidUsd + 0.01 >= totalUsd;
+                        const isPartial = totalUsd > 0 && paidUsd > 0 && !isPaid;
+                        const isUnpaid = totalUsd > 0 && paidUsd <= 0;
+                        const variant = isPaid ? "default" : isPartial ? "secondary" : isUnpaid ? "destructive" : "outline";
                         const visaClass =
                           c.visa_result === "Olindi"
                             ? "bg-emerald-100/70 hover:bg-emerald-200/70 dark:bg-emerald-950/40 dark:hover:bg-emerald-950/60 border-l-4 border-l-emerald-500"
@@ -506,16 +503,21 @@ function ShartnomalarPage() {
                                   : c.visa_result === "Bekor qilindi"
                                     ? "bg-slate-100/60 hover:bg-slate-200/60 dark:bg-slate-950/30 dark:hover:bg-slate-950/50 border-l-4 border-l-slate-400"
                                     : "border-l-4 border-l-transparent";
+                        const stop = (e: React.MouseEvent) => e.stopPropagation();
                         return (
-                          <TableRow key={c.id} className={visaClass}>
+                          <TableRow
+                            key={c.id}
+                            className={cn(visaClass, "cursor-pointer")}
+                            onClick={() => openPayments(c)}
+                          >
                             <TableCell className="text-muted-foreground">{i + 1}</TableCell>
-                            <TableCell>
+                            <TableCell onClick={stop}>
                               {c.client_photo_url ? (
                                 <button
                                   onClick={() => openFile(c.client_photo_url)}
                                   className="text-primary text-xs underline"
                                 >
-                                  Ko'rish
+                                  {t("contracts.view")}
                                 </button>
                               ) : (
                                 <span className="text-muted-foreground text-xs">—</span>
@@ -544,7 +546,8 @@ function ShartnomalarPage() {
                             </TableCell>
                             <TableCell className="whitespace-nowrap">{c.sales_manager ?? "—"}</TableCell>
                             <TableCell className="whitespace-nowrap">{c.back_office_manager ?? "—"}</TableCell>
-                            <TableCell>
+                            <TableCell className="whitespace-nowrap">{c.company ?? "—"}</TableCell>
+                            <TableCell onClick={stop}>
                               {canEdit ? (
                                 <VisaResultSelect contractId={c.id} value={c.visa_result} />
                               ) : c.visa_result ? (
@@ -556,7 +559,7 @@ function ShartnomalarPage() {
                                 "—"
                               )}
                             </TableCell>
-                            <TableCell>
+                            <TableCell onClick={stop}>
                               {c.contract_pdf_url ? (
                                 <button
                                   onClick={() => openFile(c.contract_pdf_url)}
@@ -568,8 +571,8 @@ function ShartnomalarPage() {
                                 <span className="text-muted-foreground text-xs">—</span>
                               )}
                             </TableCell>
-                            <TableCell className="text-right whitespace-nowrap">
-                              <Button variant="ghost" size="icon" onClick={() => openPayments(c)} title="To'lovlar">
+                            <TableCell className="text-right whitespace-nowrap" onClick={stop}>
+                              <Button variant="ghost" size="icon" onClick={() => openPayments(c)} title={t("contracts.payments.title")}>
                                 <Wallet className="h-4 w-4" />
                               </Button>
                               {canEdit && (
@@ -587,7 +590,37 @@ function ShartnomalarPage() {
                         );
                       })}
                     </TableBody>
+                    {filtered.length > 0 && (() => {
+                      const totals = filtered.reduce(
+                        (a, c) => {
+                          const paid = paidUsdByContract.get(c.id) ?? 0;
+                          const price = Number(c.price_usd || 0);
+                          a.price += price;
+                          a.paid += paid;
+                          a.remaining += Math.max(0, price - paid);
+                          a.people += Number(c.people || 0);
+                          return a;
+                        },
+                        { price: 0, paid: 0, remaining: 0, people: 0 },
+                      );
+                      return (
+                        <tfoot className="bg-muted/50 font-semibold sticky bottom-0">
+                          <TableRow>
+                            <TableCell colSpan={3}>{t("contracts.total")}</TableCell>
+                            <TableCell>{filtered.length} {t("common.records")}</TableCell>
+                            <TableCell colSpan={2} className="text-right text-muted-foreground text-xs">
+                              {totals.people} {t("contracts.col.people")}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums">${fmt(totals.price)}</TableCell>
+                            <TableCell className="text-right tabular-nums text-green-700 dark:text-green-400">${fmt(totals.paid)}</TableCell>
+                            <TableCell className="text-right tabular-nums text-destructive">${fmt(totals.remaining)}</TableCell>
+                            <TableCell colSpan={7}></TableCell>
+                          </TableRow>
+                        </tfoot>
+                      );
+                    })()}
                   </Table>
+
                 </div>
               )}
             </CardContent>
