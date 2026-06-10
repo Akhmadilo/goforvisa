@@ -1067,27 +1067,27 @@ function PaymentsDialog({
 
         {canCreate && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2 items-end border-t pt-3">
-            <Field label="Summa">
+            <Field label={t("contracts.col.amount")}>
               <Input
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value === "" ? 0 : Number(e.target.value))}
               />
             </Field>
-            <Field label="Valyuta">
+            <Field label={t("contracts.col.currency")}>
               <Input value={currency} onChange={(e) => setCurrency(e.target.value)} />
             </Field>
-            <Field label="Sana">
+            <Field label={t("contracts.col.date")}>
               <Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
             </Field>
-            <Field label="Usul">
+            <Field label={t("contracts.col.method")}>
               <Input value={method} onChange={(e) => setMethod(e.target.value)} placeholder="Naqd, karta..." />
             </Field>
             <Button onClick={add} disabled={saving}>
-              <Plus className="h-4 w-4 mr-1" /> Qo'shish
+              <Plus className="h-4 w-4 mr-1" /> {t("common.add")}
             </Button>
             <div className="md:col-span-5">
-              <Field label="Izoh">
+              <Field label={t("contracts.col.note")}>
                 <Input value={note} onChange={(e) => setNote(e.target.value)} />
               </Field>
             </div>
@@ -1098,12 +1098,12 @@ function PaymentsDialog({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Sana</TableHead>
-                <TableHead className="text-right">Summa</TableHead>
-                <TableHead>Valyuta</TableHead>
-                <TableHead>Usul</TableHead>
-                <TableHead>Kim qo'shgan</TableHead>
-                <TableHead>Izoh</TableHead>
+                <TableHead>{t("contracts.col.date")}</TableHead>
+                <TableHead className="text-right">{t("contracts.col.amount")}</TableHead>
+                <TableHead>{t("contracts.col.currency")}</TableHead>
+                <TableHead>{t("contracts.col.method")}</TableHead>
+                <TableHead>{t("contracts.col.creator")}</TableHead>
+                <TableHead>{t("contracts.col.note")}</TableHead>
                 {canDelete && <TableHead></TableHead>}
               </TableRow>
             </TableHeader>
@@ -1111,7 +1111,7 @@ function PaymentsDialog({
               {(list ?? []).length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={canDelete ? 7 : 6} className="text-center text-muted-foreground text-sm py-6">
-                    To'lovlar yo'q
+                    {t("contracts.payments.empty")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -1141,8 +1141,9 @@ function PaymentsDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Yopish
+            {t("contracts.close")}
           </Button>
+
         </DialogFooter>
       </DialogContent>
     </Dialog>
