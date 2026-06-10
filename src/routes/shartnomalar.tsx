@@ -885,7 +885,7 @@ function PaymentsDialog({
   canDelete: boolean;
 }) {
   const qc = useQueryClient();
-  const { lang } = useT();
+  const { lang, t } = useT();
   const { user } = useAuth();
   const fmt = (n: number) => Number(n).toLocaleString(localeOf(lang), { maximumFractionDigits: 2 });
 
