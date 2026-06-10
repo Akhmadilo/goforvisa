@@ -1011,44 +1011,59 @@ function PaymentsDialog({
     qc.invalidateQueries({ queryKey: ["contract-payments"] });
   };
 
+  const { t, lang: _l } = useT();
+  void _l;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-start gap-3 pr-8">
-            <Avatar className="h-14 w-14 border">
-              {photoSignedUrl ? <AvatarImage src={photoSignedUrl} alt={contract?.client_name} /> : null}
-              <AvatarFallback>
+          <div className="flex items-start gap-4 pr-8">
+            <Avatar className="h-20 w-20 border-2 border-primary/20 shadow-md shrink-0">
+              {photoSignedUrl ? <AvatarImage src={photoSignedUrl} alt={contract?.client_name} className="object-cover" /> : null}
+              <AvatarFallback className="text-lg font-semibold bg-primary/10 text-primary">
                 {(contract?.client_name ?? "?").slice(0, 2).toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <DialogTitle className="truncate">{contract?.client_name}</DialogTitle>
-              <div className="mt-0.5 text-xs text-muted-foreground">
-                {contract?.contract_no ? `№ ${contract.contract_no}` : ""}
-                {contract?.contract_date ? ` · ${contract.contract_date}` : ""}
-                {contract?.phone ? ` · ${contract.phone}` : ""}
+              <DialogTitle className="truncate text-lg">{contract?.client_name}</DialogTitle>
+              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                {contract?.contract_no && <span>№ {contract.contract_no}</span>}
+                {contract?.contract_date && <span>· {contract.contract_date}</span>}
+                {contract?.phone && <span>· 📞 {contract.phone}</span>}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {contract?.company && <Badge variant="secondary" className="text-[10px]">{contract.company}</Badge>}
+                {contract?.contract_type && <Badge variant="outline" className="text-[10px]">{contract.contract_type}</Badge>}
+                {contract?.sales_manager && <Badge variant="outline" className="text-[10px]">👤 {contract.sales_manager}</Badge>}
+                {contract?.back_office_manager && <Badge variant="outline" className="text-[10px]">🗂 {contract.back_office_manager}</Badge>}
+                {contract?.visa_result && (
+                  <Badge variant="outline" className="text-[10px] inline-flex items-center gap-1">
+                    <span className={cn("inline-block h-2 w-2 rounded-full", visaResultColor(contract.visa_result))} />
+                    {contract.visa_result}
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
         </DialogHeader>
         <div className="grid grid-cols-3 gap-2 text-sm">
           <div className="rounded-md border p-2">
-            <div className="text-muted-foreground text-xs">Jami narx</div>
+            <div className="text-muted-foreground text-xs">{t("contracts.totalPrice")}</div>
             <div className="font-semibold">${fmt(Number(contract?.price_usd || 0))}</div>
             {contract?.price_uzs ? (
               <div className="text-[10px] text-muted-foreground">{fmt(total)} so'm</div>
             ) : null}
           </div>
           <div className="rounded-md border p-2">
-            <div className="text-muted-foreground text-xs">To'langan</div>
+            <div className="text-muted-foreground text-xs">{t("contracts.col.paid")}</div>
             <div className="font-semibold text-green-600">${fmt(paidUsd)}</div>
           </div>
           <div className="rounded-md border p-2">
-            <div className="text-muted-foreground text-xs">Qoldiq</div>
+            <div className="text-muted-foreground text-xs">{t("contracts.col.remaining")}</div>
             <div className="font-semibold text-destructive">${fmt(remainingUsd)}</div>
           </div>
         </div>
+
 
         {canCreate && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2 items-end border-t pt-3">
