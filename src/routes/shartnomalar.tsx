@@ -34,7 +34,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
-import { useT, localeOf } from "@/lib/i18n";
+import { useT, localeOf, getMonthNames } from "@/lib/i18n";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Search, RefreshCw, Upload, FileText, Wallet } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -335,11 +335,11 @@ function ShartnomalarPage() {
 
   const save = async () => {
     if (!form.client_name.trim()) {
-      toast.error("Ism familiya majburiy");
+      toast.error(t("contracts.toast.nameRequired"));
       return;
     }
     if (!form.price_uzs && !form.price_usd) {
-      toast.error("Shartnoma narxi majburiy (UZS yoki USD)");
+      toast.error(t("contracts.toast.priceRequired"));
       return;
     }
     setSaving(true);
@@ -370,7 +370,7 @@ function ShartnomalarPage() {
         ? await supabase.from("contracts").update(payload).eq("id", editing.id)
         : await supabase.from("contracts").insert(payload);
       if (res.error) throw res.error;
-      toast.success(editing ? "Yangilandi" : "Qo'shildi");
+      toast.success(editing ? t("contracts.toast.updated") : t("contracts.toast.added"));
       setDialogOpen(false);
       qc.invalidateQueries({ queryKey: ["contracts-db"] });
     } catch (e) {
@@ -381,13 +381,13 @@ function ShartnomalarPage() {
   };
 
   const remove = async (row: ContractRow) => {
-    if (!confirm(`O'chirilsinmi: ${row.client_name}?`)) return;
+    if (!confirm(t("contracts.toast.confirmDelete", { name: row.client_name }))) return;
     const { error } = await supabase.from("contracts").delete().eq("id", row.id);
     if (error) {
       toast.error(error.message);
       return;
     }
-    toast.success("O'chirildi");
+    toast.success(t("contracts.toast.deleted"));
     qc.invalidateQueries({ queryKey: ["contracts-db"] });
     qc.invalidateQueries({ queryKey: ["contract-payments"] });
   };
@@ -637,39 +637,39 @@ function ShartnomalarPage() {
             </DialogTitle>
           </DialogHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 py-2">
-            <Field label="Ism familiya *">
+            <Field label={t("contracts.form.client")}>
               <Input value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} required />
             </Field>
-            <Field label="Telefon">
+            <Field label={t("contracts.form.phone")}>
               <Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             </Field>
-            <Field label="Shartnoma narxi (UZS) *">
+            <Field label={t("contracts.form.priceUzs")}>
               <Input type="number" value={form.price_uzs} onChange={(e) => setForm({ ...form, price_uzs: num(e.target.value) })} />
             </Field>
-            <Field label="Shartnoma narxi (USD)">
+            <Field label={t("contracts.form.priceUsd")}>
               <Input type="number" value={form.price_usd} onChange={(e) => setForm({ ...form, price_usd: num(e.target.value) })} />
             </Field>
-            <Field label="Shartnoma №">
+            <Field label={t("contracts.form.no")}>
               <Input value={form.contract_no} onChange={(e) => setForm({ ...form, contract_no: e.target.value })} />
             </Field>
-            <Field label="Sana">
+            <Field label={t("contracts.form.date")}>
               <Input type="date" value={form.contract_date} onChange={(e) => setForm({ ...form, contract_date: e.target.value })} />
             </Field>
-            <Field label="Yil (avto)">
-              <Input value={form.year} readOnly disabled placeholder="Sana tanlanganda chiqadi" />
+            <Field label={t("contracts.form.year")}>
+              <Input value={form.year} readOnly disabled placeholder={t("contracts.form.dateHint")} />
             </Field>
-            <Field label="Oy (avto)">
+            <Field label={t("contracts.form.month")}>
               <Input
-                value={form.month ? ["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentabr","Oktabr","Noyabr","Dekabr"][Number(form.month)-1] ?? form.month : ""}
+                value={form.month ? getMonthNames(lang)[Number(form.month) - 1] ?? form.month : ""}
                 readOnly
                 disabled
-                placeholder="Sana tanlanganda chiqadi"
+                placeholder={t("contracts.form.dateHint")}
               />
             </Field>
-            <Field label="Doc xarajat (USD)">
+            <Field label={t("contracts.form.docsUsd")}>
               <Input type="number" value={form.docs_usd} onChange={(e) => setForm({ ...form, docs_usd: num(e.target.value) })} />
             </Field>
-            <Field label="Komissiya (USD) — avto">
+            <Field label={t("contracts.form.commission")}>
               <Input
                 type="number"
                 value={form.commission}
@@ -679,81 +679,81 @@ function ShartnomalarPage() {
                 }}
               />
             </Field>
-            <Field label="Odam soni">
+            <Field label={t("contracts.form.people")}>
               <Input type="number" value={form.people} onChange={(e) => setForm({ ...form, people: num(e.target.value) })} />
             </Field>
-            <Field label="Shartnoma turi">
+            <Field label={t("contracts.form.type")}>
               <SelectBox
                 value={form.contract_type}
                 onChange={(v) => setForm({ ...form, contract_type: v })}
                 options={contractTypeOptions}
-                placeholder="Tanlang"
+                placeholder={t("contracts.placeholder.select")}
               />
             </Field>
-            <Field label="Call centre operator">
+            <Field label={t("contracts.form.callCentre")}>
               <SelectBox
                 value={form.call_centre}
                 onChange={(v) => setForm({ ...form, call_centre: v })}
                 options={callCentreOptions}
-                placeholder="Operatorni tanlang"
+                placeholder={t("contracts.placeholder.callOp")}
               />
             </Field>
-            <Field label="Sotuv menejer">
+            <Field label={t("contracts.form.sales")}>
               <SelectBox
                 value={form.sales_manager}
                 onChange={(v) => setForm({ ...form, sales_manager: v })}
                 options={salesOptions}
-                placeholder="Sotuv operatorini tanlang"
+                placeholder={t("contracts.placeholder.salesOp")}
               />
             </Field>
-            <Field label="Back office menejer">
+            <Field label={t("contracts.form.backOffice")}>
               <SelectBox
                 value={form.back_office_manager}
                 onChange={(v) => setForm({ ...form, back_office_manager: v })}
                 options={backOfficeOptions}
-                placeholder="Back office operatorini tanlang"
+                placeholder={t("contracts.placeholder.backOp")}
               />
             </Field>
-            <Field label="Kompaniya">
+            <Field label={t("contracts.form.company")}>
               <SelectBox
                 value={form.company}
                 onChange={(v) => setForm({ ...form, company: v })}
                 options={companyOptions}
-                placeholder="Tanlang"
+                placeholder={t("contracts.placeholder.select")}
               />
             </Field>
-            <Field label="Visa natijasi">
+            <Field label={t("contracts.form.visa")}>
               <SelectBox
                 value={form.visa_result}
                 onChange={(v) => setForm({ ...form, visa_result: v })}
                 options={VISA_RESULTS as unknown as string[]}
-                placeholder="Tanlang"
+                placeholder={t("contracts.placeholder.select")}
               />
             </Field>
 
-            <Field label="Klient rasmi">
+            <Field label={t("contracts.form.photo")}>
               <div className="flex items-center gap-2">
                 <Input type="file" accept="image/*" onChange={(e) => setPhotoFile(e.target.files?.[0] ?? null)} />
                 {photoUrl && !photoFile && (
                   <Button type="button" variant="outline" size="sm" onClick={() => openFile(photoUrl)}>
-                    <Upload className="h-3 w-3 mr-1" /> Ko'rish
+                    <Upload className="h-3 w-3 mr-1" /> {t("common.view")}
                   </Button>
                 )}
               </div>
             </Field>
-            <Field label="Shartnoma PDF">
+            <Field label={t("contracts.form.pdf")}>
               <div className="flex items-center gap-2">
                 <Input type="file" accept="application/pdf" onChange={(e) => setPdfFile(e.target.files?.[0] ?? null)} />
                 {pdfUrl && !pdfFile && (
                   <Button type="button" variant="outline" size="sm" onClick={() => openFile(pdfUrl)}>
-                    <FileText className="h-3 w-3 mr-1" /> Ko'rish
+                    <FileText className="h-3 w-3 mr-1" /> {t("common.view")}
                   </Button>
                 )}
               </div>
             </Field>
 
             <div className="md:col-span-2">
-              <Label className="text-xs">Izoh</Label>
+              <Label className="text-xs">{t("contracts.form.note")}</Label>
               <Textarea value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} rows={2} />
             </div>
           </div>
@@ -800,14 +800,15 @@ function SelectBox({
   options: string[];
   placeholder?: string;
 }) {
+  const { t } = useT();
   return (
     <Select value={value || undefined} onValueChange={onChange}>
       <SelectTrigger>
-        <SelectValue placeholder={placeholder ?? "Tanlang"} />
+        <SelectValue placeholder={placeholder ?? t("contracts.placeholder.select")} />
       </SelectTrigger>
       <SelectContent>
         {options.length === 0 ? (
-          <div className="px-2 py-1.5 text-xs text-muted-foreground">Yo'q</div>
+          <div className="px-2 py-1.5 text-xs text-muted-foreground">{t("common.none")}</div>
         ) : (
           options.map((o) => (
             <SelectItem key={o} value={o}>
@@ -833,13 +834,14 @@ function visaResultColor(result: string | null) {
 
 function VisaResultSelect({ contractId, value }: { contractId: string; value: string | null }) {
   const qc = useQueryClient();
+  const { t } = useT();
   const [saving, setSaving] = useState(false);
   const onChange = async (v: string) => {
     setSaving(true);
     const { error } = await supabase.from("contracts").update({ visa_result: v || null }).eq("id", contractId);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Visa natijasi yangilandi");
+    toast.success(t("contracts.toast.visaUpdated"));
     qc.invalidateQueries({ queryKey: ["contracts-db"] });
   };
   return (
@@ -973,7 +975,7 @@ function PaymentsDialog({
   const add = async () => {
     if (!contract) return;
     if (!amount || amount <= 0) {
-      toast.error("Summa kiriting");
+      toast.error(t("contracts.toast.amount"));
       return;
     }
     setSaving(true);
@@ -991,7 +993,7 @@ function PaymentsDialog({
       toast.error(error.message);
       return;
     }
-    toast.success("To'lov qo'shildi");
+    toast.success(t("contracts.toast.paymentAdded"));
     setAmount(0);
     setMethod("");
     setNote("");
@@ -1000,13 +1002,13 @@ function PaymentsDialog({
   };
 
   const remove = async (id: string) => {
-    if (!confirm("To'lov o'chirilsinmi?")) return;
+    if (!confirm(t("contracts.toast.paymentConfirm"))) return;
     const { error } = await supabase.from("contract_payments").delete().eq("id", id);
     if (error) {
       toast.error(error.message);
       return;
     }
-    toast.success("O'chirildi");
+    toast.success(t("contracts.toast.deleted"));
     refetch();
     qc.invalidateQueries({ queryKey: ["contract-payments"] });
   };
@@ -1081,7 +1083,7 @@ function PaymentsDialog({
               <Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
             </Field>
             <Field label={t("contracts.col.method")}>
-              <Input value={method} onChange={(e) => setMethod(e.target.value)} placeholder="Naqd, karta..." />
+              <Input value={method} onChange={(e) => setMethod(e.target.value)} placeholder={t("contracts.placeholder.method")} />
             </Field>
             <Button onClick={add} disabled={saving}>
               <Plus className="h-4 w-4 mr-1" /> {t("common.add")}
