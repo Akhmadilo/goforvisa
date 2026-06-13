@@ -865,6 +865,8 @@ const dict = {
     "contracts.placeholder.method": "Cash, card...",
     "contracts.toast.amount": "Enter amount",
     "contracts.toast.paymentAdded": "Payment added",
+    "contracts.toast.alreadyPaid": "Contract is fully paid, no more payments allowed",
+    "contracts.toast.overpay": "Cannot exceed contract amount. Remaining",
     "contracts.toast.deleted": "Deleted",
     "contracts.toast.paymentConfirm": "Delete this payment?",
     "contracts.toast.added": "Added",
