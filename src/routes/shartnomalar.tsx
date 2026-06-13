@@ -1099,7 +1099,7 @@ function PaymentsDialog({
             <Field label={t("contracts.col.method")}>
               <Input value={method} onChange={(e) => setMethod(e.target.value)} placeholder={t("contracts.placeholder.method")} />
             </Field>
-            <Button onClick={add} disabled={saving}>
+            <Button onClick={add} disabled={saving || isFullyPaid}>
               <Plus className="h-4 w-4 mr-1" /> {t("common.add")}
             </Button>
             <div className="md:col-span-5">
