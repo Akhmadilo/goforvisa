@@ -972,10 +972,20 @@ function PaymentsDialog({
   const remainingUsd = Math.max(0, totalUsd - paidUsd);
   const total = Number(contract?.price_uzs || 0);
 
+  const isFullyPaid = totalUsd > 0 && remainingUsd <= 0.009;
+
   const add = async () => {
     if (!contract) return;
     if (!amount || amount <= 0) {
       toast.error(t("contracts.toast.amount"));
+      return;
+    }
+    if (isFullyPaid) {
+      toast.error(t("contracts.toast.alreadyPaid"));
+      return;
+    }
+    if (totalUsd > 0 && amount > remainingUsd + 0.009) {
+      toast.error(`${t("contracts.toast.overpay")}: $${fmt(remainingUsd)}`);
       return;
     }
     setSaving(true);
@@ -1089,7 +1099,7 @@ function PaymentsDialog({
             <Field label={t("contracts.col.method")}>
               <Input value={method} onChange={(e) => setMethod(e.target.value)} placeholder={t("contracts.placeholder.method")} />
             </Field>
-            <Button onClick={add} disabled={saving}>
+            <Button onClick={add} disabled={saving || isFullyPaid}>
               <Plus className="h-4 w-4 mr-1" /> {t("common.add")}
             </Button>
             <div className="md:col-span-5">
