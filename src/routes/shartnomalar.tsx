@@ -1068,15 +1068,19 @@ function PaymentsDialog({
 
         {canCreate && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2 items-end border-t pt-3">
-            <Field label={t("contracts.col.amount")}>
-              <Input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value === "" ? 0 : Number(e.target.value))}
-              />
+            <Field label={t("contracts.col.amount") + " ($)"}>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">$</span>
+                <Input
+                  type="number"
+                  className="pl-6"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value === "" ? 0 : Number(e.target.value))}
+                />
+              </div>
             </Field>
             <Field label={t("contracts.col.currency")}>
-              <Input value={currency} onChange={(e) => setCurrency(e.target.value)} />
+              <Input value={currency} disabled readOnly />
             </Field>
             <Field label={t("contracts.col.date")}>
               <Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
