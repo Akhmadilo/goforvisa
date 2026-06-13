@@ -944,7 +944,7 @@ function PaymentsDialog({
   }, [payerProfiles]);
 
   const [amount, setAmount] = useState<number>(0);
-  const [currency, setCurrency] = useState<string>("UZS");
+  const currency = "USD";
   const [paidAt, setPaidAt] = useState<string>(new Date().toISOString().slice(0, 10));
   const [method, setMethod] = useState<string>("");
   const [note, setNote] = useState<string>("");
@@ -953,7 +953,6 @@ function PaymentsDialog({
   useEffect(() => {
     if (open) {
       setAmount(0);
-      setCurrency("UZS");
       setPaidAt(new Date().toISOString().slice(0, 10));
       setMethod("");
       setNote("");
