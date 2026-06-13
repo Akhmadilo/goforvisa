@@ -433,6 +433,8 @@ const dict = {
     "contracts.placeholder.method": "Naqd, karta...",
     "contracts.toast.amount": "Summa kiriting",
     "contracts.toast.paymentAdded": "To'lov qo'shildi",
+    "contracts.toast.alreadyPaid": "Shartnoma to'liq to'langan, qayta to'lov qo'shib bo'lmaydi",
+    "contracts.toast.overpay": "Shartnoma summasidan ortiq to'lab bo'lmaydi. Qoldiq",
     "contracts.toast.deleted": "O'chirildi",
     "contracts.toast.paymentConfirm": "To'lov o'chirilsinmi?",
     "contracts.toast.added": "Qo'shildi",
