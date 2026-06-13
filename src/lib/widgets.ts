@@ -50,6 +50,7 @@ export const WIDGETS = [
   { key: "contracts_create", group: "contracts", label: "Shartnoma qo'shish" },
   { key: "contracts_edit", group: "contracts", label: "Shartnoma tahrirlash" },
   { key: "contracts_delete", group: "contracts", label: "Shartnoma o'chirish" },
+  { key: "contracts_pay", group: "contracts", label: "To'lov qo'shish / o'chirish" },
 ] as const;
 
 export type WidgetKey = (typeof WIDGETS)[number]["key"];

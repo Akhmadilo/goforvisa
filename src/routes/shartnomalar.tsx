@@ -146,6 +146,7 @@ function ShartnomalarPage() {
   const canCreate = can("contracts_create");
   const canEdit = can("contracts_edit");
   const canDelete = can("contracts_delete");
+  const canPay = can("contracts_pay");
 
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["contracts-db"],
@@ -773,8 +774,8 @@ function ShartnomalarPage() {
         open={payOpen}
         onOpenChange={setPayOpen}
         contract={payContract}
-        canCreate={canCreate}
-        canDelete={canDelete}
+        canCreate={canPay}
+        canDelete={canPay}
       />
     </div>
   );
@@ -944,7 +945,7 @@ function PaymentsDialog({
   }, [payerProfiles]);
 
   const [amount, setAmount] = useState<number>(0);
-  const [currency, setCurrency] = useState<string>("UZS");
+  const currency = "USD";
   const [paidAt, setPaidAt] = useState<string>(new Date().toISOString().slice(0, 10));
   const [method, setMethod] = useState<string>("");
   const [note, setNote] = useState<string>("");
@@ -953,7 +954,6 @@ function PaymentsDialog({
   useEffect(() => {
     if (open) {
       setAmount(0);
-      setCurrency("UZS");
       setPaidAt(new Date().toISOString().slice(0, 10));
       setMethod("");
       setNote("");
@@ -1069,15 +1069,19 @@ function PaymentsDialog({
 
         {canCreate && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2 items-end border-t pt-3">
-            <Field label={t("contracts.col.amount")}>
-              <Input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value === "" ? 0 : Number(e.target.value))}
-              />
+            <Field label={t("contracts.col.amount") + " ($)"}>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-sm pointer-events-none">$</span>
+                <Input
+                  type="number"
+                  className="pl-6"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value === "" ? 0 : Number(e.target.value))}
+                />
+              </div>
             </Field>
             <Field label={t("contracts.col.currency")}>
-              <Input value={currency} onChange={(e) => setCurrency(e.target.value)} />
+              <Input value={currency} disabled readOnly />
             </Field>
             <Field label={t("contracts.col.date")}>
               <Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
