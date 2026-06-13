@@ -774,8 +774,8 @@ function ShartnomalarPage() {
         open={payOpen}
         onOpenChange={setPayOpen}
         contract={payContract}
-        canCreate={canCreate}
-        canDelete={canDelete}
+        canCreate={canPay}
+        canDelete={canPay}
       />
     </div>
   );
