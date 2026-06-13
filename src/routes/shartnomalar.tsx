@@ -972,10 +972,20 @@ function PaymentsDialog({
   const remainingUsd = Math.max(0, totalUsd - paidUsd);
   const total = Number(contract?.price_uzs || 0);
 
+  const isFullyPaid = totalUsd > 0 && remainingUsd <= 0.009;
+
   const add = async () => {
     if (!contract) return;
     if (!amount || amount <= 0) {
       toast.error(t("contracts.toast.amount"));
+      return;
+    }
+    if (isFullyPaid) {
+      toast.error(t("contracts.toast.alreadyPaid"));
+      return;
+    }
+    if (totalUsd > 0 && amount > remainingUsd + 0.009) {
+      toast.error(`${t("contracts.toast.overpay")}: $${fmt(remainingUsd)}`);
       return;
     }
     setSaving(true);
