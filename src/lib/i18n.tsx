@@ -1297,6 +1297,8 @@ const dict = {
     "contracts.placeholder.method": "Наличные, карта...",
     "contracts.toast.amount": "Введите сумму",
     "contracts.toast.paymentAdded": "Платёж добавлен",
+    "contracts.toast.alreadyPaid": "Контракт полностью оплачен, повторный платёж невозможен",
+    "contracts.toast.overpay": "Нельзя превышать сумму контракта. Остаток",
     "contracts.toast.deleted": "Удалено",
     "contracts.toast.paymentConfirm": "Удалить платёж?",
     "contracts.toast.added": "Добавлено",
