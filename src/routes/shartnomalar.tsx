@@ -146,6 +146,7 @@ function ShartnomalarPage() {
   const canCreate = can("contracts_create");
   const canEdit = can("contracts_edit");
   const canDelete = can("contracts_delete");
+  const canPay = can("contracts_pay");
 
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["contracts-db"],
