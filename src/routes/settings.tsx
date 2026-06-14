@@ -251,6 +251,15 @@ function OperatorsCard() {
     },
   });
 
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey: ["operators_admin"] });
+    qc.invalidateQueries({ queryKey: ["operators"] });
+    qc.invalidateQueries({ queryKey: ["contracts-db"] });
+  };
+
   const add = async () => {
     const n = name.trim();
     if (!n) { toast.error("Ism kiriting"); return; }
@@ -260,8 +269,7 @@ function OperatorsCard() {
     if (error) { toast.error(error.message); return; }
     toast.success("Qo'shildi");
     setName("");
-    qc.invalidateQueries({ queryKey: ["operators_admin"] });
-    qc.invalidateQueries({ queryKey: ["operators"] });
+    invalidateAll();
   };
 
   const remove = async (id: string) => {
@@ -269,8 +277,36 @@ function OperatorsCard() {
     const { error } = await (supabase as any).from("operators").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("O'chirildi");
-    qc.invalidateQueries({ queryKey: ["operators_admin"] });
-    qc.invalidateQueries({ queryKey: ["operators"] });
+    invalidateAll();
+  };
+
+  const startEdit = (r: OperatorRow) => { setEditId(r.id); setEditName(r.name); };
+  const cancelEdit = () => { setEditId(null); setEditName(""); };
+
+  const KIND_TO_COL: Record<OperatorKind, string> = {
+    sales: "sales_manager",
+    back_office: "back_office_manager",
+    call_centre: "call_centre",
+  };
+
+  const saveEdit = async (r: OperatorRow) => {
+    const n = editName.trim();
+    if (!n) { toast.error("Ism kiriting"); return; }
+    if (n === r.name) { cancelEdit(); return; }
+    if (rows.some((x) => x.kind === r.kind && x.id !== r.id && x.name.toLowerCase() === n.toLowerCase())) {
+      toast.error("Bu ism allaqachon mavjud");
+      return;
+    }
+    setSaving(true);
+    const upd = await (supabase as any).from("operators").update({ name: n }).eq("id", r.id);
+    if (upd.error) { setSaving(false); toast.error(upd.error.message); return; }
+    const col = KIND_TO_COL[r.kind];
+    const ref = await (supabase as any).from("contracts").update({ [col]: n }).eq(col, r.name);
+    setSaving(false);
+    if (ref.error) toast.error(`Yangilandi, lekin shartnomalar yangilanmadi: ${ref.error.message}`);
+    else toast.success("Yangilandi va barcha shartnomalarga qo'llanildi");
+    cancelEdit();
+    invalidateAll();
   };
 
   const grouped: Record<OperatorKind, OperatorRow[]> = {
@@ -319,12 +355,37 @@ function OperatorsCard() {
               ) : grouped[k].length === 0 ? (
                 <div className="text-xs text-muted-foreground p-2">Hali qo'shilmagan</div>
               ) : grouped[k].map((r) => (
-                <div key={r.id} className="flex items-center justify-between rounded px-2 py-1 hover:bg-muted/50">
-                  <span className="text-sm">{r.name}</span>
-                  <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"
-                    onClick={() => remove(r.id)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                <div key={r.id} className="flex items-center justify-between gap-1 rounded px-2 py-1 hover:bg-muted/50">
+                  {editId === r.id ? (
+                    <>
+                      <Input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") saveEdit(r);
+                          if (e.key === "Escape") cancelEdit();
+                        }}
+                        autoFocus
+                        className="h-7 text-sm"
+                      />
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-600" disabled={saving} onClick={() => saveEdit(r)}>
+                        <Check className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={cancelEdit}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-sm flex-1">{r.name}</span>
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(r)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => remove(r.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
