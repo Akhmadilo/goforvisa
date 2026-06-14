@@ -493,6 +493,66 @@ function ShartnomalarPage() {
           </div>
 
           <Card>
+            <CardContent className="p-3">
+              <div className="flex flex-wrap items-end gap-2">
+                <FilterSelect
+                  label={t("common.year")}
+                  value={fYear}
+                  onChange={setFYear}
+                  options={yearOptions}
+                  allLabel={t("common.allYears")}
+                />
+                <FilterSelect
+                  label={t("common.month")}
+                  value={fMonth}
+                  onChange={setFMonth}
+                  options={monthOptions}
+                  allLabel={t("common.allMonths")}
+                  renderOption={(v) => getMonthNames(lang)[Number(v) - 1] ?? v}
+                />
+                <FilterSelect
+                  label={t("contracts.col.salesManager")}
+                  value={fSales}
+                  onChange={setFSales}
+                  options={salesOpts}
+                  allLabel={t("common.all")}
+                />
+                <FilterSelect
+                  label={t("contracts.col.backOffice")}
+                  value={fBack}
+                  onChange={setFBack}
+                  options={backOpts}
+                  allLabel={t("common.all")}
+                />
+                <FilterSelect
+                  label={t("contracts.form.callCentre")}
+                  value={fCall}
+                  onChange={setFCall}
+                  options={callOpts}
+                  allLabel={t("common.all")}
+                />
+                <FilterSelect
+                  label={t("contracts.col.company")}
+                  value={fCompany}
+                  onChange={setFCompany}
+                  options={companyOpts}
+                  allLabel={t("common.all")}
+                />
+                <FilterSelect
+                  label={t("contracts.col.visa")}
+                  value={fVisa}
+                  onChange={setFVisa}
+                  options={visaOpts}
+                  allLabel={t("common.all")}
+                />
+                {activeFilterCount > 0 && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters}>
+                    {t("common.clear")} ({activeFilterCount})
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
             <CardHeader>
               <CardTitle className="text-base">{t("nav.contracts")}</CardTitle>
             </CardHeader>
