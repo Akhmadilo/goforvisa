@@ -553,6 +553,8 @@ function ShartnomalarPage() {
               </div>
             </CardContent>
           </Card>
+
+          <Card>
             <CardHeader>
               <CardTitle className="text-base">{t("nav.contracts")}</CardTitle>
             </CardHeader>
