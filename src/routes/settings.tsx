@@ -87,10 +87,12 @@ function SettingsPage() {
   );
 }
 
-function LookupCard({ tableName, title, hint, invalidateKey }: { tableName: string; title: string; hint: string; invalidateKey: string }) {
+function LookupCard({ tableName, title, hint, invalidateKey, refTable, refColumn }: { tableName: string; title: string; hint: string; invalidateKey: string; refTable: string; refColumn: string }) {
   const qc = useQueryClient();
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: [`${tableName}_admin`],
@@ -101,6 +103,13 @@ function LookupCard({ tableName, title, hint, invalidateKey }: { tableName: stri
     },
   });
 
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey: [`${tableName}_admin`] });
+    qc.invalidateQueries({ queryKey: [invalidateKey] });
+    qc.invalidateQueries({ queryKey: ["contracts-db"] });
+    qc.invalidateQueries({ queryKey: ["expenses"] });
+  };
+
   const add = async () => {
     const n = name.trim();
     if (!n) { toast.error("Nom kiriting"); return; }
@@ -110,8 +119,34 @@ function LookupCard({ tableName, title, hint, invalidateKey }: { tableName: stri
     if (error) { toast.error(error.message); return; }
     toast.success("Qo'shildi");
     setName("");
-    qc.invalidateQueries({ queryKey: [`${tableName}_admin`] });
-    qc.invalidateQueries({ queryKey: [invalidateKey] });
+    invalidateAll();
+  };
+
+  const startEdit = (r: { id: string; name: string }) => {
+    setEditId(r.id);
+    setEditName(r.name);
+  };
+  const cancelEdit = () => { setEditId(null); setEditName(""); };
+
+  const saveEdit = async (oldName: string) => {
+    const n = editName.trim();
+    if (!n) { toast.error("Nom kiriting"); return; }
+    if (n === oldName) { cancelEdit(); return; }
+    if (rows.some((r) => r.id !== editId && r.name.toLowerCase() === n.toLowerCase())) {
+      toast.error("Bu nom allaqachon mavjud");
+      return;
+    }
+    setSaving(true);
+    // Update lookup row
+    const upd = await (supabase as any).from(tableName).update({ name: n }).eq("id", editId);
+    if (upd.error) { setSaving(false); toast.error(upd.error.message); return; }
+    // Cascade rename referencing rows
+    const ref = await (supabase as any).from(refTable).update({ [refColumn]: n }).eq(refColumn, oldName);
+    setSaving(false);
+    if (ref.error) { toast.error(`Yangilandi, lekin ${refTable} yangilanmadi: ${ref.error.message}`); }
+    else { toast.success("Yangilandi va barcha yozuvlarga qo'llanildi"); }
+    cancelEdit();
+    invalidateAll();
   };
 
   const remove = async (id: string) => {
@@ -119,8 +154,7 @@ function LookupCard({ tableName, title, hint, invalidateKey }: { tableName: stri
     const { error } = await (supabase as any).from(tableName).delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("O'chirildi");
-    qc.invalidateQueries({ queryKey: [`${tableName}_admin`] });
-    qc.invalidateQueries({ queryKey: [invalidateKey] });
+    invalidateAll();
   };
 
   return (
@@ -145,11 +179,41 @@ function LookupCard({ tableName, title, hint, invalidateKey }: { tableName: stri
         ) : (
           <div className="divide-y">
             {rows.map((r) => (
-              <div key={r.id} className="flex items-center justify-between px-3 py-2 hover:bg-muted/40">
-                <span className="text-sm">{r.name}</span>
-                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => remove(r.id)}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
+              <div key={r.id} className="flex items-center justify-between gap-2 px-3 py-2 hover:bg-muted/40">
+                {editId === r.id ? (
+                  <>
+                    <Input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveEdit(r.name);
+                        if (e.key === "Escape") cancelEdit();
+                      }}
+                      autoFocus
+                      className="h-8"
+                    />
+                    <div className="flex items-center gap-1">
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-emerald-600" disabled={saving} onClick={() => saveEdit(r.name)}>
+                        <Check className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={cancelEdit}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-sm">{r.name}</span>
+                    <div className="flex items-center gap-1">
+                      <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(r)}>
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => remove(r.id)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>
