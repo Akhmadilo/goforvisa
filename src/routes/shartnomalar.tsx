@@ -1276,3 +1276,38 @@ function PaymentsDialog({
     </Dialog>
   );
 }
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+  allLabel,
+  renderOption,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  allLabel: string;
+  renderOption?: (v: string) => string;
+}) {
+  return (
+    <div className="flex flex-col gap-1 min-w-[140px]">
+      <Label className="text-[11px] text-muted-foreground">{label}</Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="h-8 text-xs">
+          <SelectValue placeholder={allLabel} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">{allLabel}</SelectItem>
+          {options.map((o) => (
+            <SelectItem key={o} value={o}>
+              {renderOption ? renderOption(o) : o}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
