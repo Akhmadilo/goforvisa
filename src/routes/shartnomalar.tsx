@@ -225,13 +225,62 @@ function ShartnomalarPage() {
   }, [payments, getRate]);
 
   const [search, setSearch] = useState("");
+  const [fYear, setFYear] = useState<string>("all");
+  const [fMonth, setFMonth] = useState<string>("all");
+  const [fSales, setFSales] = useState<string>("all");
+  const [fBack, setFBack] = useState<string>("all");
+  const [fCall, setFCall] = useState<string>("all");
+  const [fCompany, setFCompany] = useState<string>("all");
+  const [fVisa, setFVisa] = useState<string>("all");
   const rows = data ?? [];
+
+  const uniq = (vals: (string | null | undefined)[]) =>
+    Array.from(new Set(vals.map((v) => (v ?? "").trim()).filter(Boolean))).sort();
+  const yearOptions = useMemo(
+    () => uniq(rows.map((r) => r.year)).sort((a, b) => Number(b) - Number(a)),
+    [rows],
+  );
+  const monthOptions = useMemo(
+    () => uniq(rows.map((r) => r.month)).sort((a, b) => Number(a) - Number(b)),
+    [rows],
+  );
+  const salesOpts = useMemo(() => uniq(rows.map((r) => r.sales_manager)), [rows]);
+  const backOpts = useMemo(() => uniq(rows.map((r) => r.back_office_manager)), [rows]);
+  const callOpts = useMemo(() => uniq(rows.map((r) => r.call_centre)), [rows]);
+  const companyOpts = useMemo(() => uniq(rows.map((r) => r.company)), [rows]);
+  const visaOpts = useMemo(() => uniq(rows.map((r) => r.visa_result)), [rows]);
+
+  const activeFilterCount =
+    (fYear !== "all" ? 1 : 0) +
+    (fMonth !== "all" ? 1 : 0) +
+    (fSales !== "all" ? 1 : 0) +
+    (fBack !== "all" ? 1 : 0) +
+    (fCall !== "all" ? 1 : 0) +
+    (fCompany !== "all" ? 1 : 0) +
+    (fVisa !== "all" ? 1 : 0);
+
+  const clearFilters = () => {
+    setFYear("all");
+    setFMonth("all");
+    setFSales("all");
+    setFBack("all");
+    setFCall("all");
+    setFCompany("all");
+    setFVisa("all");
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((c) =>
-      [
+    return rows.filter((c) => {
+      if (fYear !== "all" && (c.year ?? "") !== fYear) return false;
+      if (fMonth !== "all" && (c.month ?? "") !== fMonth) return false;
+      if (fSales !== "all" && (c.sales_manager ?? "") !== fSales) return false;
+      if (fBack !== "all" && (c.back_office_manager ?? "") !== fBack) return false;
+      if (fCall !== "all" && (c.call_centre ?? "") !== fCall) return false;
+      if (fCompany !== "all" && (c.company ?? "") !== fCompany) return false;
+      if (fVisa !== "all" && (c.visa_result ?? "") !== fVisa) return false;
+      if (!q) return true;
+      return [
         c.client_name,
         c.contract_no,
         c.phone,
@@ -242,9 +291,9 @@ function ShartnomalarPage() {
         c.visa_result,
       ]
         .filter(Boolean)
-        .some((v) => v!.toLowerCase().includes(q)),
-    );
-  }, [rows, search]);
+        .some((v) => v!.toLowerCase().includes(q));
+    });
+  }, [rows, search, fYear, fMonth, fSales, fBack, fCall, fCompany, fVisa]);
 
   const fmt = (n: number | null | undefined) =>
     n ? Number(n).toLocaleString(localeOf(lang), { maximumFractionDigits: 2 }) : "—";
@@ -442,6 +491,68 @@ function ShartnomalarPage() {
               )}
             </div>
           </div>
+
+          <Card>
+            <CardContent className="p-3">
+              <div className="flex flex-wrap items-end gap-2">
+                <FilterSelect
+                  label={t("common.year")}
+                  value={fYear}
+                  onChange={setFYear}
+                  options={yearOptions}
+                  allLabel={t("common.allYears")}
+                />
+                <FilterSelect
+                  label={t("common.month")}
+                  value={fMonth}
+                  onChange={setFMonth}
+                  options={monthOptions}
+                  allLabel={t("common.allMonths")}
+                  renderOption={(v) => getMonthNames(lang)[Number(v) - 1] ?? v}
+                />
+                <FilterSelect
+                  label={t("contracts.col.salesManager")}
+                  value={fSales}
+                  onChange={setFSales}
+                  options={salesOpts}
+                  allLabel={t("common.all")}
+                />
+                <FilterSelect
+                  label={t("contracts.col.backOffice")}
+                  value={fBack}
+                  onChange={setFBack}
+                  options={backOpts}
+                  allLabel={t("common.all")}
+                />
+                <FilterSelect
+                  label={t("contracts.form.callCentre")}
+                  value={fCall}
+                  onChange={setFCall}
+                  options={callOpts}
+                  allLabel={t("common.all")}
+                />
+                <FilterSelect
+                  label={t("contracts.col.company")}
+                  value={fCompany}
+                  onChange={setFCompany}
+                  options={companyOpts}
+                  allLabel={t("common.all")}
+                />
+                <FilterSelect
+                  label={t("contracts.col.visa")}
+                  value={fVisa}
+                  onChange={setFVisa}
+                  options={visaOpts}
+                  allLabel={t("common.all")}
+                />
+                {activeFilterCount > 0 && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters}>
+                    {t("common.clear")} ({activeFilterCount})
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
@@ -1163,5 +1274,40 @@ function PaymentsDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+  allLabel,
+  renderOption,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+  allLabel: string;
+  renderOption?: (v: string) => string;
+}) {
+  return (
+    <div className="flex flex-col gap-1 min-w-[140px]">
+      <Label className="text-[11px] text-muted-foreground">{label}</Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="h-8 text-xs">
+          <SelectValue placeholder={allLabel} />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">{allLabel}</SelectItem>
+          {options.map((o) => (
+            <SelectItem key={o} value={o}>
+              {renderOption ? renderOption(o) : o}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }
