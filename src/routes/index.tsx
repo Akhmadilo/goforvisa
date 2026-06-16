@@ -132,6 +132,27 @@ function unique(arr: string[]): string[] {
   return Array.from(new Set(arr.filter(Boolean))).sort();
 }
 
+const VISA_I18N_KEY: Record<string, string> = {
+  "Olindi": "visa.Olindi",
+  "Taken": "visa.Olindi",
+  "Approved": "visa.Olindi",
+  "Rad etildi": "visa.RadEtildi",
+  "Rejected": "visa.RadEtildi",
+  "Topshirildi": "visa.Topshirildi",
+  "Submitted": "visa.Topshirildi",
+  "Jarayonda": "visa.Jarayonda",
+  "In process": "visa.Jarayonda",
+  "In Process": "visa.Jarayonda",
+  "Bekor qilindi": "visa.BekorQilindi",
+  "Cancelled": "visa.BekorQilindi",
+};
+
+function visaLabel(value: string | null | undefined, t: (k: any) => string) {
+  if (!value) return "—";
+  const key = VISA_I18N_KEY[value];
+  return key ? t(key) : value;
+}
+
 function parseContractDate(s: string): Date | null {
   if (!s) return null;
   // Format: "10 June 2025"
@@ -557,6 +578,7 @@ function Dashboard() {
               values={visas}
               onChange={setVisas}
               options={opts.visas}
+              renderOption={(v) => visaLabel(v, t)}
             />
             <MultiFilter
               label={t("dash.filter.company")}
