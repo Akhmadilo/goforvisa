@@ -976,7 +976,7 @@ function VisaResultSelect({ contractId, value }: { contractId: string; value: st
           {value ? (
             <span className="inline-flex items-center gap-1.5">
               <span className={cn("inline-block h-2 w-2 rounded-full", visaResultColor(value))} />
-              {value}
+              {visaLabel(value, t)}
             </span>
           ) : (
             "—"
@@ -988,7 +988,7 @@ function VisaResultSelect({ contractId, value }: { contractId: string; value: st
           <SelectItem key={o} value={o}>
             <span className="inline-flex items-center gap-2">
               <span className={cn("inline-block h-2.5 w-2.5 rounded-full", visaResultColor(o))} />
-              {o}
+              {visaLabel(o, t)}
             </span>
           </SelectItem>
         ))}
