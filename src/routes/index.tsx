@@ -132,6 +132,27 @@ function unique(arr: string[]): string[] {
   return Array.from(new Set(arr.filter(Boolean))).sort();
 }
 
+const VISA_I18N_KEY: Record<string, string> = {
+  "Olindi": "visa.Olindi",
+  "Taken": "visa.Olindi",
+  "Approved": "visa.Olindi",
+  "Rad etildi": "visa.RadEtildi",
+  "Rejected": "visa.RadEtildi",
+  "Topshirildi": "visa.Topshirildi",
+  "Submitted": "visa.Topshirildi",
+  "Jarayonda": "visa.Jarayonda",
+  "In process": "visa.Jarayonda",
+  "In Process": "visa.Jarayonda",
+  "Bekor qilindi": "visa.BekorQilindi",
+  "Cancelled": "visa.BekorQilindi",
+};
+
+function visaLabel(value: string | null | undefined, t: (k: any) => string) {
+  if (!value) return "—";
+  const key = VISA_I18N_KEY[value];
+  return key ? t(key) : value;
+}
+
 function parseContractDate(s: string): Date | null {
   if (!s) return null;
   // Format: "10 June 2025"
@@ -276,8 +297,8 @@ function Dashboard() {
       const key = c.visaResult || "Unknown";
       map.set(key, (map.get(key) ?? 0) + 1);
     }
-    return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
-  }, [filtered]);
+    return Array.from(map.entries()).map(([name, value]) => ({ name: visaLabel(name, t), value }));
+  }, [filtered, lang]);
 
   const managerData = useMemo(() => {
     const map = new Map<
@@ -557,6 +578,7 @@ function Dashboard() {
               values={visas}
               onChange={setVisas}
               options={opts.visas}
+              renderOption={(v) => visaLabel(v, t)}
             />
             <MultiFilter
               label={t("dash.filter.company")}
@@ -1141,26 +1163,27 @@ function DaysBadge({ days }: { days: number }) {
 }
 
 function VisaBadge({ result }: { result: string }) {
+  const { t } = useT();
   const r = result.toLowerCase();
   if (r === "taken")
     return (
       <Badge className="bg-primary/15 text-primary border-primary/30 hover:bg-primary/20">
-        <CheckCircle2 className="h-3 w-3 mr-1" /> Taken
+        <CheckCircle2 className="h-3 w-3 mr-1" /> {visaLabel(result, t)}
       </Badge>
     );
   if (r === "rejected")
     return (
       <Badge className="bg-destructive/15 text-destructive border-destructive/30 hover:bg-destructive/20">
-        <XCircle className="h-3 w-3 mr-1" /> Rejected
+        <XCircle className="h-3 w-3 mr-1" /> {visaLabel(result, t)}
       </Badge>
     );
   if (r.includes("process"))
     return (
       <Badge className="bg-accent/15 text-accent border-accent/30 hover:bg-accent/20">
-        <Clock className="h-3 w-3 mr-1" /> In process
+        <Clock className="h-3 w-3 mr-1" /> {visaLabel(result, t)}
       </Badge>
     );
-  return <Badge variant="outline">{result || "—"}</Badge>;
+  return <Badge variant="outline">{visaLabel(result, t)}</Badge>;
 }
 
 function MultiFilter({
@@ -1168,11 +1191,13 @@ function MultiFilter({
   values,
   onChange,
   options,
+  renderOption,
 }: {
   label: string;
   values: string[];
   onChange: (v: string[]) => void;
   options: string[];
+  renderOption?: (v: string) => string;
 }) {
   const { t } = useT();
   const toggle = (o: string) => {
@@ -1183,7 +1208,7 @@ function MultiFilter({
     values.length === 0
       ? t("common.all")
       : values.length === 1
-        ? values[0]
+        ? (renderOption ? renderOption(values[0]) : values[0])
         : `${values.length} ${t("common.selected")}`;
   return (
     <div>
@@ -1220,7 +1245,7 @@ function MultiFilter({
                 className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent/10 cursor-pointer select-none"
               >
                 <Checkbox checked={values.includes(o)} tabIndex={-1} />
-                <span className="text-sm truncate">{o}</span>
+                <span className="text-sm truncate">{renderOption ? renderOption(o) : o}</span>
               </div>
             ))}
           </div>
