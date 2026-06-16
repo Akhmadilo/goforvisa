@@ -951,7 +951,7 @@ const VISA_I18N_KEY: Record<string, string> = {
   "Jarayonda": "visa.Jarayonda",
   "Bekor qilindi": "visa.BekorQilindi",
 };
-function visaLabel(value: string | null, t: (k: string) => string) {
+function visaLabel(value: string | null, t: (k: any) => string) {
   if (!value) return "";
   const key = VISA_I18N_KEY[value];
   return key ? t(key) : value;
