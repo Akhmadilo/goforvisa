@@ -297,8 +297,8 @@ function Dashboard() {
       const key = c.visaResult || "Unknown";
       map.set(key, (map.get(key) ?? 0) + 1);
     }
-    return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
-  }, [filtered]);
+    return Array.from(map.entries()).map(([name, value]) => ({ name: visaLabel(name, t), value }));
+  }, [filtered, lang]);
 
   const managerData = useMemo(() => {
     const map = new Map<
@@ -1190,11 +1190,13 @@ function MultiFilter({
   values,
   onChange,
   options,
+  renderOption,
 }: {
   label: string;
   values: string[];
   onChange: (v: string[]) => void;
   options: string[];
+  renderOption?: (v: string) => string;
 }) {
   const { t } = useT();
   const toggle = (o: string) => {
@@ -1205,7 +1207,7 @@ function MultiFilter({
     values.length === 0
       ? t("common.all")
       : values.length === 1
-        ? values[0]
+        ? (renderOption ? renderOption(values[0]) : values[0])
         : `${values.length} ${t("common.selected")}`;
   return (
     <div>
@@ -1242,7 +1244,7 @@ function MultiFilter({
                 className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent/10 cursor-pointer select-none"
               >
                 <Checkbox checked={values.includes(o)} tabIndex={-1} />
-                <span className="text-sm truncate">{o}</span>
+                <span className="text-sm truncate">{renderOption ? renderOption(o) : o}</span>
               </div>
             ))}
           </div>
