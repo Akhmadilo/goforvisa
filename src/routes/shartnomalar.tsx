@@ -944,6 +944,19 @@ function visaResultColor(result: string | null) {
   }
 }
 
+const VISA_I18N_KEY: Record<string, string> = {
+  "Olindi": "visa.Olindi",
+  "Rad etildi": "visa.RadEtildi",
+  "Topshirildi": "visa.Topshirildi",
+  "Jarayonda": "visa.Jarayonda",
+  "Bekor qilindi": "visa.BekorQilindi",
+};
+function visaLabel(value: string | null, t: (k: string) => string) {
+  if (!value) return "";
+  const key = VISA_I18N_KEY[value];
+  return key ? t(key) : value;
+}
+
 function VisaResultSelect({ contractId, value }: { contractId: string; value: string | null }) {
   const qc = useQueryClient();
   const { t } = useT();
