@@ -544,7 +544,9 @@ function ShartnomalarPage() {
                   onChange={setFVisa}
                   options={visaOpts}
                   allLabel={t("common.all")}
+                  renderOption={(v) => visaLabel(v, t)}
                 />
+
                 {activeFilterCount > 0 && (
                   <Button variant="ghost" size="sm" onClick={clearFilters}>
                     {t("common.clear")} ({activeFilterCount})
