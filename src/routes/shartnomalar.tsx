@@ -842,6 +842,7 @@ function ShartnomalarPage() {
                 onChange={(v) => setForm({ ...form, visa_result: v })}
                 options={VISA_RESULTS as unknown as string[]}
                 placeholder={t("contracts.placeholder.select")}
+                renderOption={(v) => visaLabel(v, t)}
               />
             </Field>
 
@@ -908,17 +909,21 @@ function SelectBox({
   onChange,
   options,
   placeholder,
+  renderOption,
 }: {
   value: string;
   onChange: (v: string) => void;
   options: string[];
   placeholder?: string;
+  renderOption?: (v: string) => string;
 }) {
   const { t } = useT();
   return (
     <Select value={value || undefined} onValueChange={onChange}>
       <SelectTrigger>
-        <SelectValue placeholder={placeholder ?? t("contracts.placeholder.select")} />
+        <SelectValue placeholder={placeholder ?? t("contracts.placeholder.select")}>
+          {value ? (renderOption ? renderOption(value) : value) : undefined}
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         {options.length === 0 ? (
@@ -926,7 +931,7 @@ function SelectBox({
         ) : (
           options.map((o) => (
             <SelectItem key={o} value={o}>
-              {o}
+              {renderOption ? renderOption(o) : o}
             </SelectItem>
           ))
         )}
@@ -1177,7 +1182,7 @@ function PaymentsDialog({
                 {contract?.visa_result && (
                   <Badge variant="outline" className="text-[10px] inline-flex items-center gap-1">
                     <span className={cn("inline-block h-2 w-2 rounded-full", visaResultColor(contract.visa_result))} />
-                    {contract.visa_result}
+                    {visaLabel(contract.visa_result, t)}
                   </Badge>
                 )}
               </div>
@@ -1312,7 +1317,9 @@ function FilterSelect({
       <Label className="text-[11px] text-muted-foreground">{label}</Label>
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger className="h-8 text-xs">
-          <SelectValue placeholder={allLabel} />
+          <SelectValue placeholder={allLabel}>
+            {value === "all" ? allLabel : renderOption ? renderOption(value) : value}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">{allLabel}</SelectItem>
