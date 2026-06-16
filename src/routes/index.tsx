@@ -1163,26 +1163,27 @@ function DaysBadge({ days }: { days: number }) {
 }
 
 function VisaBadge({ result }: { result: string }) {
+  const { t } = useT();
   const r = result.toLowerCase();
   if (r === "taken")
     return (
       <Badge className="bg-primary/15 text-primary border-primary/30 hover:bg-primary/20">
-        <CheckCircle2 className="h-3 w-3 mr-1" /> Taken
+        <CheckCircle2 className="h-3 w-3 mr-1" /> {visaLabel(result, t)}
       </Badge>
     );
   if (r === "rejected")
     return (
       <Badge className="bg-destructive/15 text-destructive border-destructive/30 hover:bg-destructive/20">
-        <XCircle className="h-3 w-3 mr-1" /> Rejected
+        <XCircle className="h-3 w-3 mr-1" /> {visaLabel(result, t)}
       </Badge>
     );
   if (r.includes("process"))
     return (
       <Badge className="bg-accent/15 text-accent border-accent/30 hover:bg-accent/20">
-        <Clock className="h-3 w-3 mr-1" /> In process
+        <Clock className="h-3 w-3 mr-1" /> {visaLabel(result, t)}
       </Badge>
     );
-  return <Badge variant="outline">{result || "—"}</Badge>;
+  return <Badge variant="outline">{visaLabel(result, t)}</Badge>;
 }
 
 function MultiFilter({
