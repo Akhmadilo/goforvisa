@@ -665,7 +665,7 @@ function ShartnomalarPage() {
                               ) : c.visa_result ? (
                                 <span className="inline-flex items-center gap-1.5 text-xs">
                                   <span className={cn("inline-block h-2 w-2 rounded-full", visaResultColor(c.visa_result))} />
-                                  <span className="font-medium">{c.visa_result}</span>
+                                  <span className="font-medium">{visaLabel(c.visa_result, t)}</span>
                                 </span>
                               ) : (
                                 "—"
