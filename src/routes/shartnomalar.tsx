@@ -154,7 +154,10 @@ function ShartnomalarPage() {
       const { data, error } = await supabase
         .from("contracts")
         .select("*")
-        .order("created_at", { ascending: false });
+        .order("year", { ascending: true, nullsFirst: false })
+        .order("month", { ascending: true, nullsFirst: false })
+        .order("contract_date", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: true });
       if (error) throw error;
       return (data ?? []) as unknown as ContractRow[];
     },
