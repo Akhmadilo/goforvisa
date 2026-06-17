@@ -11,8 +11,8 @@ function safeEqual(a: string, b: string): boolean {
   return A.length === B.length && timingSafeEqual(A, B);
 }
 
-let _sb: ReturnType<typeof createClient> | null = null;
-function sb() {
+let _sb: any = null;
+function sb(): any {
   if (!_sb) {
     _sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
       auth: { persistSession: false, autoRefreshToken: false },
