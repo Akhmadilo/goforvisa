@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      attendance: {
+        Row: {
+          check_in_at: string
+          created_at: string
+          date: string
+          employee_id: string
+          face_id_confirmed: boolean
+          id: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          check_in_at?: string
+          created_at?: string
+          date: string
+          employee_id: string
+          face_id_confirmed?: boolean
+          id?: string
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          check_in_at?: string
+          created_at?: string
+          date?: string
+          employee_id?: string
+          face_id_confirmed?: boolean
+          id?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           created_at: string
@@ -181,6 +222,88 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_schedules: {
+        Row: {
+          created_at: string
+          employee_id: string
+          id: string
+          is_working: boolean
+          start_time: string
+          updated_at: string
+          weekday: number
+        }
+        Insert: {
+          created_at?: string
+          employee_id: string
+          id?: string
+          is_working?: boolean
+          start_time?: string
+          updated_at?: string
+          weekday: number
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string
+          id?: string
+          is_working?: boolean
+          start_time?: string
+          updated_at?: string
+          weekday?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_schedules_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_telegram: {
+        Row: {
+          created_at: string
+          employee_id: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          linked_at: string | null
+          telegram_id: number
+          telegram_username: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          employee_id?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          linked_at?: string | null
+          telegram_id: number
+          telegram_username?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          employee_id?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          linked_at?: string | null
+          telegram_id?: number
+          telegram_username?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_telegram_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           avatar_url: string | null
@@ -320,6 +443,80 @@ export type Database = {
           vendor?: string | null
         }
         Relationships: []
+      }
+      fine_rules: {
+        Row: {
+          amount_uzs: number
+          created_at: string
+          id: string
+          label: string | null
+          max_minutes: number | null
+          min_minutes: number
+          updated_at: string
+        }
+        Insert: {
+          amount_uzs: number
+          created_at?: string
+          id?: string
+          label?: string | null
+          max_minutes?: number | null
+          min_minutes: number
+          updated_at?: string
+        }
+        Update: {
+          amount_uzs?: number
+          created_at?: string
+          id?: string
+          label?: string | null
+          max_minutes?: number | null
+          min_minutes?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fines: {
+        Row: {
+          amount_uzs: number
+          created_at: string
+          date: string
+          employee_id: string
+          id: string
+          minutes_late: number
+          note: string | null
+          reason: string
+          updated_at: string
+        }
+        Insert: {
+          amount_uzs?: number
+          created_at?: string
+          date: string
+          employee_id: string
+          id?: string
+          minutes_late?: number
+          note?: string | null
+          reason?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_uzs?: number
+          created_at?: string
+          date?: string
+          employee_id?: string
+          id?: string
+          minutes_late?: number
+          note?: string | null
+          reason?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fines_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       operators: {
         Row: {
