@@ -358,6 +358,107 @@ function FinancePage() {
 
   const topExpenses = expenseCategories.slice(0, 10);
 
+  const periodLabel = `${year === "all" ? t("common.allYears") : year}${months.length ? " · " + months.map(m => MONTHS[m-1]).join(", ") : ""}`;
+  const basisLabel = basis === "accrual" ? t("finance.basis.accrual") : t("finance.basis.cash");
+
+  function buildReportRows() {
+    const head = ["", ...allMonths.map(k => {
+      const [y, mm] = k.split("-");
+      return `${MONTHS[Number(mm)-1].slice(0,3)} ${y.slice(2)}`;
+    }), t("common.total")];
+    const rev = allMonths.map((k) => pick(revenueByMonth.get(k)));
+    const doc = allMonths.map((k) => pick(docCostsByMonth.get(k)));
+    const exp = allMonths.map((k) => pick(expenseByMonth.get(k)));
+    const sal = allMonths.map((k) => pick(salariesByMonth.get(k)));
+    const cnt = allMonths.map((k) => contractsCountByMonth.get(k) ?? 0);
+    const gp = rev.map((r, i) => r - doc[i]);
+    const np = rev.map((r, i) => r - doc[i] - exp[i]);
+    const sum = (a: number[]) => a.reduce((s, v) => s + v, 0);
+    const round = (a: number[]) => a.map(v => Math.round(v));
+    const rows: (string | number)[][] = [
+      [t("finance.pnl.revenue"), ...round(rev), Math.round(sum(rev))],
+      [t("finance.pnl.docCosts"), ...round(doc), Math.round(sum(doc))],
+      [t("finance.pnl.grossProfit"), ...round(gp), Math.round(sum(gp))],
+      [t("finance.pnl.salaries"), ...round(sal), Math.round(sum(sal))],
+      [t("finance.pnl.expensesBreakdown"), ...round(exp), Math.round(sum(exp))],
+      [t("finance.pnl.netProfit"), ...round(np), Math.round(sum(np))],
+      [t("finance.contracts"), ...cnt, sum(cnt)],
+    ];
+    return { head, rows };
+  }
+
+  const exportExcel = () => {
+    const { head, rows } = buildReportRows();
+    const wb = XLSX.utils.book_new();
+    const meta = [
+      [t("finance.title")],
+      [t("finance.basis"), basisLabel],
+      [t("finance.currency"), currency],
+      [t("common.year"), year === "all" ? t("common.allYears") : year],
+      [t("finance.months"), months.length ? months.map(m => MONTHS[m-1]).join(", ") : t("common.allMonths")],
+      [],
+      [t("finance.revenue"), Math.round(totals.revenue)],
+      [t("finance.pnl.docCosts"), Math.round(totals.docCosts)],
+      [t("finance.grossProfit"), Math.round(totals.grossProfit)],
+      [t("finance.expense"), Math.round(totals.expense)],
+      [t("finance.profit"), Math.round(totals.profit)],
+      [t("finance.margin"), `${totals.margin.toFixed(1)}%`],
+    ];
+    const ws1 = XLSX.utils.aoa_to_sheet(meta);
+    XLSX.utils.book_append_sheet(wb, ws1, "Summary");
+
+    const ws2 = XLSX.utils.aoa_to_sheet([head, ...rows]);
+    XLSX.utils.book_append_sheet(wb, ws2, "Monthly");
+
+    const catRows = [[t("finance.category"), t("common.amount")], ...expenseCategories.map(c => [c.name, Math.round(c.total)])];
+    const ws3 = XLSX.utils.aoa_to_sheet(catRows);
+    XLSX.utils.book_append_sheet(wb, ws3, "Categories");
+
+    XLSX.writeFile(wb, `moliya-${basis}-${currency}-${year}.xlsx`);
+  };
+
+  const exportPdf = () => {
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    doc.setFontSize(14);
+    doc.text(t("finance.title"), 40, 40);
+    doc.setFontSize(10);
+    doc.text(`${basisLabel} · ${currency} · ${periodLabel}`, 40, 58);
+
+    autoTable(doc, {
+      startY: 75,
+      head: [[t("finance.pnl.line"), t("common.amount"), "%"]],
+      body: [
+        [t("finance.pnl.revenue"), fmt(totals.revenue), "100.0%"],
+        [t("finance.pnl.docCosts"), fmt(totals.docCosts), totals.revenue > 0 ? `${((totals.docCosts/totals.revenue)*100).toFixed(1)}%` : "0.0%"],
+        [t("finance.pnl.grossProfit"), fmt(totals.grossProfit), totals.revenue > 0 ? `${((totals.grossProfit/totals.revenue)*100).toFixed(1)}%` : "0.0%"],
+        [t("finance.pnl.expensesBreakdown"), fmt(totals.expense), totals.revenue > 0 ? `${((totals.expense/totals.revenue)*100).toFixed(1)}%` : "0.0%"],
+        [t("finance.pnl.netProfit"), fmt(totals.profit), `${totals.margin.toFixed(1)}%`],
+      ],
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [99, 102, 241] },
+    });
+
+    const { head, rows } = buildReportRows();
+    autoTable(doc, {
+      head: [head],
+      body: rows.map(r => r.map((c, i) => i === 0 ? String(c) : (typeof c === "number" ? fmtShort(c) : String(c)))),
+      styles: { fontSize: 7 },
+      headStyles: { fillColor: [99, 102, 241] },
+    });
+
+    if (expenseCategories.length) {
+      autoTable(doc, {
+        head: [[t("finance.category"), t("common.amount"), "%"]],
+        body: expenseCategories.map(c => [c.name, fmt(c.total), totals.expense > 0 ? `${((c.total/totals.expense)*100).toFixed(1)}%` : "0.0%"]),
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [99, 102, 241] },
+      });
+    }
+
+    doc.save(`moliya-${basis}-${currency}-${year}.pdf`);
+  };
+
+
   return (
     <div className="relative min-h-screen bg-background text-foreground">
       <AppSidebar />
