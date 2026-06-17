@@ -1,4 +1,4 @@
-export type WidgetGroup = "dashboard" | "salaries" | "expenses" | "employees" | "finance" | "contracts";
+export type WidgetGroup = "dashboard" | "salaries" | "expenses" | "employees" | "finance" | "contracts" | "kpi" | "fines";
 
 export const WIDGET_GROUPS: { key: WidgetGroup; label: string }[] = [
   { key: "dashboard", label: "Dashboard bo'limi" },
@@ -7,6 +7,8 @@ export const WIDGET_GROUPS: { key: WidgetGroup; label: string }[] = [
   { key: "employees", label: "Ishchilar bo'limi" },
   { key: "finance", label: "Moliyaviy hisobotlar bo'limi" },
   { key: "contracts", label: "Shartnomalar bo'limi" },
+  { key: "kpi", label: "KPI bo'limi" },
+  { key: "fines", label: "Jarima bo'limi" },
 ];
 
 export const WIDGETS = [
@@ -51,6 +53,10 @@ export const WIDGETS = [
   { key: "contracts_edit", group: "contracts", label: "Shartnoma tahrirlash" },
   { key: "contracts_delete", group: "contracts", label: "Shartnoma o'chirish" },
   { key: "contracts_pay", group: "contracts", label: "To'lov qo'shish / o'chirish" },
+  // KPI
+  { key: "kpi_section", group: "kpi", label: "Bo'limga kirish (sahifa)" },
+  // Fines
+  { key: "fines_section", group: "fines", label: "Bo'limga kirish (sahifa)" },
 ] as const;
 
 export type WidgetKey = (typeof WIDGETS)[number]["key"];
