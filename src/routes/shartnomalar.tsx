@@ -154,12 +154,20 @@ function ShartnomalarPage() {
       const { data, error } = await supabase
         .from("contracts")
         .select("*")
-        .order("year", { ascending: true, nullsFirst: false })
-        .order("month", { ascending: true, nullsFirst: false })
-        .order("contract_date", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: true });
       if (error) throw error;
-      return (data ?? []) as unknown as ContractRow[];
+      const rows = (data ?? []) as unknown as ContractRow[];
+      rows.sort((a, b) => {
+        const ay = Number(a.year) || 0, by = Number(b.year) || 0;
+        if (ay !== by) return ay - by;
+        const am = Number(a.month) || 0, bm = Number(b.month) || 0;
+        if (am !== bm) return am - bm;
+        const ad = a.contract_date ? new Date(a.contract_date).getTime() : 0;
+        const bd = b.contract_date ? new Date(b.contract_date).getTime() : 0;
+        if (ad !== bd) return ad - bd;
+        return new Date((a as any).created_at).getTime() - new Date((b as any).created_at).getTime();
+      });
+      return rows;
     },
   });
 
