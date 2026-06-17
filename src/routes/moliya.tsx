@@ -478,6 +478,20 @@ function FinancePage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={exportExcel}
+                className="h-9 px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-1.5 text-xs font-medium"
+                title="Excel"
+              >
+                <FileSpreadsheet className="h-4 w-4" /> Excel
+              </button>
+              <button
+                onClick={exportPdf}
+                className="h-9 px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-1.5 text-xs font-medium"
+                title="PDF"
+              >
+                <FileText className="h-4 w-4" /> PDF
+              </button>
               {isAdmin && (
                 <Link to="/admin" className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary flex items-center justify-center" title={t("nav.admin")}>
                   <Shield className="h-4 w-4" />
