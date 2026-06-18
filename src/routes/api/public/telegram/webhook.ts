@@ -200,6 +200,12 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                 text: `Assalomu alaykum${from.first_name ? ", " + from.first_name : ""}! 👋\n\nIshga kelganingizda avval ofisdagi FACE ID dan o'ting, keyin pastdagi "🟢 Keldim" tugmasini bosing.`,
                 reply_markup: MAIN_KB,
               });
+            } else if (text === "/chatid") {
+              await tg("sendMessage", {
+                chat_id: chatId,
+                text: `🆔 Ushbu guruhning chat_id: \`${chatId}\`\n\nBuni Jarima → Sozlamalar → Guruh ID ga nusxalab qo'ying.`,
+                parse_mode: "Markdown",
+              });
             } else if (text === "🟢 Keldim" || text.toLowerCase() === "keldim") {
               await tg("sendMessage", {
                 chat_id: chatId,
