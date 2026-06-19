@@ -53,6 +53,101 @@ function timeFromIso(iso: string): string {
   return `${String(t.getUTCHours()).padStart(2, "0")}:${String(t.getUTCMinutes()).padStart(2, "0")}`;
 }
 
+let _logoDataUrl: string | null = null;
+async function getLogoDataUrl(): Promise<string | null> {
+  if (_logoDataUrl) return _logoDataUrl;
+  try {
+    const res = await fetch(logoUrl);
+    const blob = await res.blob();
+    _logoDataUrl = await new Promise<string>((resolve) => {
+      const r = new FileReader();
+      r.onloadend = () => resolve(r.result as string);
+      r.readAsDataURL(blob);
+    });
+    return _logoDataUrl;
+  } catch {
+    return null;
+  }
+}
+
+type FineForPdf = {
+  date: string;
+  employeeName: string;
+  minutes_late: number;
+  amount_uzs: number;
+  reason: string;
+};
+
+async function generateFinePdf(fine: FineForPdf, approverName: string) {
+  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const logo = await getLogoDataUrl();
+
+  if (logo) {
+    try { doc.addImage(logo, "PNG", 40, 32, 56, 56); } catch {}
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("GOFORVISA", 110, 56);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text("Rasmiy jarima dalolatnomasi", 110, 74);
+
+  doc.setDrawColor(180);
+  doc.line(40, 100, pageW - 40, 100);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("JARIMA DALOLATNOMASI", pageW / 2, 130, { align: "center" });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(`Sana: ${fine.date}`, 40, 160);
+  doc.text(`Hujjat raqami: JR-${fine.date.replace(/-/g, "")}-${Math.floor(Math.random() * 9000 + 1000)}`, pageW - 40, 160, { align: "right" });
+
+  autoTable(doc, {
+    startY: 180,
+    head: [["Ko'rsatkich", "Qiymat"]],
+    body: [
+      ["Xodim", fine.employeeName],
+      ["Kechikish (daqiqa)", String(fine.minutes_late)],
+      ["Sabab", fine.reason || "—"],
+      ["Jarima summasi", `${new Intl.NumberFormat("uz-UZ").format(Math.round(fine.amount_uzs))} so'm`],
+    ],
+    styles: { fontSize: 11, cellPadding: 8 },
+    headStyles: { fillColor: [99, 102, 241], textColor: 255 },
+    columnStyles: { 0: { cellWidth: 180, fontStyle: "bold" } },
+  });
+
+  const finalY = (doc as any).lastAutoTable.finalY || 300;
+
+  doc.setFontSize(10);
+  doc.text(
+    "Ushbu dalolatnoma asosida xodimga belgilangan miqdorda jarima qo'llanildi va",
+    40, finalY + 30,
+  );
+  doc.text("tegishli hisobotlarga kiritildi.", 40, finalY + 46);
+
+  const sigY = finalY + 110;
+  doc.setFont("helvetica", "bold");
+  doc.text("Tasdiqladi:", 40, sigY);
+  doc.setFont("helvetica", "normal");
+  doc.text(approverName || "—", 40, sigY + 20);
+  doc.setDrawColor(120);
+  doc.line(40, sigY + 26, 260, sigY + 26);
+  doc.setFontSize(9);
+  doc.setTextColor(120);
+  doc.text("(F.I.Sh. va imzo)", 40, sigY + 40);
+
+  doc.setTextColor(0);
+  doc.setFontSize(10);
+  doc.text("M.O'.", pageW - 80, sigY + 20);
+
+  doc.save(`jarima-${fine.employeeName.replace(/\s+/g, "_")}-${fine.date}.pdf`);
+}
+
+
 function JarimaPage() {
   const { t } = useT();
   const { user } = useAuth();
