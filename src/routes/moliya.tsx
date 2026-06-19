@@ -691,7 +691,7 @@ function FinancePage() {
                       const [y, mm] = k.split("-");
                       return (
                         <TableHead key={k} className="text-right whitespace-nowrap">
-                          {MONTH_ORDER[Number(mm) - 1].slice(0, 3)} {y.slice(2)}
+                          {MONTHS[Number(mm) - 1].slice(0, 3)} {y.slice(2)}
                         </TableHead>
                       );
                     })}
