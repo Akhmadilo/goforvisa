@@ -178,7 +178,19 @@ function JarimaPage() {
     enabled: !!user,
   });
 
+  const { data: approverName = "" } = useQuery({
+    queryKey: ["my-display-name", user?.id],
+    queryFn: async () => {
+      if (!user) return "";
+      const { data } = await supabase
+        .from("profiles").select("display_name").eq("id", user.id).maybeSingle();
+      return data?.display_name || user.email || "";
+    },
+    enabled: !!user,
+  });
+
   const empMap = useMemo(() => {
+
     const m = new Map<string, string>();
     employees.forEach(e => m.set(e.id, e.full_name));
     return m;
