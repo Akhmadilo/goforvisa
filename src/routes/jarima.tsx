@@ -404,7 +404,14 @@ function JarimaPage() {
             {/* === TARIX === */}
             <TabsContent value="history">
               <Card className="p-4">
-                <div className="font-medium mb-3">Oxirgi jarimalar</div>
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                  <div className="font-medium">Oxirgi jarimalar</div>
+                  <MonthlyExport
+                    fines={(data?.fines || []) as MonthlyFine[]}
+                    employees={employees}
+                    approverName={approverName}
+                  />
+                </div>
                 <Table>
                   <TableHeader>
                     <TableRow>
