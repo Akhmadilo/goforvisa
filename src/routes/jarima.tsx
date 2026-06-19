@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Link2, Trash2, Plus } from "lucide-react";
+import { AlertTriangle, Link2, Trash2, Plus, FileText } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
@@ -24,6 +24,10 @@ import {
   getJarimaData, linkTelegramToEmployee, saveSchedule, saveFineRule, deleteFineRule,
 } from "@/lib/jarima.functions";
 import { toast } from "sonner";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import logoUrl from "@/assets/logo.png";
+
 
 export const Route = createFileRoute("/jarima")({
   component: JarimaPage,
