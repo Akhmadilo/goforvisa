@@ -147,6 +147,108 @@ async function generateFinePdf(fine: FineForPdf, approverName: string) {
   doc.save(`jarima-${fine.employeeName.replace(/\s+/g, "_")}-${fine.date}.pdf`);
 }
 
+const UZ_MONTHS = [
+  "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
+  "Iyul", "Avgust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr",
+];
+
+type MonthlyFine = { date: string; employee_id: string; amount_uzs: number };
+
+async function generateMonthlyPdf(
+  year: number,
+  month: number, // 1-12
+  employees: { id: string; full_name: string }[],
+  fines: MonthlyFine[],
+  approverName: string,
+) {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const logo = await getLogoDataUrl();
+
+  if (logo) {
+    try { doc.addImage(logo, "PNG", 30, 24, 44, 44); } catch {}
+  }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("GOFORVISA", 84, 44);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text("Oylik jarimalar hisoboti", 84, 58);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.text(`${UZ_MONTHS[month - 1]} ${year}`, pageW / 2, 50, { align: "center" });
+
+  // Build matrix: employeeId -> day -> amount
+  const matrix = new Map<string, Map<number, number>>();
+  const totalsByEmp = new Map<string, number>();
+  const totalsByDay = new Map<number, number>();
+  let grandTotal = 0;
+
+  for (const f of fines) {
+    const d = new Date(f.date);
+    if (d.getFullYear() !== year || d.getMonth() + 1 !== month) continue;
+    const day = d.getDate();
+    if (!matrix.has(f.employee_id)) matrix.set(f.employee_id, new Map());
+    const row = matrix.get(f.employee_id)!;
+    row.set(day, (row.get(day) || 0) + f.amount_uzs);
+    totalsByEmp.set(f.employee_id, (totalsByEmp.get(f.employee_id) || 0) + f.amount_uzs);
+    totalsByDay.set(day, (totalsByDay.get(day) || 0) + f.amount_uzs);
+    grandTotal += f.amount_uzs;
+  }
+
+  const head = [["Ishchi", ...Array.from({ length: daysInMonth }, (_, i) => String(i + 1)), "Jami"]];
+  const body = employees.map(e => {
+    const row = matrix.get(e.id);
+    const cells: (string | number)[] = [e.full_name];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const v = row?.get(d) || 0;
+      cells.push(v === 0 ? "0" : fmt(v));
+    }
+    cells.push(fmt(totalsByEmp.get(e.id) || 0));
+    return cells;
+  });
+  const totalRow: (string | number)[] = ["JAMI"];
+  for (let d = 1; d <= daysInMonth; d++) totalRow.push(fmt(totalsByDay.get(d) || 0));
+  totalRow.push(fmt(grandTotal));
+
+  autoTable(doc, {
+    startY: 85,
+    head,
+    body,
+    foot: [totalRow],
+    styles: { fontSize: 6.5, cellPadding: 2, halign: "center", overflow: "linebreak" },
+    headStyles: { fillColor: [99, 102, 241], textColor: 255, fontSize: 7 },
+    footStyles: { fillColor: [241, 245, 249], textColor: 0, fontStyle: "bold" },
+    columnStyles: { 0: { halign: "left", cellWidth: 90, fontStyle: "bold" } },
+    didParseCell: (data) => {
+      if (data.section === "body" && data.column.index > 0 && data.column.index <= daysInMonth) {
+        if (data.cell.raw === "0") {
+          data.cell.styles.textColor = [180, 180, 180];
+        } else {
+          data.cell.styles.textColor = [185, 28, 28];
+          data.cell.styles.fontStyle = "bold";
+        }
+      }
+    },
+  });
+
+  const finalY = (doc as any).lastAutoTable.finalY || 400;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text("Tasdiqladi:", 40, finalY + 40);
+  doc.setFont("helvetica", "normal");
+  doc.text(approverName || "—", 40, finalY + 56);
+  doc.setDrawColor(120);
+  doc.line(40, finalY + 62, 240, finalY + 62);
+  doc.setFontSize(8);
+  doc.setTextColor(120);
+  doc.text("(F.I.Sh. va imzo)   M.O'.", 40, finalY + 74);
+
+  doc.save(`jarima-${year}-${String(month).padStart(2, "0")}.pdf`);
+}
+
 
 function JarimaPage() {
   const { t } = useT();
@@ -302,7 +404,14 @@ function JarimaPage() {
             {/* === TARIX === */}
             <TabsContent value="history">
               <Card className="p-4">
-                <div className="font-medium mb-3">Oxirgi jarimalar</div>
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+                  <div className="font-medium">Oxirgi jarimalar</div>
+                  <MonthlyExport
+                    fines={(data?.fines || []) as MonthlyFine[]}
+                    employees={employees}
+                    approverName={approverName}
+                  />
+                </div>
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -561,5 +670,50 @@ function RuleRow({
         <Button size="sm" variant="ghost" onClick={() => onDelete(rule.id)}><Trash2 className="h-4 w-4" /></Button>
       </TableCell>
     </TableRow>
+  );
+}
+
+function MonthlyExport({
+  fines, employees, approverName,
+}: {
+  fines: MonthlyFine[];
+  employees: Emp[];
+  approverName: string;
+}) {
+  const now = new Date();
+  const [year, setYear] = useState<number>(now.getFullYear());
+  const [month, setMonth] = useState<number>(now.getMonth() + 1);
+  const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
+  return (
+    <div className="flex items-center gap-2">
+      <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+        <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {UZ_MONTHS.map((m, i) => (
+            <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+        <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <Button
+        size="sm"
+        onClick={async () => {
+          try {
+            await generateMonthlyPdf(year, month, employees, fines, approverName);
+            toast.success("Oylik PDF tayyor");
+          } catch (e: any) {
+            toast.error(e?.message || "Xatolik");
+          }
+        }}
+      >
+        <FileText className="h-4 w-4 mr-1" />
+        Oylik PDF
+      </Button>
+    </div>
   );
 }
