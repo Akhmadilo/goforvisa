@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Link2, Trash2, Plus } from "lucide-react";
+import { AlertTriangle, Link2, Trash2, Plus, FileText } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
@@ -24,6 +24,10 @@ import {
   getJarimaData, linkTelegramToEmployee, saveSchedule, saveFineRule, deleteFineRule,
 } from "@/lib/jarima.functions";
 import { toast } from "sonner";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import logoUrl from "@/assets/logo.png";
+
 
 export const Route = createFileRoute("/jarima")({
   component: JarimaPage,
@@ -48,6 +52,101 @@ function timeFromIso(iso: string): string {
   const t = new Date(d.getTime() + 5 * 3600 * 1000);
   return `${String(t.getUTCHours()).padStart(2, "0")}:${String(t.getUTCMinutes()).padStart(2, "0")}`;
 }
+
+let _logoDataUrl: string | null = null;
+async function getLogoDataUrl(): Promise<string | null> {
+  if (_logoDataUrl) return _logoDataUrl;
+  try {
+    const res = await fetch(logoUrl);
+    const blob = await res.blob();
+    _logoDataUrl = await new Promise<string>((resolve) => {
+      const r = new FileReader();
+      r.onloadend = () => resolve(r.result as string);
+      r.readAsDataURL(blob);
+    });
+    return _logoDataUrl;
+  } catch {
+    return null;
+  }
+}
+
+type FineForPdf = {
+  date: string;
+  employeeName: string;
+  minutes_late: number;
+  amount_uzs: number;
+  reason: string;
+};
+
+async function generateFinePdf(fine: FineForPdf, approverName: string) {
+  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const logo = await getLogoDataUrl();
+
+  if (logo) {
+    try { doc.addImage(logo, "PNG", 40, 32, 56, 56); } catch {}
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(16);
+  doc.text("GOFORVISA", 110, 56);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text("Rasmiy jarima dalolatnomasi", 110, 74);
+
+  doc.setDrawColor(180);
+  doc.line(40, 100, pageW - 40, 100);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("JARIMA DALOLATNOMASI", pageW / 2, 130, { align: "center" });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(`Sana: ${fine.date}`, 40, 160);
+  doc.text(`Hujjat raqami: JR-${fine.date.replace(/-/g, "")}-${Math.floor(Math.random() * 9000 + 1000)}`, pageW - 40, 160, { align: "right" });
+
+  autoTable(doc, {
+    startY: 180,
+    head: [["Ko'rsatkich", "Qiymat"]],
+    body: [
+      ["Xodim", fine.employeeName],
+      ["Kechikish (daqiqa)", String(fine.minutes_late)],
+      ["Sabab", fine.reason || "—"],
+      ["Jarima summasi", `${new Intl.NumberFormat("uz-UZ").format(Math.round(fine.amount_uzs))} so'm`],
+    ],
+    styles: { fontSize: 11, cellPadding: 8 },
+    headStyles: { fillColor: [99, 102, 241], textColor: 255 },
+    columnStyles: { 0: { cellWidth: 180, fontStyle: "bold" } },
+  });
+
+  const finalY = (doc as any).lastAutoTable.finalY || 300;
+
+  doc.setFontSize(10);
+  doc.text(
+    "Ushbu dalolatnoma asosida xodimga belgilangan miqdorda jarima qo'llanildi va",
+    40, finalY + 30,
+  );
+  doc.text("tegishli hisobotlarga kiritildi.", 40, finalY + 46);
+
+  const sigY = finalY + 110;
+  doc.setFont("helvetica", "bold");
+  doc.text("Tasdiqladi:", 40, sigY);
+  doc.setFont("helvetica", "normal");
+  doc.text(approverName || "—", 40, sigY + 20);
+  doc.setDrawColor(120);
+  doc.line(40, sigY + 26, 260, sigY + 26);
+  doc.setFontSize(9);
+  doc.setTextColor(120);
+  doc.text("(F.I.Sh. va imzo)", 40, sigY + 40);
+
+  doc.setTextColor(0);
+  doc.setFontSize(10);
+  doc.text("M.O'.", pageW - 80, sigY + 20);
+
+  doc.save(`jarima-${fine.employeeName.replace(/\s+/g, "_")}-${fine.date}.pdf`);
+}
+
 
 function JarimaPage() {
   const { t } = useT();
@@ -79,7 +178,19 @@ function JarimaPage() {
     enabled: !!user,
   });
 
+  const { data: approverName = "" } = useQuery({
+    queryKey: ["my-display-name", user?.id],
+    queryFn: async () => {
+      if (!user) return "";
+      const { data } = await supabase
+        .from("profiles").select("display_name").eq("id", user.id).maybeSingle();
+      return data?.display_name || user.email || "";
+    },
+    enabled: !!user,
+  });
+
   const empMap = useMemo(() => {
+
     const m = new Map<string, string>();
     employees.forEach(e => m.set(e.id, e.full_name));
     return m;
@@ -200,23 +311,52 @@ function JarimaPage() {
                       <TableHead>Kechikish</TableHead>
                       <TableHead>Sabab</TableHead>
                       <TableHead className="text-right">Summa</TableHead>
+                      <TableHead className="text-right">Dalolatnoma</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {(data?.fines || []).map(f => (
-                      <TableRow key={f.id}>
-                        <TableCell>{f.date}</TableCell>
-                        <TableCell>{empMap.get(f.employee_id) || "—"}</TableCell>
-                        <TableCell>{f.minutes_late} daq</TableCell>
-                        <TableCell>{f.reason}</TableCell>
-                        <TableCell className="text-right">{fmt(f.amount_uzs)} so'm</TableCell>
-                      </TableRow>
-                    ))}
+                    {(data?.fines || []).map(f => {
+                      const name = empMap.get(f.employee_id) || "—";
+                      return (
+                        <TableRow key={f.id}>
+                          <TableCell>{f.date}</TableCell>
+                          <TableCell>{name}</TableCell>
+                          <TableCell>{f.minutes_late} daq</TableCell>
+                          <TableCell>{f.reason}</TableCell>
+                          <TableCell className="text-right">{fmt(f.amount_uzs)} so'm</TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                if (!confirm(`Jarimani tasdiqlaysizmi?\n\nXodim: ${name}\nSumma: ${fmt(f.amount_uzs)} so'm\n\nTasdiqlovchi: ${approverName}`)) return;
+                                try {
+                                  await generateFinePdf({
+                                    date: f.date,
+                                    employeeName: name,
+                                    minutes_late: f.minutes_late,
+                                    amount_uzs: f.amount_uzs,
+                                    reason: f.reason,
+                                  }, approverName);
+                                  toast.success("PDF tayyor");
+                                } catch (e: any) {
+                                  toast.error(e?.message || "Xatolik");
+                                }
+                              }}
+                            >
+                              <FileText className="h-4 w-4 mr-1" />
+                              Tasdiqlash & PDF
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                     {(data?.fines || []).length === 0 && (
-                      <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Jarimalar yo'q</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Jarimalar yo'q</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
+
               </Card>
             </TabsContent>
 
