@@ -322,7 +322,7 @@ function FinancePage() {
       const exp = pick(expenseByMonth.get(k));
       const doc = pick(docCostsByMonth.get(k));
       return {
-        name: `${MONTHS[Number(mm) - 1].slice(0, 3)} ${y.slice(2)}`,
+        name: `${MONTH_ORDER[Number(mm) - 1].slice(0, 3)} ${y.slice(2)}`,
         revenue: Math.round(rev),
         expense: Math.round(exp),
         // Sof foyda = Jami daromad − Doc xarajat − Boshqa xarajatlar
@@ -691,7 +691,7 @@ function FinancePage() {
                       const [y, mm] = k.split("-");
                       return (
                         <TableHead key={k} className="text-right whitespace-nowrap">
-                          {MONTHS[Number(mm) - 1].slice(0, 3)} {y.slice(2)}
+                          {MONTH_ORDER[Number(mm) - 1].slice(0, 3)} {y.slice(2)}
                         </TableHead>
                       );
                     })}
@@ -1023,7 +1023,7 @@ function ForecastCard({
     const points: FcastPoint[] = tail.map(h => {
       const [y, mm] = h.key.split("-");
       return {
-        name: `${MONTHS[Number(mm) - 1].slice(0, 3)} ${y.slice(2)}`,
+        name: `${MONTH_ORDER[Number(mm) - 1].slice(0, 3)} ${y.slice(2)}`,
         actual: Math.round(h.value),
       };
     });
@@ -1034,7 +1034,7 @@ function ForecastCard({
     forecast.forEach(f => {
       const [y, mm] = f.key.split("-");
       points.push({
-        name: `${MONTHS[Number(mm) - 1].slice(0, 3)} ${y.slice(2)} •`,
+        name: `${MONTH_ORDER[Number(mm) - 1].slice(0, 3)} ${y.slice(2)} •`,
         forecast: Math.round(f.value),
         low: Math.round(f.low),
         high: Math.round(f.high),
@@ -1136,7 +1136,7 @@ function ForecastCard({
               const [y, mm] = f.key.split("-");
               return (
                 <TableRow key={f.key}>
-                  <TableCell className="font-medium">{MONTHS[Number(mm) - 1]} {y}</TableCell>
+                  <TableCell className="font-medium">{MONTH_ORDER[Number(mm) - 1]} {y}</TableCell>
                   <TableCell className="text-right tabular-nums text-red-600 dark:text-red-400">{fmtFn(f.low)}</TableCell>
                   <TableCell className="text-right tabular-nums font-semibold">{fmtFn(f.value)}</TableCell>
                   <TableCell className="text-right tabular-nums text-emerald-600 dark:text-emerald-400">{fmtFn(f.high)}</TableCell>
