@@ -322,7 +322,7 @@ function FinancePage() {
       const exp = pick(expenseByMonth.get(k));
       const doc = pick(docCostsByMonth.get(k));
       return {
-        name: `${MONTH_ORDER[Number(mm) - 1].slice(0, 3)} ${y.slice(2)}`,
+        name: `${MONTHS[Number(mm) - 1].slice(0, 3)} ${y.slice(2)}`,
         revenue: Math.round(rev),
         expense: Math.round(exp),
         // Sof foyda = Jami daromad − Doc xarajat − Boshqa xarajatlar
