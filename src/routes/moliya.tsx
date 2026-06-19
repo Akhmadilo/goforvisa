@@ -889,3 +889,259 @@ function parseContractDate(s: string): Date | null {
   if (!isNaN(d.getTime())) return d;
   return null;
 }
+
+// ============================================================
+// Visa sales forecast (next 3 months) — auto-updates from contracts
+// ============================================================
+
+type FcastPoint = {
+  name: string;
+  actual?: number;
+  forecast?: number;
+  low?: number;
+  high?: number;
+};
+
+function buildRevenueHistory(
+  contracts: Contract[],
+  getRate: (ym: string) => number,
+  currency: "UZS" | "USD",
+): { key: string; value: number }[] {
+  const map = new Map<string, number>();
+  for (const c of contracts) {
+    const p = dashboardPeriod(c);
+    if (!p) continue;
+    const gross = contractGrossUsd(c, getRate, p.key);
+    const v = currency === "USD" ? gross : gross * getRate(p.key);
+    map.set(p.key, (map.get(p.key) || 0) + v);
+  }
+  return Array.from(map.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => ({ key, value }));
+}
+
+function nextMonthKey(key: string): string {
+  const [y, m] = key.split("-").map(Number);
+  const d = new Date(y, m, 1); // next month
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function forecastNext3(history: { key: string; value: number }[]): {
+  forecast: { key: string; value: number; low: number; high: number }[];
+  method: string;
+} {
+  if (history.length === 0) {
+    return { forecast: [], method: "Ma'lumot yo'q" };
+  }
+  // exclude trailing zeros (no activity months at the end) but keep internal zeros
+  const last = history[history.length - 1];
+  const vals = history.map(h => h.value);
+
+  // Weighted moving average (last 3 months: 0.2, 0.3, 0.5)
+  const last3 = vals.slice(-3);
+  const weights = last3.length === 3 ? [0.2, 0.3, 0.5] : last3.map(() => 1 / last3.length);
+  const wma = last3.reduce((s, v, i) => s + v * weights[i], 0);
+
+  // Linear trend (slope across last up to 6 months)
+  const trendWindow = vals.slice(-6);
+  let slope = 0;
+  if (trendWindow.length >= 2) {
+    const n = trendWindow.length;
+    const xMean = (n - 1) / 2;
+    const yMean = trendWindow.reduce((s, v) => s + v, 0) / n;
+    let num = 0, den = 0;
+    trendWindow.forEach((y, x) => {
+      num += (x - xMean) * (y - yMean);
+      den += (x - xMean) ** 2;
+    });
+    slope = den > 0 ? num / den : 0;
+  }
+
+  // Seasonality: same month last year / 12-month avg (if ≥12 months)
+  const histMap = new Map(history.map(h => [h.key, h.value]));
+  const has12 = history.length >= 12;
+  const avg12 = has12
+    ? vals.slice(-12).reduce((s, v) => s + v, 0) / 12
+    : 0;
+
+  let method = "Vaznli o'rtacha + trend";
+  if (has12) method += " + mavsumiylik";
+
+  const out: { key: string; value: number; low: number; high: number }[] = [];
+  let cursor = last.key;
+  for (let i = 1; i <= 3; i++) {
+    cursor = nextMonthKey(cursor);
+    let base = wma + slope * i;
+
+    if (has12) {
+      // same month previous year
+      const [y, m] = cursor.split("-").map(Number);
+      const prevKey = `${y - 1}-${String(m).padStart(2, "0")}`;
+      const prev = histMap.get(prevKey);
+      if (prev !== undefined && avg12 > 0) {
+        const seasonalFactor = prev / avg12;
+        base = base * 0.6 + (avg12 * seasonalFactor + slope * i) * 0.4;
+      }
+    }
+
+    base = Math.max(0, base);
+    out.push({
+      key: cursor,
+      value: base,
+      low: Math.max(0, base * 0.85),
+      high: base * 1.15,
+    });
+  }
+  return { forecast: out, method };
+}
+
+function ForecastCard({
+  contracts, getRate, currency, fmt: fmtFn, fmtShort: fmtShortFn,
+}: {
+  contracts: Contract[];
+  getRate: (ym: string) => number;
+  currency: "UZS" | "USD";
+  fmt: (n: number) => string;
+  fmtShort: (n: number) => string;
+}) {
+  const history = useMemo(
+    () => buildRevenueHistory(contracts, getRate, currency),
+    [contracts, getRate, currency],
+  );
+  const { forecast, method } = useMemo(() => forecastNext3(history), [history]);
+
+  const chartData: FcastPoint[] = useMemo(() => {
+    const tail = history.slice(-6);
+    const points: FcastPoint[] = tail.map(h => {
+      const [y, mm] = h.key.split("-");
+      return {
+        name: `${MONTHS[Number(mm) - 1].slice(0, 3)} ${y.slice(2)}`,
+        actual: Math.round(h.value),
+      };
+    });
+    // bridge actual → forecast
+    if (tail.length > 0 && forecast.length > 0) {
+      points[points.length - 1].forecast = points[points.length - 1].actual;
+    }
+    forecast.forEach(f => {
+      const [y, mm] = f.key.split("-");
+      points.push({
+        name: `${MONTHS[Number(mm) - 1].slice(0, 3)} ${y.slice(2)} •`,
+        forecast: Math.round(f.value),
+        low: Math.round(f.low),
+        high: Math.round(f.high),
+      });
+    });
+    return points;
+  }, [history, forecast]);
+
+  const lastActual = history[history.length - 1]?.value ?? 0;
+  const totalForecast = forecast.reduce((s, f) => s + f.value, 0);
+  const totalLow = forecast.reduce((s, f) => s + f.low, 0);
+  const totalHigh = forecast.reduce((s, f) => s + f.high, 0);
+  const firstFc = forecast[0]?.value ?? 0;
+  const growth = lastActual > 0 ? ((firstFc - lastActual) / lastActual) * 100 : 0;
+
+  if (history.length < 2) {
+    return (
+      <Card className="p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold">Sotuv prognozi (kelasi 3 oy)</span>
+        </div>
+        <div className="text-sm text-muted-foreground">
+          Prognoz uchun kamida 2 oy ma'lumot kerak. Hozir: {history.length} oy.
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold">Sotuv prognozi — kelasi 3 oy</span>
+          <Badge variant="secondary" className="text-[10px]">{method}</Badge>
+        </div>
+        <Badge variant="outline" className="text-[10px]">
+          {history.length} oy tarix · avto-yangilanadi
+        </Badge>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div className="rounded-lg border p-3">
+          <div className="text-[11px] text-muted-foreground">Realist (3 oy)</div>
+          <div className="text-base font-bold tabular-nums">{fmtFn(totalForecast)}</div>
+        </div>
+        <div className="rounded-lg border p-3">
+          <div className="text-[11px] text-muted-foreground">Pessimist</div>
+          <div className="text-base font-bold tabular-nums text-red-600 dark:text-red-400">{fmtFn(totalLow)}</div>
+        </div>
+        <div className="rounded-lg border p-3">
+          <div className="text-[11px] text-muted-foreground">Optimist</div>
+          <div className="text-base font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{fmtFn(totalHigh)}</div>
+        </div>
+        <div className="rounded-lg border p-3">
+          <div className="text-[11px] text-muted-foreground">Kelasi oy o'sish</div>
+          <div className={cn(
+            "text-base font-bold tabular-nums flex items-center gap-1",
+            growth >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400",
+          )}>
+            {growth >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+            {growth >= 0 ? "+" : ""}{growth.toFixed(1)}%
+          </div>
+        </div>
+      </div>
+
+      <div className="h-[280px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.08} vertical={false} />
+            <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="currentColor" opacity={0.5} />
+            <YAxis tick={{ fontSize: 11 }} stroke="currentColor" opacity={0.5} tickFormatter={fmtShortFn} />
+            <Tooltip
+              formatter={(v: number) => fmtFn(v)}
+              contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+            />
+            <Legend wrapperStyle={{ fontSize: 11 }} />
+            <Line type="monotone" dataKey="actual" name="Haqiqiy" stroke="#6366f1" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+            <Line type="monotone" dataKey="forecast" name="Prognoz (realist)" stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3 }} connectNulls />
+            <Line type="monotone" dataKey="high" name="Optimist" stroke="#10b981" strokeWidth={1} strokeDasharray="2 4" dot={false} opacity={0.5} />
+            <Line type="monotone" dataKey="low" name="Pessimist" stroke="#ef4444" strokeWidth={1} strokeDasharray="2 4" dot={false} opacity={0.5} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="mt-3 overflow-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Oy</TableHead>
+              <TableHead className="text-right">Pessimist</TableHead>
+              <TableHead className="text-right">Realist</TableHead>
+              <TableHead className="text-right">Optimist</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {forecast.map(f => {
+              const [y, mm] = f.key.split("-");
+              return (
+                <TableRow key={f.key}>
+                  <TableCell className="font-medium">{MONTHS[Number(mm) - 1]} {y}</TableCell>
+                  <TableCell className="text-right tabular-nums text-red-600 dark:text-red-400">{fmtFn(f.low)}</TableCell>
+                  <TableCell className="text-right tabular-nums font-semibold">{fmtFn(f.value)}</TableCell>
+                  <TableCell className="text-right tabular-nums text-emerald-600 dark:text-emerald-400">{fmtFn(f.high)}</TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="text-[11px] text-muted-foreground mt-3">
+        Prognoz oxirgi 3 oy vaznli o'rtachasi + trend{history.length >= 12 ? " + mavsumiy koeffitsient" : ""} asosida hisoblanadi. Yangi shartnoma kiritilsa, prognoz avtomatik yangilanadi.
+      </div>
+    </Card>
+  );
+}
