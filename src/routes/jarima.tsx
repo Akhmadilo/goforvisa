@@ -672,3 +672,48 @@ function RuleRow({
     </TableRow>
   );
 }
+
+function MonthlyExport({
+  fines, employees, approverName,
+}: {
+  fines: MonthlyFine[];
+  employees: Emp[];
+  approverName: string;
+}) {
+  const now = new Date();
+  const [year, setYear] = useState<number>(now.getFullYear());
+  const [month, setMonth] = useState<number>(now.getMonth() + 1);
+  const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
+  return (
+    <div className="flex items-center gap-2">
+      <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+        <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {UZ_MONTHS.map((m, i) => (
+            <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+        <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+        </SelectContent>
+      </Select>
+      <Button
+        size="sm"
+        onClick={async () => {
+          try {
+            await generateMonthlyPdf(year, month, employees, fines, approverName);
+            toast.success("Oylik PDF tayyor");
+          } catch (e: any) {
+            toast.error(e?.message || "Xatolik");
+          }
+        }}
+      >
+        <FileText className="h-4 w-4 mr-1" />
+        Oylik PDF
+      </Button>
+    </div>
+  );
+}
