@@ -601,6 +601,14 @@ function FinancePage() {
             </div>
           </Card>
 
+          <ForecastCard
+            contracts={contracts}
+            getRate={getRate}
+            currency={currency}
+            fmt={fmt}
+            fmtShort={fmtShort}
+          />
+
           <Card className="p-4">
             <div className="text-sm font-semibold mb-3">{t("finance.pnl")}</div>
             <div className="overflow-auto">
