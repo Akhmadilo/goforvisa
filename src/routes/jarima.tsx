@@ -1223,7 +1223,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                           : <Badge variant="outline">—</Badge>}
                       </TableCell>
                       <TableCell className="tabular-nums">{cell?.att ? timeFromIso(cell.att.check_in_at) : "—"}</TableCell>
-                      <TableCell>{cell?.fine ? `${cell.fine.minutes_late} daq` : "—"}</TableCell>
+                      <TableCell>{cell?.fine && cell.fine.reason !== "absent" ? `${cell.fine.minutes_late} daq` : "—"}</TableCell>
                       <TableCell className="text-right tabular-nums">
                         {cell?.fine ? <span className="text-red-600 dark:text-red-400 font-semibold">{fmt(cell.fine.amount_uzs)}</span> : "0"}
                       </TableCell>
