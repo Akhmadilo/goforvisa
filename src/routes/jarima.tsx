@@ -22,7 +22,7 @@ import { useIsAdmin } from "@/hooks/use-is-admin";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getJarimaData, linkTelegramToEmployee, saveSchedule, saveFineRule, deleteFineRule,
-  updateAttendanceCheckIn,
+  updateAttendanceCheckIn, setAbsenceFine, clearDay,
 } from "@/lib/jarima.functions";
 import { Pencil } from "lucide-react";
 import {
@@ -758,16 +758,42 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
   const canEditAttendance = isAdmin || isFinance;
   const qc = useQueryClient();
 
-  const [editing, setEditing] = useState<{ date: string; time: string } | null>(null);
+  type EditState = {
+    date: string;
+    mode: "present" | "absent";
+    time: string;
+    amount: string;
+    note: string;
+  };
+  const [editing, setEditing] = useState<EditState | null>(null);
   const updateFn = useServerFn(updateAttendanceCheckIn);
+  const absenceFn = useServerFn(setAbsenceFine);
+  const clearFn = useServerFn(clearDay);
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["emp-month", empId, year, month] });
+    qc.invalidateQueries({ queryKey: ["jarima"] });
+  };
   const updateMut = useMutation({
-    mutationFn: (vars: { date: string; time: string }) =>
-      updateFn({ data: { employeeId: empId, date: vars.date, checkInLocal: vars.time } }),
+    mutationFn: async (e: EditState) => {
+      if (e.mode === "present") {
+        return updateFn({ data: { employeeId: empId, date: e.date, checkInLocal: e.time } });
+      }
+      const amt = Number(e.amount.replace(/\s/g, "")) || 0;
+      return absenceFn({ data: { employeeId: empId, date: e.date, amountUzs: amt, note: e.note || null } });
+    },
     onSuccess: () => {
-      toast.success("Kelish vaqti yangilandi");
+      toast.success("Saqlandi");
       setEditing(null);
-      qc.invalidateQueries({ queryKey: ["emp-month", empId, year, month] });
-      qc.invalidateQueries({ queryKey: ["jarima"] });
+      invalidate();
+    },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
+  const clearMut = useMutation({
+    mutationFn: (date: string) => clearFn({ data: { employeeId: empId, date } }),
+    onSuccess: () => {
+      toast.success("Tozalandi");
+      setEditing(null);
+      invalidate();
     },
     onError: (e: any) => toast.error(e?.message || "Xatolik"),
   });
@@ -808,8 +834,15 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
   const presentDays = (data?.attendance || []).length;
   const fineCount = (data?.fines || []).length;
 
-  const openEdit = (dateStr: string, att?: any) => {
-    setEditing({ date: dateStr, time: att ? timeFromIso(att.check_in_at) : "09:00" });
+  const openEdit = (dateStr: string, att?: any, fine?: any) => {
+    const isAbsent = !att && !!fine;
+    setEditing({
+      date: dateStr,
+      mode: isAbsent ? "absent" : "present",
+      time: att ? timeFromIso(att.check_in_at) : "09:00",
+      amount: fine?.reason === "absent" ? String(fine.amount_uzs ?? "") : "",
+      note: fine?.reason === "absent" ? (fine.note ?? "") : "",
+    });
   };
 
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
@@ -913,6 +946,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                           onClick={() => openEdit(
                             `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
                             att,
+                            fine,
                           )}
                           className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
                           title="Kelish vaqtini tahrirlash"
@@ -993,7 +1027,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                               size="sm"
                               variant="ghost"
                               className="h-7 w-7 p-0"
-                              onClick={() => openEdit(dateStr, cell?.att)}
+                              onClick={() => openEdit(dateStr, cell?.att, cell?.fine)}
                               title="Kelish vaqtini tahrirlash"
                             >
                               <Pencil className="h-3.5 w-3.5" />
@@ -1013,29 +1047,86 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Kelish vaqtini tahrirlash</DialogTitle>
+            <DialogTitle>Kunni tahrirlash</DialogTitle>
           </DialogHeader>
           {editing && (
             <div className="space-y-3">
               <div className="text-sm text-muted-foreground">Sana: <b className="text-foreground">{editing.date}</b></div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Kelish vaqti (Toshkent)</label>
-                <Input
-                  type="time"
-                  value={editing.time}
-                  onChange={(e) => setEditing({ ...editing, time: e.target.value })}
-                />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={editing.mode === "present" ? "default" : "outline"}
+                  className="flex-1"
+                  onClick={() => setEditing({ ...editing, mode: "present" })}
+                >
+                  Kelgan
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={editing.mode === "absent" ? "default" : "outline"}
+                  className="flex-1"
+                  onClick={() => setEditing({ ...editing, mode: "absent" })}
+                >
+                  Kelmadi
+                </Button>
               </div>
-              <div className="text-[11px] text-muted-foreground">
-                Saqlangach jarima yangi vaqtga qarab qayta hisoblanadi.
-              </div>
+              {editing.mode === "present" ? (
+                <>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Kelish vaqti (Toshkent)</label>
+                    <Input
+                      type="time"
+                      value={editing.time}
+                      onChange={(e) => setEditing({ ...editing, time: e.target.value })}
+                    />
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    Saqlangach kechikish jarimasi qoidalar bo'yicha qayta hisoblanadi.
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Jarima summasi (so'm)</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={1000}
+                      placeholder="0"
+                      value={editing.amount}
+                      onChange={(e) => setEditing({ ...editing, amount: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Izoh (ixtiyoriy)</label>
+                    <Input
+                      placeholder="Sababi..."
+                      value={editing.note}
+                      onChange={(e) => setEditing({ ...editing, note: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="ghost"
+              className="mr-auto text-red-600 hover:text-red-700"
+              onClick={() => editing && clearMut.mutate(editing.date)}
+              disabled={clearMut.isPending}
+            >
+              Tozalash
+            </Button>
             <Button variant="outline" onClick={() => setEditing(null)}>Bekor</Button>
             <Button
               onClick={() => editing && updateMut.mutate(editing)}
-              disabled={updateMut.isPending || !editing?.time}
+              disabled={
+                updateMut.isPending ||
+                (editing?.mode === "present" && !editing?.time)
+              }
             >
               {updateMut.isPending ? "Saqlanmoqda..." : "Saqlash"}
             </Button>

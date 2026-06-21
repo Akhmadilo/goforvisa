@@ -242,3 +242,79 @@ export const updateAttendanceCheckIn = createServerFn({ method: "POST" })
 
     return { ok: true, minutesLate };
   });
+
+// Add/edit an "absent" fine (financier/admin only)
+export const setAbsenceFine = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { employeeId: string; date: string; amountUzs: number; note?: string | null }) =>
+    z.object({
+      employeeId: z.string().uuid(),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      amountUzs: z.number().min(0),
+      note: z.string().nullable().optional(),
+    }).parse(d)
+  )
+  .handler(async ({ data, context }) => {
+    const c: any = context.supabase;
+    const { data: roles } = await c.from("user_roles").select("role").eq("user_id", context.userId);
+    const set = new Set((roles || []).map((r: any) => r.role));
+    if (!set.has("admin") && !set.has("financier")) {
+      throw new Error("Faqat Admin yoki Moliyachi kirita oladi");
+    }
+
+    // Remove any attendance for that day (employee was absent)
+    await c.from("attendance")
+      .delete()
+      .eq("employee_id", data.employeeId)
+      .eq("date", data.date);
+
+    // Remove any 'late' fine for the day
+    await c.from("fines")
+      .delete()
+      .eq("employee_id", data.employeeId)
+      .eq("date", data.date)
+      .eq("reason", "late");
+
+    if (data.amountUzs > 0) {
+      const { error } = await c.from("fines").upsert(
+        {
+          employee_id: data.employeeId,
+          date: data.date,
+          minutes_late: 0,
+          amount_uzs: data.amountUzs,
+          reason: "absent",
+          note: data.note ?? null,
+        },
+        { onConflict: "employee_id,date,reason" },
+      );
+      if (error) throw new Error(error.message);
+    } else {
+      await c.from("fines")
+        .delete()
+        .eq("employee_id", data.employeeId)
+        .eq("date", data.date)
+        .eq("reason", "absent");
+    }
+    return { ok: true };
+  });
+
+// Clear a day completely (remove attendance + fines) — admin/financier
+export const clearDay = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { employeeId: string; date: string }) =>
+    z.object({
+      employeeId: z.string().uuid(),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    }).parse(d)
+  )
+  .handler(async ({ data, context }) => {
+    const c: any = context.supabase;
+    const { data: roles } = await c.from("user_roles").select("role").eq("user_id", context.userId);
+    const set = new Set((roles || []).map((r: any) => r.role));
+    if (!set.has("admin") && !set.has("financier")) {
+      throw new Error("Faqat Admin yoki Moliyachi");
+    }
+    await c.from("attendance").delete().eq("employee_id", data.employeeId).eq("date", data.date);
+    await c.from("fines").delete().eq("employee_id", data.employeeId).eq("date", data.date);
+    return { ok: true };
+  });
