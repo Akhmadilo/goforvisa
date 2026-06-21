@@ -433,6 +433,7 @@ function JarimaPage() {
 
   const fetchData = useServerFn(getJarimaData);
   const linkFn = useServerFn(linkTelegramToEmployee);
+  const botRoleFn = useServerFn(setTelegramBotRole);
   const saveSchedFn = useServerFn(saveSchedule);
   const saveRuleFn = useServerFn(saveFineRule);
   const delRuleFn = useServerFn(deleteFineRule);
