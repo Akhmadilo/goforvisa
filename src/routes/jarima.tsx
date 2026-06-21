@@ -348,9 +348,11 @@ function JarimaPage() {
           <Card className="p-12 text-center text-muted-foreground">Yuklanmoqda...</Card>
         ) : (
           <Tabs defaultValue="today" className="space-y-4">
-            <TabsList>
+            <TabsList className="flex-wrap h-auto">
               <TabsTrigger value="today">Bugun</TabsTrigger>
               <TabsTrigger value="history">Tarix</TabsTrigger>
+              <TabsTrigger value="byEmployee">Ishchi bo'yicha</TabsTrigger>
+              <TabsTrigger value="advance">💰 Avans</TabsTrigger>
               {isAdmin && <TabsTrigger value="settings">Sozlamalar</TabsTrigger>}
             </TabsList>
 
