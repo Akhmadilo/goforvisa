@@ -961,6 +961,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                   <TableHead>Kelish</TableHead>
                   <TableHead>Kechikish</TableHead>
                   <TableHead className="text-right">Jarima</TableHead>
+                  {canEditAttendance && <TableHead className="w-12"></TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -969,12 +970,13 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                   const wd = new Date(year, month - 1, d).getDay();
                   const sched = schedByWd.get(wd);
                   const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                  const isDayOff = sched?.is_working === false;
                   return (
                     <TableRow key={d}>
                       <TableCell className="tabular-nums">{dateStr}</TableCell>
                       <TableCell>{WEEKDAYS[wd]}</TableCell>
                       <TableCell>
-                        {sched?.is_working === false ? <Badge variant="outline">Dam</Badge>
+                        {isDayOff ? <Badge variant="outline">Dam</Badge>
                           : cell?.fine ? <Badge variant="destructive">Kech</Badge>
                           : cell?.att ? <Badge variant="secondary">Kelgan</Badge>
                           : <Badge variant="outline">—</Badge>}
@@ -984,6 +986,21 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                       <TableCell className="text-right tabular-nums">
                         {cell?.fine ? <span className="text-red-600 dark:text-red-400 font-semibold">{fmt(cell.fine.amount_uzs)}</span> : "0"}
                       </TableCell>
+                      {canEditAttendance && (
+                        <TableCell>
+                          {!isDayOff && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0"
+                              onClick={() => openEdit(dateStr, cell?.att)}
+                              title="Kelish vaqtini tahrirlash"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })}
@@ -992,6 +1009,39 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
           </Card>
         </>
       )}
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Kelish vaqtini tahrirlash</DialogTitle>
+          </DialogHeader>
+          {editing && (
+            <div className="space-y-3">
+              <div className="text-sm text-muted-foreground">Sana: <b className="text-foreground">{editing.date}</b></div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Kelish vaqti (Toshkent)</label>
+                <Input
+                  type="time"
+                  value={editing.time}
+                  onChange={(e) => setEditing({ ...editing, time: e.target.value })}
+                />
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                Saqlangach jarima yangi vaqtga qarab qayta hisoblanadi.
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Bekor</Button>
+            <Button
+              onClick={() => editing && updateMut.mutate(editing)}
+              disabled={updateMut.isPending || !editing?.time}
+            >
+              {updateMut.isPending ? "Saqlanmoqda..." : "Saqlash"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
