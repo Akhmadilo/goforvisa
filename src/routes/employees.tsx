@@ -11,7 +11,10 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Users, LogOut, Shield, Search, Plus, Pencil, Trash2, Phone, Briefcase, Camera, UserCheck, UserX,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
+  Users, LogOut, Shield, Search, Plus, Pencil, Trash2, Phone, Briefcase, Camera, UserCheck, UserX, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppSidebar } from "@/components/app-sidebar";
