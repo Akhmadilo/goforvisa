@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
+export type TelegramBotRole = "none" | "director" | "finance";
+
 export type TelegramLink = {
   id: string;
   employee_id: string | null;
@@ -10,6 +12,7 @@ export type TelegramLink = {
   first_name: string | null;
   last_name: string | null;
   linked_at: string | null;
+  bot_role: TelegramBotRole;
 };
 
 export type Schedule = {
@@ -78,6 +81,23 @@ export const linkTelegramToEmployee = createServerFn({ method: "POST" })
         employee_id: data.employeeId,
         linked_at: data.employeeId ? new Date().toISOString() : null,
       })
+      .eq("id", data.telegramRowId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const setTelegramBotRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { telegramRowId: string; botRole: TelegramBotRole }) =>
+    z.object({
+      telegramRowId: z.string().uuid(),
+      botRole: z.enum(["none", "director", "finance"]),
+    }).parse(d)
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("employee_telegram")
+      .update({ bot_role: data.botRole })
       .eq("id", data.telegramRowId);
     if (error) throw new Error(error.message);
     return { ok: true };

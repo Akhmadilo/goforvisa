@@ -349,6 +349,7 @@ export type Database = {
       }
       employee_telegram: {
         Row: {
+          bot_role: Database["public"]["Enums"]["telegram_bot_role"]
           bot_state: Json | null
           created_at: string
           employee_id: string | null
@@ -361,6 +362,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bot_role?: Database["public"]["Enums"]["telegram_bot_role"]
           bot_state?: Json | null
           created_at?: string
           employee_id?: string | null
@@ -373,6 +375,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bot_role?: Database["public"]["Enums"]["telegram_bot_role"]
           bot_state?: Json | null
           created_at?: string
           employee_id?: string | null
@@ -870,6 +873,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "user" | "owner_ceo" | "financier"
       leave_status: "pending" | "approved" | "rejected"
+      telegram_bot_role: "none" | "director" | "finance"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -999,6 +1003,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "user", "owner_ceo", "financier"],
       leave_status: ["pending", "approved", "rejected"],
+      telegram_bot_role: ["none", "director", "finance"],
     },
   },
 } as const

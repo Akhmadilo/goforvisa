@@ -22,7 +22,7 @@ import { useIsAdmin } from "@/hooks/use-is-admin";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getJarimaData, linkTelegramToEmployee, saveSchedule, saveFineRule, deleteFineRule,
-  updateAttendanceCheckIn, setAbsenceFine, clearDay,
+  updateAttendanceCheckIn, setAbsenceFine, clearDay, setTelegramBotRole,
 } from "@/lib/jarima.functions";
 import { Pencil } from "lucide-react";
 import {
@@ -433,6 +433,7 @@ function JarimaPage() {
 
   const fetchData = useServerFn(getJarimaData);
   const linkFn = useServerFn(linkTelegramToEmployee);
+  const botRoleFn = useServerFn(setTelegramBotRole);
   const saveSchedFn = useServerFn(saveSchedule);
   const saveRuleFn = useServerFn(saveFineRule);
   const delRuleFn = useServerFn(deleteFineRule);
@@ -492,6 +493,11 @@ function JarimaPage() {
   const linkMut = useMutation({
     mutationFn: (v: { telegramRowId: string; employeeId: string | null }) => linkFn({ data: v }),
     onSuccess: () => { invalidate(); toast.success("Bog'landi"); },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const botRoleMut = useMutation({
+    mutationFn: (v: { telegramRowId: string; botRole: "none" | "director" | "finance" }) => botRoleFn({ data: v }),
+    onSuccess: () => { invalidate(); toast.success("Lavozim saqlandi"); },
     onError: (e: any) => toast.error(e.message),
   });
   const schedMut = useMutation({
@@ -672,6 +678,7 @@ function JarimaPage() {
                         <TableHead>Telegram</TableHead>
                         <TableHead>Ism</TableHead>
                         <TableHead>Ishchi</TableHead>
+                        <TableHead>Bot lavozimi</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -698,10 +705,26 @@ function JarimaPage() {
                               </SelectContent>
                             </Select>
                           </TableCell>
+                          <TableCell>
+                            <Select
+                              value={tg.bot_role ?? "none"}
+                              onValueChange={(v) => botRoleMut.mutate({
+                                telegramRowId: tg.id,
+                                botRole: v as "none" | "director" | "finance",
+                              })}
+                            >
+                              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">— oddiy ishchi —</SelectItem>
+                                <SelectItem value="director">Direktor</SelectItem>
+                                <SelectItem value="finance">Moliyachi (CEO)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
                         </TableRow>
                       ))}
                       {(data?.telegram || []).length === 0 && (
-                        <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">
+                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">
                           Hali hech kim botga /start yubormagan
                         </TableCell></TableRow>
                       )}
