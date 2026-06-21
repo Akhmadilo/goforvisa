@@ -22,7 +22,7 @@ import { useIsAdmin } from "@/hooks/use-is-admin";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getJarimaData, linkTelegramToEmployee, saveSchedule, saveFineRule, deleteFineRule,
-  updateAttendanceCheckIn, setAbsenceFine, clearDay,
+  updateAttendanceCheckIn, setAbsenceFine, clearDay, setTelegramBotRole,
 } from "@/lib/jarima.functions";
 import { Pencil } from "lucide-react";
 import {
