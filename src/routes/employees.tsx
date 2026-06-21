@@ -534,3 +534,95 @@ function DialogAvatarPreview({ stored }: { stored: string | null }) {
   }
   return <img src={url} alt="" className="h-20 w-20 rounded-full object-cover border-2 border-border" />;
 }
+
+function PositionSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const isAdmin = useIsAdmin();
+  const qc = useQueryClient();
+  const [adding, setAdding] = useState(false);
+  const [newName, setNewName] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const { data: positions = [] } = useQuery({
+    queryKey: ["positions"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("positions").select("*").order("name");
+      if (error) throw error;
+      return (data ?? []) as { id: string; name: string }[];
+    },
+  });
+
+  const handleAdd = async () => {
+    const name = newName.trim();
+    if (!name) return;
+    setSaving(true);
+    const { error } = await supabase.from("positions").insert({ name });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    await qc.invalidateQueries({ queryKey: ["positions"] });
+    onChange(name);
+    setNewName("");
+    setAdding(false);
+    toast.success("Pozitsiya qo'shildi");
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`"${name}" pozitsiyani o'chirishni tasdiqlaysizmi?`)) return;
+    const { error } = await supabase.from("positions").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    await qc.invalidateQueries({ queryKey: ["positions"] });
+    if (value === name) onChange("");
+  };
+
+  if (adding) {
+    return (
+      <div className="flex gap-1.5">
+        <Input
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          placeholder="Yangi pozitsiya nomi"
+          autoFocus
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAdd(); } }}
+        />
+        <Button type="button" size="sm" onClick={handleAdd} disabled={saving}>Saqlash</Button>
+        <Button type="button" size="sm" variant="outline" onClick={() => { setAdding(false); setNewName(""); }}>
+          <X className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex gap-1.5">
+      <Select value={value || "__none"} onValueChange={(v) => onChange(v === "__none" ? "" : v)}>
+        <SelectTrigger className="flex-1">
+          <SelectValue placeholder="Pozitsiyani tanlang" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="__none">— tanlanmagan —</SelectItem>
+          {positions.map((p) => (
+            <SelectItem key={p.id} value={p.name}>
+              <div className="flex items-center justify-between gap-2 w-full">
+                <span>{p.name}</span>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(p.id, p.name); }}
+                    className="text-destructive hover:bg-destructive/10 rounded p-0.5"
+                    title="O'chirish"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {isAdmin && (
+        <Button type="button" size="sm" variant="outline" onClick={() => setAdding(true)} title="Yangi pozitsiya">
+          <Plus className="h-3.5 w-3.5" />
+        </Button>
+      )}
+    </div>
+  );
+}
