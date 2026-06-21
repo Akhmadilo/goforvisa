@@ -202,16 +202,95 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
               last_name: from.last_name ?? null,
             }, { onConflict: "telegram_id" });
 
-            if (text.startsWith("/start")) {
+            // Load current state + link
+            const { data: tgRow } = await sb()
+              .from("employee_telegram")
+              .select("employee_id, bot_state")
+              .eq("telegram_id", tgId)
+              .maybeSingle();
+            const state: any = tgRow?.bot_state || null;
+
+            const resetState = async () => {
+              await sb().from("employee_telegram")
+                .update({ bot_state: null }).eq("telegram_id", tgId);
+            };
+            const setState = async (s: any) => {
+              await sb().from("employee_telegram")
+                .update({ bot_state: s }).eq("telegram_id", tgId);
+            };
+
+            // Universal cancel
+            if (text === "❌ Bekor qilish" || text === "/cancel") {
+              await resetState();
               await tg("sendMessage", {
                 chat_id: chatId,
-                text: `Assalomu alaykum${from.first_name ? ", " + from.first_name : ""}! 👋\n\nIshga kelganingizda avval ofisdagi FACE ID dan o'ting, keyin pastdagi "🟢 Keldim" tugmasini bosing.`,
+                text: "Bekor qilindi.",
+                reply_markup: MAIN_KB,
+              });
+            } else if (state?.step === "await_amount") {
+              const cleaned = text.replace(/[^\d]/g, "");
+              const amount = Number(cleaned);
+              if (!amount || amount <= 0) {
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "❗️ Iltimos summani raqam bilan yozing. Masalan: 500000",
+                  reply_markup: CANCEL_KB,
+                });
+              } else if (amount > 1_000_000_000) {
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "❗️ Summa juda katta. Iltimos to'g'ri qiymat kiriting.",
+                  reply_markup: CANCEL_KB,
+                });
+              } else {
+                await setState({ step: "await_purpose", amount });
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: `Summa: ${fmt(amount)} so'm ✅\n\nEndi avansning maqsadini yozing:`,
+                  reply_markup: CANCEL_KB,
+                });
+              }
+            } else if (state?.step === "await_purpose") {
+              const purpose = text.slice(0, 500).trim();
+              if (purpose.length < 3) {
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "❗️ Maqsad juda qisqa. Iltimos batafsilroq yozing.",
+                  reply_markup: CANCEL_KB,
+                });
+              } else if (!tgRow?.employee_id) {
+                await resetState();
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "⚠️ Akkauntingiz ishchiga bog'lanmagan. Admin sizni tizimda ulashini kuting.",
+                  reply_markup: MAIN_KB,
+                });
+              } else {
+                await sb().from("advance_requests").insert({
+                  employee_id: tgRow.employee_id,
+                  telegram_id: tgId,
+                  amount_uzs: state.amount,
+                  purpose,
+                  status: "pending",
+                  source: "telegram",
+                });
+                await resetState();
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: `✅ Avans so'rovingiz yuborildi!\n\n💰 Summa: ${fmt(state.amount)} so'm\n📝 Maqsad: ${purpose}\n\nDirektor va moliyachi ko'rib chiqishadi. Yakuniy natija haqida xabar yuboramiz.`,
+                  reply_markup: MAIN_KB,
+                });
+              }
+            } else if (text.startsWith("/start")) {
+              await tg("sendMessage", {
+                chat_id: chatId,
+                text: `Assalomu alaykum${from.first_name ? ", " + from.first_name : ""}! 👋\n\n🟢 Keldim — kelganingizni belgilang (FACE ID dan keyin)\n💰 Avans so'rash — avans uchun ariza`,
                 reply_markup: MAIN_KB,
               });
             } else if (text.startsWith("/chatid") || text.startsWith("/id")) {
               await tg("sendMessage", {
                 chat_id: chatId,
-                text: `🆔 Chat ID: \`${chatId}\`\n\nBuni Jarima → Sozlamalar → Guruh ID ga nusxalang.`,
+                text: `🆔 Chat ID: \`${chatId}\``,
                 parse_mode: "Markdown",
                 reply_to_message_id: msg.message_id,
               });
@@ -221,10 +300,25 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                 text: "FACE ID dan o'tdingizmi?",
                 reply_markup: FACE_INLINE,
               });
+            } else if (text === "💰 Avans so'rash" || text.toLowerCase() === "avans") {
+              if (!tgRow?.employee_id) {
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "⚠️ Akkauntingiz hali ishchiga bog'lanmagan. Admin sizni tizimda ulashini kuting.",
+                  reply_markup: MAIN_KB,
+                });
+              } else {
+                await setState({ step: "await_amount" });
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "💰 Avans summasini so'mda yozing (masalan: 500000):",
+                  reply_markup: CANCEL_KB,
+                });
+              }
             } else {
               await tg("sendMessage", {
                 chat_id: chatId,
-                text: "Pastdagi '🟢 Keldim' tugmasini bosing.",
+                text: "Quyidagi tugmalardan birini tanlang.",
                 reply_markup: MAIN_KB,
               });
             }
