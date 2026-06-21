@@ -608,6 +608,62 @@ export type Database = {
           },
         ]
       }
+      leave_requests: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date: string
+          decided_at: string | null
+          decided_by: string | null
+          employee_id: string
+          fine_amount_uzs: number
+          id: string
+          note: string | null
+          reason: string | null
+          salary_counts: boolean | null
+          status: Database["public"]["Enums"]["leave_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date: string
+          decided_at?: string | null
+          decided_by?: string | null
+          employee_id: string
+          fine_amount_uzs?: number
+          id?: string
+          note?: string | null
+          reason?: string | null
+          salary_counts?: boolean | null
+          status?: Database["public"]["Enums"]["leave_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          employee_id?: string
+          fine_amount_uzs?: number
+          id?: string
+          note?: string | null
+          reason?: string | null
+          salary_counts?: boolean | null
+          status?: Database["public"]["Enums"]["leave_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leave_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       operators: {
         Row: {
           created_at: string
@@ -630,6 +686,27 @@ export type Database = {
           created_by?: string | null
           id?: string
           kind?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      positions: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
           name?: string
           updated_at?: string
         }
@@ -792,6 +869,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user" | "owner_ceo" | "financier"
+      leave_status: "pending" | "approved" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -920,6 +998,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user", "owner_ceo", "financier"],
+      leave_status: ["pending", "approved", "rejected"],
     },
   },
 } as const
