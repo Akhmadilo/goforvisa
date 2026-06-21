@@ -678,6 +678,7 @@ function JarimaPage() {
                         <TableHead>Telegram</TableHead>
                         <TableHead>Ism</TableHead>
                         <TableHead>Ishchi</TableHead>
+                        <TableHead>Bot lavozimi</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -704,10 +705,26 @@ function JarimaPage() {
                               </SelectContent>
                             </Select>
                           </TableCell>
+                          <TableCell>
+                            <Select
+                              value={tg.bot_role ?? "none"}
+                              onValueChange={(v) => botRoleMut.mutate({
+                                telegramRowId: tg.id,
+                                botRole: v as "none" | "director" | "finance",
+                              })}
+                            >
+                              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">— oddiy ishchi —</SelectItem>
+                                <SelectItem value="director">Direktor</SelectItem>
+                                <SelectItem value="finance">Moliyachi (CEO)</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
                         </TableRow>
                       ))}
                       {(data?.telegram || []).length === 0 && (
-                        <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">
+                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">
                           Hali hech kim botga /start yubormagan
                         </TableCell></TableRow>
                       )}
