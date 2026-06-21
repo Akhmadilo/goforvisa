@@ -259,6 +259,172 @@ async function generateMonthlyPdf(
   doc.save(`jarima-${year}-${String(month).padStart(2, "0")}.pdf`);
 }
 
+// Per-employee monthly calendar PDF
+type EmpCalendarDay = {
+  day: number;
+  weekday: number; // 0=Sun
+  isDayOff: boolean;
+  checkIn: string | null;   // "HH:MM" Tashkent
+  fineAmount: number;
+  minutesLate: number;
+  fineReason: string | null; // "late" | "absent" | null
+};
+
+async function generateEmployeeCalendarPdf(
+  employeeName: string,
+  year: number,
+  month: number,
+  cells: EmpCalendarDay[],
+  totals: { presentDays: number; fineDays: number; totalFine: number; daysInMonth: number },
+) {
+  const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const logo = await getLogoDataUrl();
+
+  if (logo) {
+    try { doc.addImage(logo, "PNG", 30, 24, 44, 44); } catch {}
+  }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(14);
+  doc.text("GOFORVISA", 84, 44);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text("Ishchi davomati va jarimalari", 84, 58);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text(`${UZ_MONTHS_FULL[month - 1]} ${year}`, pageW - 40, 44, { align: "right" });
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(employeeName, pageW - 40, 60, { align: "right" });
+
+  // Summary strip
+  doc.setFillColor(245, 245, 250);
+  doc.rect(40, 80, pageW - 80, 36, "F");
+  doc.setFontSize(9);
+  doc.setTextColor(80);
+  const stats = [
+    { l: "Kelgan kunlar", v: String(totals.presentDays) },
+    { l: "Jarima kunlar", v: String(totals.fineDays) },
+    { l: "Oydagi kunlar", v: String(totals.daysInMonth) },
+    { l: "Jami jarima", v: `${fmt(totals.totalFine)} so'm` },
+  ];
+  const colW = (pageW - 80) / stats.length;
+  stats.forEach((s, i) => {
+    const x = 40 + i * colW + 10;
+    doc.setFont("helvetica", "normal");
+    doc.text(s.l, x, 95);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(20);
+    doc.text(s.v, x, 110);
+    doc.setTextColor(80);
+  });
+  doc.setTextColor(0);
+
+  // Calendar grid: 7 columns Sun..Sat
+  const firstWd = new Date(year, month - 1, 1).getDay();
+  const map = new Map<number, EmpCalendarDay>();
+  cells.forEach(c => map.set(c.day, c));
+
+  type Row = (EmpCalendarDay | null)[];
+  const rows: Row[] = [];
+  let row: Row = Array(firstWd).fill(null);
+  for (let d = 1; d <= totals.daysInMonth; d++) {
+    row.push(map.get(d) || { day: d, weekday: 0, isDayOff: false, checkIn: null, fineAmount: 0, minutesLate: 0, fineReason: null });
+    if (row.length === 7) { rows.push(row); row = []; }
+  }
+  if (row.length) { while (row.length < 7) row.push(null); rows.push(row); }
+
+  const head = [["Yak", "Du", "Se", "Cho", "Pa", "Ju", "Sha"]];
+  const body = rows.map(r => r.map(c => {
+    if (!c) return "";
+    const lines: string[] = [String(c.day)];
+    if (c.isDayOff) lines.push("Dam");
+    else if (c.fineReason === "absent") lines.push("Kelmadi", `-${fmt(c.fineAmount)}`);
+    else if (c.checkIn) {
+      lines.push(c.checkIn);
+      if (c.fineAmount > 0) lines.push(`-${fmt(c.fineAmount)}`);
+    } else lines.push("—");
+    return lines.join("\n");
+  }));
+
+  autoTable(doc, {
+    startY: 128,
+    head,
+    body,
+    styles: {
+      fontSize: 8,
+      cellPadding: 4,
+      halign: "left",
+      valign: "top",
+      minCellHeight: 48,
+      lineColor: [200, 200, 210],
+      lineWidth: 0.5,
+    },
+    headStyles: { fillColor: [99, 102, 241], textColor: 255, halign: "center", fontSize: 8.5 },
+    columnStyles: Object.fromEntries(Array.from({ length: 7 }, (_, i) => [i, { cellWidth: (pageW - 80) / 7 }])),
+    didParseCell: (data) => {
+      if (data.section !== "body") return;
+      const r = rows[data.row.index];
+      const c = r?.[data.column.index];
+      if (!c) { data.cell.styles.fillColor = [250, 250, 252]; return; }
+      if (c.isDayOff) data.cell.styles.fillColor = [241, 245, 249];
+      else if (c.fineAmount > 0) {
+        data.cell.styles.fillColor = [254, 226, 226];
+        data.cell.styles.textColor = [127, 29, 29];
+      }
+      else if (c.checkIn) data.cell.styles.fillColor = [220, 252, 231];
+    },
+  });
+
+  // Detail table
+  let y = (doc as any).lastAutoTable.finalY + 18;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text("Kunlar ro'yxati", 40, y);
+  y += 6;
+
+  const WD = ["Yak", "Du", "Se", "Cho", "Pa", "Ju", "Sha"];
+  const detailBody = Array.from({ length: totals.daysInMonth }, (_, i) => {
+    const d = i + 1;
+    const c = map.get(d);
+    const date = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    const wd = new Date(year, month - 1, d).getDay();
+    let status = "—";
+    if (c?.isDayOff) status = "Dam";
+    else if (c?.fineReason === "absent") status = "Kelmadi";
+    else if (c?.fineAmount && c.fineAmount > 0) status = "Kech";
+    else if (c?.checkIn) status = "Kelgan";
+    return [
+      date,
+      WD[wd],
+      status,
+      c?.checkIn || "—",
+      c?.minutesLate ? `${c.minutesLate} daq` : "—",
+      c?.fineAmount ? fmt(c.fineAmount) : "0",
+    ];
+  });
+
+  autoTable(doc, {
+    startY: y,
+    head: [["Sana", "Kun", "Holat", "Kelish", "Kechikish", "Jarima"]],
+    body: detailBody,
+    styles: { fontSize: 8, cellPadding: 3 },
+    headStyles: { fillColor: [99, 102, 241], textColor: 255, fontSize: 8.5 },
+    columnStyles: { 5: { halign: "right" } },
+    didParseCell: (data) => {
+      if (data.section === "body" && data.column.index === 5 && data.cell.raw !== "0") {
+        data.cell.styles.textColor = [185, 28, 28];
+        data.cell.styles.fontStyle = "bold";
+      }
+    },
+  });
+
+  doc.save(`davomat-${employeeName.replace(/\s+/g, "_")}-${year}-${String(month).padStart(2, "0")}.pdf`);
+}
+
+
+
 
 function JarimaPage() {
   const { t } = useT();
@@ -880,8 +1046,43 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
               </SelectContent>
             </Select>
           </div>
+          <Button
+            size="sm"
+            disabled={!empId || isLoading}
+            onClick={async () => {
+              try {
+                const emp = employees.find(e => e.id === empId);
+                if (!emp) return;
+                const pdfCells: EmpCalendarDay[] = Array.from({ length: days }, (_, i) => {
+                  const d = i + 1;
+                  const cell = dayMap.get(d);
+                  const wd = new Date(year, month - 1, d).getDay();
+                  const sched = schedByWd.get(wd);
+                  return {
+                    day: d,
+                    weekday: wd,
+                    isDayOff: sched?.is_working === false,
+                    checkIn: cell?.att ? timeFromIso(cell.att.check_in_at) : null,
+                    fineAmount: Number(cell?.fine?.amount_uzs || 0),
+                    minutesLate: Number(cell?.fine?.minutes_late || 0),
+                    fineReason: cell?.fine?.reason ?? null,
+                  };
+                });
+                await generateEmployeeCalendarPdf(emp.full_name, year, month, pdfCells, {
+                  presentDays, fineDays: fineCount, totalFine, daysInMonth: days,
+                });
+                toast.success("PDF tayyor");
+              } catch (e: any) {
+                toast.error(e?.message || "Xatolik");
+              }
+            }}
+          >
+            <FileText className="h-4 w-4 mr-1" />
+            PDF
+          </Button>
         </div>
       </Card>
+
 
       {!empId ? (
         <Card className="p-10 text-center text-muted-foreground">
