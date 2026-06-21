@@ -1047,29 +1047,86 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Kelish vaqtini tahrirlash</DialogTitle>
+            <DialogTitle>Kunni tahrirlash</DialogTitle>
           </DialogHeader>
           {editing && (
             <div className="space-y-3">
               <div className="text-sm text-muted-foreground">Sana: <b className="text-foreground">{editing.date}</b></div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Kelish vaqti (Toshkent)</label>
-                <Input
-                  type="time"
-                  value={editing.time}
-                  onChange={(e) => setEditing({ ...editing, time: e.target.value })}
-                />
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={editing.mode === "present" ? "default" : "outline"}
+                  className="flex-1"
+                  onClick={() => setEditing({ ...editing, mode: "present" })}
+                >
+                  Kelgan
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={editing.mode === "absent" ? "default" : "outline"}
+                  className="flex-1"
+                  onClick={() => setEditing({ ...editing, mode: "absent" })}
+                >
+                  Kelmadi
+                </Button>
               </div>
-              <div className="text-[11px] text-muted-foreground">
-                Saqlangach jarima yangi vaqtga qarab qayta hisoblanadi.
-              </div>
+              {editing.mode === "present" ? (
+                <>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Kelish vaqti (Toshkent)</label>
+                    <Input
+                      type="time"
+                      value={editing.time}
+                      onChange={(e) => setEditing({ ...editing, time: e.target.value })}
+                    />
+                  </div>
+                  <div className="text-[11px] text-muted-foreground">
+                    Saqlangach kechikish jarimasi qoidalar bo'yicha qayta hisoblanadi.
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Jarima summasi (so'm)</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={1000}
+                      placeholder="0"
+                      value={editing.amount}
+                      onChange={(e) => setEditing({ ...editing, amount: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Izoh (ixtiyoriy)</label>
+                    <Input
+                      placeholder="Sababi..."
+                      value={editing.note}
+                      onChange={(e) => setEditing({ ...editing, note: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="ghost"
+              className="mr-auto text-red-600 hover:text-red-700"
+              onClick={() => editing && clearMut.mutate(editing.date)}
+              disabled={clearMut.isPending}
+            >
+              Tozalash
+            </Button>
             <Button variant="outline" onClick={() => setEditing(null)}>Bekor</Button>
             <Button
               onClick={() => editing && updateMut.mutate(editing)}
-              disabled={updateMut.isPending || !editing?.time}
+              disabled={
+                updateMut.isPending ||
+                (editing?.mode === "present" && !editing?.time)
+              }
             >
               {updateMut.isPending ? "Saqlanmoqda..." : "Saqlash"}
             </Button>
