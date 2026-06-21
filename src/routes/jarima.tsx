@@ -1142,7 +1142,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                     <div className="flex items-center justify-between">
                       <div className="text-[11px] font-bold">{d}</div>
                       {canEditAttendance && !isDayOff && (
-                        <button
+                      <button
                           type="button"
                           onClick={() => openEdit(
                             `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
@@ -1150,7 +1150,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                             fine,
                           )}
                           className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-                          title="Kelish vaqtini tahrirlash"
+                          title="Kunni tahrirlash"
                         >
                           <Pencil className="h-3 w-3" />
                         </button>
@@ -1158,6 +1158,11 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                     </div>
                     {isDayOff ? (
                       <div className="text-[10px] text-muted-foreground">Dam</div>
+                    ) : fine?.reason === "absent" ? (
+                      <>
+                        <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold">Kelmadi</div>
+                        <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold">-{fmt(fine.amount_uzs)}</div>
+                      </>
                     ) : att ? (
                       <>
                         <div className="text-[10px] tabular-nums">{timeFromIso(att.check_in_at)}</div>
