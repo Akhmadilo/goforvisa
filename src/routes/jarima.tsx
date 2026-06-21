@@ -1142,7 +1142,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                     <div className="flex items-center justify-between">
                       <div className="text-[11px] font-bold">{d}</div>
                       {canEditAttendance && !isDayOff && (
-                      <button
+                        <button
                           type="button"
                           onClick={() => openEdit(
                             `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
