@@ -754,6 +754,23 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
   const [empId, setEmpId] = useState<string>("");
   const [year, setYear] = useState<number>(now.getFullYear());
   const [month, setMonth] = useState<number>(now.getMonth() + 1);
+  const { isAdmin, isFinance } = useRoles();
+  const canEditAttendance = isAdmin || isFinance;
+  const qc = useQueryClient();
+
+  const [editing, setEditing] = useState<{ date: string; time: string } | null>(null);
+  const updateFn = useServerFn(updateAttendanceCheckIn);
+  const updateMut = useMutation({
+    mutationFn: (vars: { date: string; time: string }) =>
+      updateFn({ data: { employeeId: empId, date: vars.date, checkInLocal: vars.time } }),
+    onSuccess: () => {
+      toast.success("Kelish vaqti yangilandi");
+      setEditing(null);
+      qc.invalidateQueries({ queryKey: ["emp-month", empId, year, month] });
+      qc.invalidateQueries({ queryKey: ["jarima"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
 
   const fetchFn = useServerFn(getEmployeeMonth);
   const { data, isLoading } = useQuery({
@@ -790,6 +807,10 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
   );
   const presentDays = (data?.attendance || []).length;
   const fineCount = (data?.fines || []).length;
+
+  const openEdit = (dateStr: string, att?: any) => {
+    setEditing({ date: dateStr, time: att ? timeFromIso(att.check_in_at) : "09:00" });
+  };
 
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
 
