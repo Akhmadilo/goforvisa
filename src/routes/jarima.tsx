@@ -23,6 +23,13 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   getJarimaData, linkTelegramToEmployee, saveSchedule, saveFineRule, deleteFineRule,
 } from "@/lib/jarima.functions";
+import {
+  listAdvances, ceoDecideAdvance, financeDecideAdvance, markAdvancePaid,
+  createAdvanceManual, getEmployeeMonth, type AdvanceRequest, type AdvanceStatus,
+} from "@/lib/advances.functions";
+import { useRoles } from "@/hooks/use-roles";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
