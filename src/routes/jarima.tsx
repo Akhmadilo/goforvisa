@@ -1046,8 +1046,43 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
               </SelectContent>
             </Select>
           </div>
+          <Button
+            size="sm"
+            disabled={!empId || isLoading}
+            onClick={async () => {
+              try {
+                const emp = employees.find(e => e.id === empId);
+                if (!emp) return;
+                const pdfCells: EmpCalendarDay[] = Array.from({ length: days }, (_, i) => {
+                  const d = i + 1;
+                  const cell = dayMap.get(d);
+                  const wd = new Date(year, month - 1, d).getDay();
+                  const sched = schedByWd.get(wd);
+                  return {
+                    day: d,
+                    weekday: wd,
+                    isDayOff: sched?.is_working === false,
+                    checkIn: cell?.att ? timeFromIso(cell.att.check_in_at) : null,
+                    fineAmount: Number(cell?.fine?.amount_uzs || 0),
+                    minutesLate: Number(cell?.fine?.minutes_late || 0),
+                    fineReason: cell?.fine?.reason ?? null,
+                  };
+                });
+                await generateEmployeeCalendarPdf(emp.full_name, year, month, pdfCells, {
+                  presentDays, fineDays: fineCount, totalFine, daysInMonth: days,
+                });
+                toast.success("PDF tayyor");
+              } catch (e: any) {
+                toast.error(e?.message || "Xatolik");
+              }
+            }}
+          >
+            <FileText className="h-4 w-4 mr-1" />
+            PDF
+          </Button>
         </div>
       </Card>
+
 
       {!empId ? (
         <Card className="p-10 text-center text-muted-foreground">
