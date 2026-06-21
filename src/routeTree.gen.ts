@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as XarajatlarRouteImport } from './routes/xarajatlar'
+import { Route as TrustRouteImport } from './routes/trust'
 import { Route as ShartnomalarRouteImport } from './routes/shartnomalar'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SalariesRouteImport } from './routes/salaries'
@@ -25,6 +26,11 @@ import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/publi
 const XarajatlarRoute = XarajatlarRouteImport.update({
   id: '/xarajatlar',
   path: '/xarajatlar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrustRoute = TrustRouteImport.update({
+  id: '/trust',
+  path: '/trust',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ShartnomalarRoute = ShartnomalarRouteImport.update({
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/salaries': typeof SalariesRoute
   '/settings': typeof SettingsRoute
   '/shartnomalar': typeof ShartnomalarRoute
+  '/trust': typeof TrustRoute
   '/xarajatlar': typeof XarajatlarRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -109,6 +116,7 @@ export interface FileRoutesByTo {
   '/salaries': typeof SalariesRoute
   '/settings': typeof SettingsRoute
   '/shartnomalar': typeof ShartnomalarRoute
+  '/trust': typeof TrustRoute
   '/xarajatlar': typeof XarajatlarRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -124,6 +132,7 @@ export interface FileRoutesById {
   '/salaries': typeof SalariesRoute
   '/settings': typeof SettingsRoute
   '/shartnomalar': typeof ShartnomalarRoute
+  '/trust': typeof TrustRoute
   '/xarajatlar': typeof XarajatlarRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
     | '/salaries'
     | '/settings'
     | '/shartnomalar'
+    | '/trust'
     | '/xarajatlar'
     | '/api/public/telegram/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -154,6 +164,7 @@ export interface FileRouteTypes {
     | '/salaries'
     | '/settings'
     | '/shartnomalar'
+    | '/trust'
     | '/xarajatlar'
     | '/api/public/telegram/webhook'
   id:
@@ -168,6 +179,7 @@ export interface FileRouteTypes {
     | '/salaries'
     | '/settings'
     | '/shartnomalar'
+    | '/trust'
     | '/xarajatlar'
     | '/api/public/telegram/webhook'
   fileRoutesById: FileRoutesById
@@ -183,6 +195,7 @@ export interface RootRouteChildren {
   SalariesRoute: typeof SalariesRoute
   SettingsRoute: typeof SettingsRoute
   ShartnomalarRoute: typeof ShartnomalarRoute
+  TrustRoute: typeof TrustRoute
   XarajatlarRoute: typeof XarajatlarRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
 }
@@ -194,6 +207,13 @@ declare module '@tanstack/react-router' {
       path: '/xarajatlar'
       fullPath: '/xarajatlar'
       preLoaderRoute: typeof XarajatlarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/trust': {
+      id: '/trust'
+      path: '/trust'
+      fullPath: '/trust'
+      preLoaderRoute: typeof TrustRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/shartnomalar': {
@@ -287,6 +307,7 @@ const rootRouteChildren: RootRouteChildren = {
   SalariesRoute: SalariesRoute,
   SettingsRoute: SettingsRoute,
   ShartnomalarRoute: ShartnomalarRoute,
+  TrustRoute: TrustRoute,
   XarajatlarRoute: XarajatlarRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
 }
