@@ -1,0 +1,2 @@
+CREATE POLICY "financier manage attendance" ON public.attendance FOR ALL TO authenticated USING (has_role(auth.uid(),'financier')) WITH CHECK (has_role(auth.uid(),'financier'));
+CREATE POLICY "financier manage fines" ON public.fines FOR ALL TO authenticated USING (has_role(auth.uid(),'financier')) WITH CHECK (has_role(auth.uid(),'financier'));
