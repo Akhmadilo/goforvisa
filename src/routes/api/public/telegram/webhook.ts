@@ -48,7 +48,15 @@ function nowInTashkent(): Date {
 }
 
 const MAIN_KB = {
-  keyboard: [[{ text: "🟢 Keldim" }]],
+  keyboard: [
+    [{ text: "🟢 Keldim" }],
+    [{ text: "💰 Avans so'rash" }],
+  ],
+  resize_keyboard: true,
+};
+
+const CANCEL_KB = {
+  keyboard: [[{ text: "❌ Bekor qilish" }]],
   resize_keyboard: true,
 };
 
