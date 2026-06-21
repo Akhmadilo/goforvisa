@@ -86,6 +86,23 @@ export const linkTelegramToEmployee = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const setTelegramBotRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { telegramRowId: string; botRole: TelegramBotRole }) =>
+    z.object({
+      telegramRowId: z.string().uuid(),
+      botRole: z.enum(["none", "director", "finance"]),
+    }).parse(d)
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("employee_telegram")
+      .update({ bot_role: data.botRole })
+      .eq("id", data.telegramRowId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const saveSchedule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { employeeId: string; weekday: number; startTime: string; isWorking: boolean }) =>
