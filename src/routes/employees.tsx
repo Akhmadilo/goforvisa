@@ -477,7 +477,7 @@ function EmployeeFormDialog({
             </div>
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">{t("emp.form.position")}</label>
-              <Input value={position} onChange={(e) => setPosition(e.target.value)} />
+              <PositionSelect value={position} onChange={setPosition} />
             </div>
           </div>
           <div>
