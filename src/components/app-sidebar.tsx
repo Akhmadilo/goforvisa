@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Wallet, Receipt, Users, LineChart, FileText, Settings, Target, AlertTriangle } from "lucide-react";
+import { LayoutDashboard, Wallet, Receipt, Users, LineChart, FileText, Settings, Target, AlertTriangle, CalendarDays } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { useT, LANGUAGES, type Lang } from "@/lib/i18n";
