@@ -944,7 +944,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
       if (e.mode === "present") {
         return updateFn({ data: { employeeId: empId, date: e.date, checkInLocal: e.time } });
       }
-      const amt = Number(e.amount.replace(/\s/g, "")) || 0;
+      const amt = Number(e.amount.replace(/[^0-9]/g, "")) || 0;
       return absenceFn({ data: { employeeId: empId, date: e.date, amountUzs: amt, note: e.note || null } });
     },
     onSuccess: () => {
@@ -1150,7 +1150,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                             fine,
                           )}
                           className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-                          title="Kelish vaqtini tahrirlash"
+                          title="Kunni tahrirlash"
                         >
                           <Pencil className="h-3 w-3" />
                         </button>
@@ -1158,6 +1158,11 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                     </div>
                     {isDayOff ? (
                       <div className="text-[10px] text-muted-foreground">Dam</div>
+                    ) : fine?.reason === "absent" ? (
+                      <>
+                        <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold">Kelmadi</div>
+                        <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold">-{fmt(fine.amount_uzs)}</div>
+                      </>
                     ) : att ? (
                       <>
                         <div className="text-[10px] tabular-nums">{timeFromIso(att.check_in_at)}</div>
@@ -1212,12 +1217,13 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                       <TableCell>{WEEKDAYS[wd]}</TableCell>
                       <TableCell>
                         {isDayOff ? <Badge variant="outline">Dam</Badge>
+                          : cell?.fine?.reason === "absent" ? <Badge variant="destructive">Kelmadi</Badge>
                           : cell?.fine ? <Badge variant="destructive">Kech</Badge>
                           : cell?.att ? <Badge variant="secondary">Kelgan</Badge>
                           : <Badge variant="outline">—</Badge>}
                       </TableCell>
                       <TableCell className="tabular-nums">{cell?.att ? timeFromIso(cell.att.check_in_at) : "—"}</TableCell>
-                      <TableCell>{cell?.fine ? `${cell.fine.minutes_late} daq` : "—"}</TableCell>
+                      <TableCell>{cell?.fine && cell.fine.reason !== "absent" ? `${cell.fine.minutes_late} daq` : "—"}</TableCell>
                       <TableCell className="text-right tabular-nums">
                         {cell?.fine ? <span className="text-red-600 dark:text-red-400 font-semibold">{fmt(cell.fine.amount_uzs)}</span> : "0"}
                       </TableCell>
@@ -1229,7 +1235,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                               variant="ghost"
                               className="h-7 w-7 p-0"
                               onClick={() => openEdit(dateStr, cell?.att, cell?.fine)}
-                              title="Kelish vaqtini tahrirlash"
+                              title="Kunni tahrirlash"
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
@@ -1292,10 +1298,10 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">Jarima summasi (so'm)</label>
                     <Input
-                      type="number"
-                      min={0}
-                      step={1000}
-                      placeholder="0"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9\s]*"
+                      placeholder="120 000"
                       value={editing.amount}
                       onChange={(e) => setEditing({ ...editing, amount: e.target.value })}
                     />
