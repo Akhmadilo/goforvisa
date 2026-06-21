@@ -135,7 +135,7 @@ function SalariesPage() {
   const enriched = useMemo(
     () => rowsAll.map((r) => ({
       ...r,
-      total: Number(r.fixed_amount) + Number(r.kpi_amount) - Number(r.penalty_amount),
+      total: Number(r.fixed_amount) + Number(r.kpi_amount) - Number(r.penalty_amount) - Number((r as any).advance_amount ?? 0),
     })),
     [rowsAll],
   );

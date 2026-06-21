@@ -14,6 +14,93 @@ export type Database = {
   }
   public: {
     Tables: {
+      advance_requests: {
+        Row: {
+          amount_uzs: number
+          ceo_approved_at: string | null
+          ceo_approved_by: string | null
+          ceo_note: string | null
+          created_at: string
+          deducted_in_salary_id: string | null
+          employee_id: string | null
+          finance_approved_at: string | null
+          finance_approved_by: string | null
+          finance_note: string | null
+          id: string
+          paid_at: string | null
+          paid_by: string | null
+          purpose: string
+          rejected_at: string | null
+          rejected_by: string | null
+          rejected_reason: string | null
+          source: string
+          status: string
+          telegram_id: number | null
+          updated_at: string
+        }
+        Insert: {
+          amount_uzs: number
+          ceo_approved_at?: string | null
+          ceo_approved_by?: string | null
+          ceo_note?: string | null
+          created_at?: string
+          deducted_in_salary_id?: string | null
+          employee_id?: string | null
+          finance_approved_at?: string | null
+          finance_approved_by?: string | null
+          finance_note?: string | null
+          id?: string
+          paid_at?: string | null
+          paid_by?: string | null
+          purpose: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejected_reason?: string | null
+          source?: string
+          status?: string
+          telegram_id?: number | null
+          updated_at?: string
+        }
+        Update: {
+          amount_uzs?: number
+          ceo_approved_at?: string | null
+          ceo_approved_by?: string | null
+          ceo_note?: string | null
+          created_at?: string
+          deducted_in_salary_id?: string | null
+          employee_id?: string | null
+          finance_approved_at?: string | null
+          finance_approved_by?: string | null
+          finance_note?: string | null
+          id?: string
+          paid_at?: string | null
+          paid_by?: string | null
+          purpose?: string
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejected_reason?: string | null
+          source?: string
+          status?: string
+          telegram_id?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "advance_requests_deducted_in_salary_id_fkey"
+            columns: ["deducted_in_salary_id"]
+            isOneToOne: false
+            referencedRelation: "salaries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "advance_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance: {
         Row: {
           check_in_at: string
@@ -262,6 +349,7 @@ export type Database = {
       }
       employee_telegram: {
         Row: {
+          bot_state: Json | null
           created_at: string
           employee_id: string | null
           first_name: string | null
@@ -273,6 +361,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          bot_state?: Json | null
           created_at?: string
           employee_id?: string | null
           first_name?: string | null
@@ -284,6 +373,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          bot_state?: Json | null
           created_at?: string
           employee_id?: string | null
           first_name?: string | null
@@ -571,6 +661,7 @@ export type Database = {
       }
       salaries: {
         Row: {
+          advance_amount: number
           created_at: string
           created_by: string | null
           employee_name: string
@@ -584,6 +675,7 @@ export type Database = {
           year: number
         }
         Insert: {
+          advance_amount?: number
           created_at?: string
           created_by?: string | null
           employee_name: string
@@ -597,6 +689,7 @@ export type Database = {
           year: number
         }
         Update: {
+          advance_amount?: number
           created_at?: string
           created_by?: string | null
           employee_name?: string
@@ -698,7 +791,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "user"
+      app_role: "admin" | "user" | "owner_ceo" | "financier"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -826,7 +919,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "user"],
+      app_role: ["admin", "user", "owner_ceo", "financier"],
     },
   },
 } as const

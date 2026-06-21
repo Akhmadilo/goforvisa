@@ -23,7 +23,15 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   getJarimaData, linkTelegramToEmployee, saveSchedule, saveFineRule, deleteFineRule,
 } from "@/lib/jarima.functions";
+import {
+  listAdvances, ceoDecideAdvance, financeDecideAdvance, markAdvancePaid,
+  createAdvanceManual, getEmployeeMonth, type AdvanceRequest, type AdvanceStatus,
+} from "@/lib/advances.functions";
+import { useRoles } from "@/hooks/use-roles";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import logoUrl from "@/assets/logo.png";
@@ -348,9 +356,11 @@ function JarimaPage() {
           <Card className="p-12 text-center text-muted-foreground">Yuklanmoqda...</Card>
         ) : (
           <Tabs defaultValue="today" className="space-y-4">
-            <TabsList>
+            <TabsList className="flex-wrap h-auto">
               <TabsTrigger value="today">Bugun</TabsTrigger>
               <TabsTrigger value="history">Tarix</TabsTrigger>
+              <TabsTrigger value="byEmployee">Ishchi bo'yicha</TabsTrigger>
+              <TabsTrigger value="advance">💰 Avans</TabsTrigger>
               {isAdmin && <TabsTrigger value="settings">Sozlamalar</TabsTrigger>}
             </TabsList>
 
@@ -467,6 +477,16 @@ function JarimaPage() {
                 </Table>
 
               </Card>
+            </TabsContent>
+
+            {/* === ISHCHI BO'YICHA === */}
+            <TabsContent value="byEmployee">
+              <EmployeeMonthView employees={employees} />
+            </TabsContent>
+
+            {/* === AVANS === */}
+            <TabsContent value="advance">
+              <AdvanceTab employees={employees} empMap={empMap} />
             </TabsContent>
 
             {/* === SOZLAMALAR === */}
@@ -714,6 +734,477 @@ function MonthlyExport({
         <FileText className="h-4 w-4 mr-1" />
         Oylik PDF
       </Button>
+    </div>
+  );
+}
+
+// ============================================================
+// EmployeeMonthView — per-employee day-by-day grid
+// ============================================================
+
+const UZ_MONTHS_FULL = [
+  "Yanvar","Fevral","Mart","Aprel","May","Iyun",
+  "Iyul","Avgust","Sentyabr","Oktyabr","Noyabr","Dekabr",
+];
+
+function EmployeeMonthView({ employees }: { employees: Emp[] }) {
+  const now = new Date();
+  const [empId, setEmpId] = useState<string>("");
+  const [year, setYear] = useState<number>(now.getFullYear());
+  const [month, setMonth] = useState<number>(now.getMonth() + 1);
+
+  const fetchFn = useServerFn(getEmployeeMonth);
+  const { data, isLoading } = useQuery({
+    queryKey: ["emp-month", empId, year, month],
+    queryFn: () => fetchFn({ data: { employeeId: empId, year, month } }),
+    enabled: !!empId,
+  });
+
+  const days = data?.daysInMonth ?? new Date(year, month, 0).getDate();
+  const startWeekday = new Date(year, month - 1, 1).getDay(); // 0=Sun
+
+  const dayMap = useMemo(() => {
+    const m = new Map<number, { att?: any; fine?: any }>();
+    (data?.attendance || []).forEach((a: any) => {
+      const d = Number(a.date.slice(8, 10));
+      m.set(d, { ...(m.get(d) || {}), att: a });
+    });
+    (data?.fines || []).forEach((f: any) => {
+      const d = Number(f.date.slice(8, 10));
+      m.set(d, { ...(m.get(d) || {}), fine: f });
+    });
+    return m;
+  }, [data]);
+
+  const schedByWd = useMemo(() => {
+    const m = new Map<number, any>();
+    (data?.schedules || []).forEach((s: any) => m.set(s.weekday, s));
+    return m;
+  }, [data]);
+
+  const totalFine = useMemo(
+    () => (data?.fines || []).reduce((s: number, f: any) => s + Number(f.amount_uzs || 0), 0),
+    [data],
+  );
+  const presentDays = (data?.attendance || []).length;
+  const fineCount = (data?.fines || []).length;
+
+  const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex-1 min-w-[200px]">
+            <label className="text-xs text-muted-foreground mb-1 block">Ishchi</label>
+            <Select value={empId} onValueChange={setEmpId}>
+              <SelectTrigger><SelectValue placeholder="Ishchini tanlang..." /></SelectTrigger>
+              <SelectContent>
+                {employees.map(e => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Oy</label>
+            <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
+              <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {UZ_MONTHS_FULL.map((m, i) => (
+                  <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Yil</label>
+            <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+              <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {years.map(y => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </Card>
+
+      {!empId ? (
+        <Card className="p-10 text-center text-muted-foreground">
+          Ishchini tanlang
+        </Card>
+      ) : isLoading ? (
+        <Card className="p-10 text-center text-muted-foreground">Yuklanmoqda...</Card>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Card className="p-3">
+              <div className="text-xs text-muted-foreground">Kelgan kunlar</div>
+              <div className="text-xl font-bold">{presentDays}</div>
+            </Card>
+            <Card className="p-3">
+              <div className="text-xs text-muted-foreground">Jarima kunlar</div>
+              <div className="text-xl font-bold">{fineCount}</div>
+            </Card>
+            <Card className="p-3">
+              <div className="text-xs text-muted-foreground">Jami jarima</div>
+              <div className="text-xl font-bold text-red-600 dark:text-red-400">{fmt(totalFine)} so'm</div>
+            </Card>
+            <Card className="p-3">
+              <div className="text-xs text-muted-foreground">Oydagi kunlar</div>
+              <div className="text-xl font-bold">{days}</div>
+            </Card>
+          </div>
+
+          {/* Calendar grid */}
+          <Card className="p-4">
+            <div className="text-sm font-semibold mb-3">
+              {UZ_MONTHS_FULL[month - 1]} {year}
+            </div>
+            <div className="grid grid-cols-7 gap-1 text-[11px] text-muted-foreground mb-1 text-center">
+              {WEEKDAYS.map(w => <div key={w} className="py-1 font-medium">{w}</div>)}
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {Array.from({ length: startWeekday }).map((_, i) => (
+                <div key={`pad-${i}`} />
+              ))}
+              {Array.from({ length: days }, (_, i) => i + 1).map(d => {
+                const cell = dayMap.get(d);
+                const wd = new Date(year, month - 1, d).getDay();
+                const sched = schedByWd.get(wd);
+                const isDayOff = sched && sched.is_working === false;
+                const fine = cell?.fine;
+                const att = cell?.att;
+                let bg = "bg-muted/30";
+                if (isDayOff) bg = "bg-slate-100 dark:bg-slate-800";
+                else if (fine) bg = "bg-red-100 dark:bg-red-950/40";
+                else if (att) bg = "bg-emerald-100 dark:bg-emerald-950/40";
+                return (
+                  <div key={d} className={cn(
+                    "rounded border min-h-[68px] p-1.5 text-left",
+                    bg,
+                  )}>
+                    <div className="text-[11px] font-bold">{d}</div>
+                    {isDayOff ? (
+                      <div className="text-[10px] text-muted-foreground">Dam</div>
+                    ) : att ? (
+                      <>
+                        <div className="text-[10px] tabular-nums">{timeFromIso(att.check_in_at)}</div>
+                        {fine ? (
+                          <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold">
+                            -{fmt(fine.amount_uzs)}
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-emerald-700 dark:text-emerald-300">✓</div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-[10px] text-muted-foreground">—</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex gap-3 mt-3 text-[11px] text-muted-foreground flex-wrap">
+              <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-emerald-100 dark:bg-emerald-950/40 border" /> O'z vaqtida</span>
+              <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-red-100 dark:bg-red-950/40 border" /> Jarima</span>
+              <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-slate-100 dark:bg-slate-800 border" /> Dam olish</span>
+              <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-muted/30 border" /> Kelmadi</span>
+            </div>
+          </Card>
+
+          {/* Table view */}
+          <Card className="p-4">
+            <div className="text-sm font-semibold mb-3">Kunlar ro'yxati</div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Sana</TableHead>
+                  <TableHead>Kun</TableHead>
+                  <TableHead>Holat</TableHead>
+                  <TableHead>Kelish</TableHead>
+                  <TableHead>Kechikish</TableHead>
+                  <TableHead className="text-right">Jarima</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Array.from({ length: days }, (_, i) => i + 1).map(d => {
+                  const cell = dayMap.get(d);
+                  const wd = new Date(year, month - 1, d).getDay();
+                  const sched = schedByWd.get(wd);
+                  const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                  return (
+                    <TableRow key={d}>
+                      <TableCell className="tabular-nums">{dateStr}</TableCell>
+                      <TableCell>{WEEKDAYS[wd]}</TableCell>
+                      <TableCell>
+                        {sched?.is_working === false ? <Badge variant="outline">Dam</Badge>
+                          : cell?.fine ? <Badge variant="destructive">Kech</Badge>
+                          : cell?.att ? <Badge variant="secondary">Kelgan</Badge>
+                          : <Badge variant="outline">—</Badge>}
+                      </TableCell>
+                      <TableCell className="tabular-nums">{cell?.att ? timeFromIso(cell.att.check_in_at) : "—"}</TableCell>
+                      <TableCell>{cell?.fine ? `${cell.fine.minutes_late} daq` : "—"}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {cell?.fine ? <span className="text-red-600 dark:text-red-400 font-semibold">{fmt(cell.fine.amount_uzs)}</span> : "0"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </Card>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ============================================================
+// AdvanceTab — request management with CEO + Finance workflow
+// ============================================================
+
+function statusBadge(s: AdvanceStatus) {
+  const map: Record<AdvanceStatus, { label: string; variant: any }> = {
+    pending: { label: "Kutilmoqda", variant: "secondary" },
+    ceo_approved: { label: "Direktor ✓ — Moliyachi kutilmoqda", variant: "default" },
+    approved: { label: "Tasdiqlandi — To'lov kutilmoqda", variant: "default" },
+    paid: { label: "✅ To'landi", variant: "secondary" },
+    rejected: { label: "❌ Rad etildi", variant: "destructive" },
+    cancelled: { label: "Bekor", variant: "outline" },
+  };
+  const it = map[s] || { label: s, variant: "outline" };
+  return <Badge variant={it.variant}>{it.label}</Badge>;
+}
+
+function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<string, string> }) {
+  const { isCeo, isFinance, isAdmin: isAdm, canApproveAdvances } = useRoles();
+  const qc = useQueryClient();
+  const listFn = useServerFn(listAdvances);
+  const ceoFn = useServerFn(ceoDecideAdvance);
+  const finFn = useServerFn(financeDecideAdvance);
+  const payFn = useServerFn(markAdvancePaid);
+  const createFn = useServerFn(createAdvanceManual);
+
+  const { data: list = [], isLoading } = useQuery({
+    queryKey: ["advance-requests"],
+    queryFn: () => listFn(),
+  });
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["advance-requests"] });
+
+  const [decision, setDecision] = useState<{ id: string; approve: boolean; role: "ceo" | "fin" } | null>(null);
+  const [note, setNote] = useState("");
+
+  const submitDecision = async () => {
+    if (!decision) return;
+    try {
+      if (decision.role === "ceo") {
+        await ceoFn({ data: { id: decision.id, approve: decision.approve, note: note || undefined } });
+      } else {
+        await finFn({ data: { id: decision.id, approve: decision.approve, note: note || undefined } });
+      }
+      toast.success(decision.approve ? "Tasdiqlandi" : "Rad etildi");
+      setDecision(null);
+      setNote("");
+      invalidate();
+    } catch (e: any) {
+      toast.error(e?.message || "Xatolik");
+    }
+  };
+
+  const pay = async (id: string) => {
+    if (!confirm("To'lov amalga oshirildi va keyingi oylikdan ushlanadi. Davom etamizmi?")) return;
+    try {
+      await payFn({ data: { id } });
+      toast.success("To'lov belgilandi va oylikka qo'shildi");
+      invalidate();
+    } catch (e: any) {
+      toast.error(e?.message || "Xatolik");
+    }
+  };
+
+  // Manual create
+  const [openCreate, setOpenCreate] = useState(false);
+  const [newEmp, setNewEmp] = useState("");
+  const [newAmt, setNewAmt] = useState("");
+  const [newPurpose, setNewPurpose] = useState("");
+  const submitCreate = async () => {
+    const amt = Number(newAmt.replace(/[^\d]/g, ""));
+    if (!newEmp || !amt || amt <= 0 || newPurpose.trim().length < 3) {
+      toast.error("Hamma maydonlarni to'g'ri to'ldiring");
+      return;
+    }
+    try {
+      await createFn({ data: { employeeId: newEmp, amount: amt, purpose: newPurpose.trim() } });
+      toast.success("So'rov yaratildi");
+      setOpenCreate(false);
+      setNewEmp(""); setNewAmt(""); setNewPurpose("");
+      invalidate();
+    } catch (e: any) {
+      toast.error(e?.message || "Xatolik");
+    }
+  };
+
+  const pending = list.filter(r => r.status === "pending");
+  const awaitingFinance = list.filter(r => r.status === "ceo_approved");
+  const awaitingPayment = list.filter(r => r.status === "approved");
+  const done = list.filter(r => r.status === "paid" || r.status === "rejected");
+
+  const renderRow = (r: AdvanceRequest, actions?: React.ReactNode) => (
+    <TableRow key={r.id}>
+      <TableCell>{r.employee_id ? (empMap.get(r.employee_id) || "—") : "—"}</TableCell>
+      <TableCell className="text-right tabular-nums font-semibold">{fmt(r.amount_uzs)}</TableCell>
+      <TableCell className="max-w-[280px]"><div className="truncate" title={r.purpose}>{r.purpose}</div></TableCell>
+      <TableCell>{statusBadge(r.status)}</TableCell>
+      <TableCell className="text-xs text-muted-foreground tabular-nums">
+        {new Date(r.created_at).toLocaleDateString("uz-UZ")}
+      </TableCell>
+      <TableCell className="text-right">{actions}</TableCell>
+    </TableRow>
+  );
+
+  const section = (
+    title: string,
+    rows: AdvanceRequest[],
+    actionFor: (r: AdvanceRequest) => React.ReactNode,
+  ) => (
+    <Card className="p-4">
+      <div className="font-medium mb-3">{title} ({rows.length})</div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Xodim</TableHead>
+            <TableHead className="text-right">Summa</TableHead>
+            <TableHead>Maqsad</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Sana</TableHead>
+            <TableHead className="text-right">Amal</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {rows.map(r => renderRow(r, actionFor(r)))}
+          {rows.length === 0 && (
+            <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">—</TableCell></TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </Card>
+  );
+
+  if (isLoading) {
+    return <Card className="p-10 text-center text-muted-foreground">Yuklanmoqda...</Card>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="font-medium">Avans so'rovlari</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              Ishchi botda <b>💰 Avans so'rash</b> tugmasini bossa, so'rov shu yerga keladi. Direktor → Moliyachi tasdiqlasa, "To'landi" tugmasi bilan oylikdan ushlanadi.
+            </div>
+          </div>
+          {canApproveAdvances && (
+            <Button size="sm" onClick={() => setOpenCreate(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Qo'lda yaratish
+            </Button>
+          )}
+        </div>
+      </Card>
+
+      {section(
+        "1️⃣ Direktor tasdig'i kutilmoqda",
+        pending,
+        (r) => (isCeo || isAdm) ? (
+          <div className="flex gap-2 justify-end">
+            <Button size="sm" variant="default" onClick={() => { setNote(""); setDecision({ id: r.id, approve: true, role: "ceo" }); }}>Tasdiq</Button>
+            <Button size="sm" variant="outline" onClick={() => { setNote(""); setDecision({ id: r.id, approve: false, role: "ceo" }); }}>Rad</Button>
+          </div>
+        ) : <span className="text-xs text-muted-foreground">Faqat direktor</span>,
+      )}
+
+      {section(
+        "2️⃣ Moliyachi tasdig'i kutilmoqda",
+        awaitingFinance,
+        (r) => (isFinance || isAdm) ? (
+          <div className="flex gap-2 justify-end">
+            <Button size="sm" variant="default" onClick={() => { setNote(""); setDecision({ id: r.id, approve: true, role: "fin" }); }}>Tasdiq</Button>
+            <Button size="sm" variant="outline" onClick={() => { setNote(""); setDecision({ id: r.id, approve: false, role: "fin" }); }}>Rad</Button>
+          </div>
+        ) : <span className="text-xs text-muted-foreground">Faqat moliyachi</span>,
+      )}
+
+      {section(
+        "3️⃣ To'lov kutilmoqda",
+        awaitingPayment,
+        (r) => (isFinance || isAdm) ? (
+          <Button size="sm" onClick={() => pay(r.id)}>To'landi</Button>
+        ) : <span className="text-xs text-muted-foreground">Faqat moliyachi</span>,
+      )}
+
+      {section("📜 Tarix", done, () => null)}
+
+      {/* Decision dialog */}
+      <Dialog open={!!decision} onOpenChange={(o) => !o && setDecision(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{decision?.approve ? "Tasdiqlash" : "Rad etish"}</DialogTitle>
+          </DialogHeader>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">
+              Izoh {!decision?.approve && <span className="text-red-500">*</span>}
+            </label>
+            <Textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder={decision?.approve ? "Ixtiyoriy" : "Sababini yozing"}
+              maxLength={500}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDecision(null)}>Bekor</Button>
+            <Button
+              onClick={submitDecision}
+              disabled={!decision?.approve && note.trim().length < 3}
+              variant={decision?.approve ? "default" : "destructive"}
+            >
+              {decision?.approve ? "Tasdiq" : "Rad etish"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual create */}
+      <Dialog open={openCreate} onOpenChange={setOpenCreate}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Avans so'rovi (qo'lda)</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Xodim</label>
+              <Select value={newEmp} onValueChange={setNewEmp}>
+                <SelectTrigger><SelectValue placeholder="Tanlang..." /></SelectTrigger>
+                <SelectContent>
+                  {employees.map(e => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Summa (so'm)</label>
+              <Input value={newAmt} onChange={(e) => setNewAmt(e.target.value)} placeholder="500000" inputMode="numeric" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Maqsad</label>
+              <Textarea value={newPurpose} onChange={(e) => setNewPurpose(e.target.value)} maxLength={500} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenCreate(false)}>Bekor</Button>
+            <Button onClick={submitCreate}>Yaratish</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
