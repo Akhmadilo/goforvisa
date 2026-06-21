@@ -1027,7 +1027,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                               size="sm"
                               variant="ghost"
                               className="h-7 w-7 p-0"
-                              onClick={() => openEdit(dateStr, cell?.att)}
+                              onClick={() => openEdit(dateStr, cell?.att, cell?.fine)}
                               title="Kelish vaqtini tahrirlash"
                             >
                               <Pencil className="h-3.5 w-3.5" />
