@@ -834,8 +834,15 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
   const presentDays = (data?.attendance || []).length;
   const fineCount = (data?.fines || []).length;
 
-  const openEdit = (dateStr: string, att?: any) => {
-    setEditing({ date: dateStr, time: att ? timeFromIso(att.check_in_at) : "09:00" });
+  const openEdit = (dateStr: string, att?: any, fine?: any) => {
+    const isAbsent = !att && !!fine;
+    setEditing({
+      date: dateStr,
+      mode: isAbsent ? "absent" : "present",
+      time: att ? timeFromIso(att.check_in_at) : "09:00",
+      amount: fine?.reason === "absent" ? String(fine.amount_uzs ?? "") : "",
+      note: fine?.reason === "absent" ? (fine.note ?? "") : "",
+    });
   };
 
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
