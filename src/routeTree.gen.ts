@@ -16,6 +16,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SalariesRouteImport } from './routes/salaries'
 import { Route as MoliyaRouteImport } from './routes/moliya'
 import { Route as KpiRouteImport } from './routes/kpi'
+import { Route as JavoblarRouteImport } from './routes/javoblar'
 import { Route as JarimaRouteImport } from './routes/jarima'
 import { Route as EmployeesRouteImport } from './routes/employees'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -58,6 +59,11 @@ const KpiRoute = KpiRouteImport.update({
   path: '/kpi',
   getParentRoute: () => rootRouteImport,
 } as any)
+const JavoblarRoute = JavoblarRouteImport.update({
+  id: '/javoblar',
+  path: '/javoblar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JarimaRoute = JarimaRouteImport.update({
   id: '/jarima',
   path: '/jarima',
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/employees': typeof EmployeesRoute
   '/jarima': typeof JarimaRoute
+  '/javoblar': typeof JavoblarRoute
   '/kpi': typeof KpiRoute
   '/moliya': typeof MoliyaRoute
   '/salaries': typeof SalariesRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/employees': typeof EmployeesRoute
   '/jarima': typeof JarimaRoute
+  '/javoblar': typeof JavoblarRoute
   '/kpi': typeof KpiRoute
   '/moliya': typeof MoliyaRoute
   '/salaries': typeof SalariesRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/employees': typeof EmployeesRoute
   '/jarima': typeof JarimaRoute
+  '/javoblar': typeof JavoblarRoute
   '/kpi': typeof KpiRoute
   '/moliya': typeof MoliyaRoute
   '/salaries': typeof SalariesRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/employees'
     | '/jarima'
+    | '/javoblar'
     | '/kpi'
     | '/moliya'
     | '/salaries'
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/employees'
     | '/jarima'
+    | '/javoblar'
     | '/kpi'
     | '/moliya'
     | '/salaries'
@@ -174,6 +185,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/employees'
     | '/jarima'
+    | '/javoblar'
     | '/kpi'
     | '/moliya'
     | '/salaries'
@@ -190,6 +202,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   EmployeesRoute: typeof EmployeesRoute
   JarimaRoute: typeof JarimaRoute
+  JavoblarRoute: typeof JavoblarRoute
   KpiRoute: typeof KpiRoute
   MoliyaRoute: typeof MoliyaRoute
   SalariesRoute: typeof SalariesRoute
@@ -251,6 +264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof KpiRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/javoblar': {
+      id: '/javoblar'
+      path: '/javoblar'
+      fullPath: '/javoblar'
+      preLoaderRoute: typeof JavoblarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/jarima': {
       id: '/jarima'
       path: '/jarima'
@@ -302,6 +322,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   EmployeesRoute: EmployeesRoute,
   JarimaRoute: JarimaRoute,
+  JavoblarRoute: JavoblarRoute,
   KpiRoute: KpiRoute,
   MoliyaRoute: MoliyaRoute,
   SalariesRoute: SalariesRoute,

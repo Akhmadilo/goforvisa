@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Wallet, Receipt, Users, LineChart, FileText, Settings, Target, AlertTriangle } from "lucide-react";
+import { LayoutDashboard, Wallet, Receipt, Users, LineChart, FileText, Settings, Target, AlertTriangle, CalendarDays } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { useT, LANGUAGES, type Lang } from "@/lib/i18n";
@@ -18,6 +18,7 @@ export function AppSidebar() {
     { to: "/shartnomalar", label: t("nav.contracts"), icon: FileText, widget: "contracts_section" },
     { to: "/kpi", label: t("nav.kpi"), icon: Target, widget: "kpi_section" },
     { to: "/jarima", label: t("nav.fines"), icon: AlertTriangle, widget: "fines_section" },
+    { to: "/javoblar", label: "Dam olish", icon: CalendarDays, widget: "fines_section" },
   ] as const;
 
   return (
