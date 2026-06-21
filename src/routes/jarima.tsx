@@ -471,6 +471,16 @@ function JarimaPage() {
               </Card>
             </TabsContent>
 
+            {/* === ISHCHI BO'YICHA === */}
+            <TabsContent value="byEmployee">
+              <EmployeeMonthView employees={employees} />
+            </TabsContent>
+
+            {/* === AVANS === */}
+            <TabsContent value="advance">
+              <AdvanceTab employees={employees} empMap={empMap} />
+            </TabsContent>
+
             {/* === SOZLAMALAR === */}
             {isAdmin && (
               <TabsContent value="settings" className="space-y-4">
