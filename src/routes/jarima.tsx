@@ -22,7 +22,9 @@ import { useIsAdmin } from "@/hooks/use-is-admin";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getJarimaData, linkTelegramToEmployee, saveSchedule, saveFineRule, deleteFineRule,
+  updateAttendanceCheckIn,
 } from "@/lib/jarima.functions";
+import { Pencil } from "lucide-react";
 import {
   listAdvances, ceoDecideAdvance, financeDecideAdvance, markAdvancePaid,
   createAdvanceManual, getEmployeeMonth, type AdvanceRequest, type AdvanceStatus,
