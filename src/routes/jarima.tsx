@@ -758,16 +758,42 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
   const canEditAttendance = isAdmin || isFinance;
   const qc = useQueryClient();
 
-  const [editing, setEditing] = useState<{ date: string; time: string } | null>(null);
+  type EditState = {
+    date: string;
+    mode: "present" | "absent";
+    time: string;
+    amount: string;
+    note: string;
+  };
+  const [editing, setEditing] = useState<EditState | null>(null);
   const updateFn = useServerFn(updateAttendanceCheckIn);
+  const absenceFn = useServerFn(setAbsenceFine);
+  const clearFn = useServerFn(clearDay);
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["emp-month", empId, year, month] });
+    qc.invalidateQueries({ queryKey: ["jarima"] });
+  };
   const updateMut = useMutation({
-    mutationFn: (vars: { date: string; time: string }) =>
-      updateFn({ data: { employeeId: empId, date: vars.date, checkInLocal: vars.time } }),
+    mutationFn: async (e: EditState) => {
+      if (e.mode === "present") {
+        return updateFn({ data: { employeeId: empId, date: e.date, checkInLocal: e.time } });
+      }
+      const amt = Number(e.amount.replace(/\s/g, "")) || 0;
+      return absenceFn({ data: { employeeId: empId, date: e.date, amountUzs: amt, note: e.note || null } });
+    },
     onSuccess: () => {
-      toast.success("Kelish vaqti yangilandi");
+      toast.success("Saqlandi");
       setEditing(null);
-      qc.invalidateQueries({ queryKey: ["emp-month", empId, year, month] });
-      qc.invalidateQueries({ queryKey: ["jarima"] });
+      invalidate();
+    },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
+  const clearMut = useMutation({
+    mutationFn: (date: string) => clearFn({ data: { employeeId: empId, date } }),
+    onSuccess: () => {
+      toast.success("Tozalandi");
+      setEditing(null);
+      invalidate();
     },
     onError: (e: any) => toast.error(e?.message || "Xatolik"),
   });
