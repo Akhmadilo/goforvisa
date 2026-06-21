@@ -495,6 +495,11 @@ function JarimaPage() {
     onSuccess: () => { invalidate(); toast.success("Bog'landi"); },
     onError: (e: any) => toast.error(e.message),
   });
+  const botRoleMut = useMutation({
+    mutationFn: (v: { telegramRowId: string; botRole: "none" | "director" | "finance" }) => botRoleFn({ data: v }),
+    onSuccess: () => { invalidate(); toast.success("Lavozim saqlandi"); },
+    onError: (e: any) => toast.error(e.message),
+  });
   const schedMut = useMutation({
     mutationFn: (v: { employeeId: string; weekday: number; startTime: string; isWorking: boolean }) =>
       saveSchedFn({ data: v }),
