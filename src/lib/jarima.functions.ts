@@ -140,3 +140,105 @@ export const deleteFineRule = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// Update attendance check-in time (financier/admin only) — recomputes fine
+export const updateAttendanceCheckIn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { employeeId: string; date: string; checkInLocal: string }) =>
+    z.object({
+      employeeId: z.string().uuid(),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      checkInLocal: z.string().regex(/^\d{2}:\d{2}$/),
+    }).parse(d)
+  )
+  .handler(async ({ data, context }) => {
+    const c: any = context.supabase;
+
+    // Verify caller is admin or financier
+    const { data: roles } = await c
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", context.userId);
+    const roleSet = new Set((roles || []).map((r: any) => r.role));
+    if (!roleSet.has("admin") && !roleSet.has("financier")) {
+      throw new Error("Faqat Admin yoki Moliyachi tahrirlay oladi");
+    }
+
+    // Build UTC ISO from local Tashkent time (UTC+5)
+    const [hh, mm] = data.checkInLocal.split(":").map(Number);
+    const localMs = Date.UTC(
+      Number(data.date.slice(0, 4)),
+      Number(data.date.slice(5, 7)) - 1,
+      Number(data.date.slice(8, 10)),
+      hh,
+      mm,
+      0,
+    );
+    const utcIso = new Date(localMs - 5 * 3600 * 1000).toISOString();
+
+    // Upsert attendance
+    const { error: upErr } = await c.from("attendance").upsert(
+      {
+        employee_id: data.employeeId,
+        date: data.date,
+        check_in_at: utcIso,
+        source: "manual",
+      },
+      { onConflict: "employee_id,date" },
+    );
+    if (upErr) throw new Error(upErr.message);
+
+    // Resolve weekday schedule to compute minutes_late
+    const wd = new Date(`${data.date}T00:00:00Z`).getUTCDay();
+    const { data: sched } = await c
+      .from("employee_schedules")
+      .select("start_time, is_working")
+      .eq("employee_id", data.employeeId)
+      .eq("weekday", wd)
+      .maybeSingle();
+
+    let minutesLate = 0;
+    if (sched?.is_working !== false && sched?.start_time) {
+      const [sh, sm] = String(sched.start_time).split(":").map(Number);
+      const startMin = sh * 60 + sm;
+      const arrivalMin = hh * 60 + mm;
+      minutesLate = Math.max(0, arrivalMin - startMin);
+    }
+
+    if (minutesLate > 0) {
+      const { data: rules } = await c
+        .from("fine_rules")
+        .select("min_minutes, max_minutes, amount_uzs")
+        .order("min_minutes", { ascending: true });
+      let amount = 0;
+      for (const r of rules || []) {
+        if (
+          minutesLate >= Number(r.min_minutes) &&
+          (r.max_minutes == null || minutesLate <= Number(r.max_minutes))
+        ) {
+          amount = Number(r.amount_uzs);
+        }
+      }
+      const { error: fErr } = await c.from("fines").upsert(
+        {
+          employee_id: data.employeeId,
+          date: data.date,
+          minutes_late: minutesLate,
+          amount_uzs: amount,
+          reason: "late",
+        },
+        { onConflict: "employee_id,date,reason" },
+      );
+      if (fErr) throw new Error(fErr.message);
+    } else {
+      // No longer late — remove any prior 'late' fine for that day
+      await c
+        .from("fines")
+        .delete()
+        .eq("employee_id", data.employeeId)
+        .eq("date", data.date)
+        .eq("reason", "late");
+    }
+
+    return { ok: true, minutesLate };
+  });

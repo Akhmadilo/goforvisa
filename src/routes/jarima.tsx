@@ -22,7 +22,9 @@ import { useIsAdmin } from "@/hooks/use-is-admin";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getJarimaData, linkTelegramToEmployee, saveSchedule, saveFineRule, deleteFineRule,
+  updateAttendanceCheckIn,
 } from "@/lib/jarima.functions";
+import { Pencil } from "lucide-react";
 import {
   listAdvances, ceoDecideAdvance, financeDecideAdvance, markAdvancePaid,
   createAdvanceManual, getEmployeeMonth, type AdvanceRequest, type AdvanceStatus,
@@ -752,6 +754,23 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
   const [empId, setEmpId] = useState<string>("");
   const [year, setYear] = useState<number>(now.getFullYear());
   const [month, setMonth] = useState<number>(now.getMonth() + 1);
+  const { isAdmin, isFinance } = useRoles();
+  const canEditAttendance = isAdmin || isFinance;
+  const qc = useQueryClient();
+
+  const [editing, setEditing] = useState<{ date: string; time: string } | null>(null);
+  const updateFn = useServerFn(updateAttendanceCheckIn);
+  const updateMut = useMutation({
+    mutationFn: (vars: { date: string; time: string }) =>
+      updateFn({ data: { employeeId: empId, date: vars.date, checkInLocal: vars.time } }),
+    onSuccess: () => {
+      toast.success("Kelish vaqti yangilandi");
+      setEditing(null);
+      qc.invalidateQueries({ queryKey: ["emp-month", empId, year, month] });
+      qc.invalidateQueries({ queryKey: ["jarima"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
 
   const fetchFn = useServerFn(getEmployeeMonth);
   const { data, isLoading } = useQuery({
@@ -788,6 +807,10 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
   );
   const presentDays = (data?.attendance || []).length;
   const fineCount = (data?.fines || []).length;
+
+  const openEdit = (dateStr: string, att?: any) => {
+    setEditing({ date: dateStr, time: att ? timeFromIso(att.check_in_at) : "09:00" });
+  };
 
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
 
@@ -879,10 +902,25 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                 else if (att) bg = "bg-emerald-100 dark:bg-emerald-950/40";
                 return (
                   <div key={d} className={cn(
-                    "rounded border min-h-[68px] p-1.5 text-left",
+                    "rounded border min-h-[68px] p-1.5 text-left relative group",
                     bg,
                   )}>
-                    <div className="text-[11px] font-bold">{d}</div>
+                    <div className="flex items-center justify-between">
+                      <div className="text-[11px] font-bold">{d}</div>
+                      {canEditAttendance && !isDayOff && (
+                        <button
+                          type="button"
+                          onClick={() => openEdit(
+                            `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
+                            att,
+                          )}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                          title="Kelish vaqtini tahrirlash"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
                     {isDayOff ? (
                       <div className="text-[10px] text-muted-foreground">Dam</div>
                     ) : att ? (
@@ -923,6 +961,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                   <TableHead>Kelish</TableHead>
                   <TableHead>Kechikish</TableHead>
                   <TableHead className="text-right">Jarima</TableHead>
+                  {canEditAttendance && <TableHead className="w-12"></TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -931,12 +970,13 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                   const wd = new Date(year, month - 1, d).getDay();
                   const sched = schedByWd.get(wd);
                   const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                  const isDayOff = sched?.is_working === false;
                   return (
                     <TableRow key={d}>
                       <TableCell className="tabular-nums">{dateStr}</TableCell>
                       <TableCell>{WEEKDAYS[wd]}</TableCell>
                       <TableCell>
-                        {sched?.is_working === false ? <Badge variant="outline">Dam</Badge>
+                        {isDayOff ? <Badge variant="outline">Dam</Badge>
                           : cell?.fine ? <Badge variant="destructive">Kech</Badge>
                           : cell?.att ? <Badge variant="secondary">Kelgan</Badge>
                           : <Badge variant="outline">—</Badge>}
@@ -946,6 +986,21 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                       <TableCell className="text-right tabular-nums">
                         {cell?.fine ? <span className="text-red-600 dark:text-red-400 font-semibold">{fmt(cell.fine.amount_uzs)}</span> : "0"}
                       </TableCell>
+                      {canEditAttendance && (
+                        <TableCell>
+                          {!isDayOff && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0"
+                              onClick={() => openEdit(dateStr, cell?.att)}
+                              title="Kelish vaqtini tahrirlash"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      )}
                     </TableRow>
                   );
                 })}
@@ -954,6 +1009,39 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
           </Card>
         </>
       )}
+
+      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Kelish vaqtini tahrirlash</DialogTitle>
+          </DialogHeader>
+          {editing && (
+            <div className="space-y-3">
+              <div className="text-sm text-muted-foreground">Sana: <b className="text-foreground">{editing.date}</b></div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Kelish vaqti (Toshkent)</label>
+                <Input
+                  type="time"
+                  value={editing.time}
+                  onChange={(e) => setEditing({ ...editing, time: e.target.value })}
+                />
+              </div>
+              <div className="text-[11px] text-muted-foreground">
+                Saqlangach jarima yangi vaqtga qarab qayta hisoblanadi.
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditing(null)}>Bekor</Button>
+            <Button
+              onClick={() => editing && updateMut.mutate(editing)}
+              disabled={updateMut.isPending || !editing?.time}
+            >
+              {updateMut.isPending ? "Saqlanmoqda..." : "Saqlash"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
