@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS "Authenticated can view advance_requests" ON public.advance_requests;
+CREATE POLICY "Admin CEO Finance can view advance_requests" ON public.advance_requests FOR SELECT TO authenticated USING (has_role(auth.uid(),'admin') OR has_role(auth.uid(),'owner_ceo') OR has_role(auth.uid(),'financier'));
