@@ -946,6 +946,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                           onClick={() => openEdit(
                             `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
                             att,
+                            fine,
                           )}
                           className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
                           title="Kelish vaqtini tahrirlash"
