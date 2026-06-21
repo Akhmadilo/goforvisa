@@ -944,7 +944,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
       if (e.mode === "present") {
         return updateFn({ data: { employeeId: empId, date: e.date, checkInLocal: e.time } });
       }
-      const amt = Number(e.amount.replace(/\s/g, "")) || 0;
+      const amt = Number(e.amount.replace(/[^0-9]/g, "")) || 0;
       return absenceFn({ data: { employeeId: empId, date: e.date, amountUzs: amt, note: e.note || null } });
     },
     onSuccess: () => {
@@ -1217,6 +1217,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                       <TableCell>{WEEKDAYS[wd]}</TableCell>
                       <TableCell>
                         {isDayOff ? <Badge variant="outline">Dam</Badge>
+                          : cell?.fine?.reason === "absent" ? <Badge variant="destructive">Kelmadi</Badge>
                           : cell?.fine ? <Badge variant="destructive">Kech</Badge>
                           : cell?.att ? <Badge variant="secondary">Kelgan</Badge>
                           : <Badge variant="outline">—</Badge>}
@@ -1234,7 +1235,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                               variant="ghost"
                               className="h-7 w-7 p-0"
                               onClick={() => openEdit(dateStr, cell?.att, cell?.fine)}
-                              title="Kelish vaqtini tahrirlash"
+                              title="Kunni tahrirlash"
                             >
                               <Pencil className="h-3.5 w-3.5" />
                             </Button>
@@ -1297,10 +1298,10 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">Jarima summasi (so'm)</label>
                     <Input
-                      type="number"
-                      min={0}
-                      step={1000}
-                      placeholder="0"
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9\s]*"
+                      placeholder="120 000"
                       value={editing.amount}
                       onChange={(e) => setEditing({ ...editing, amount: e.target.value })}
                     />
