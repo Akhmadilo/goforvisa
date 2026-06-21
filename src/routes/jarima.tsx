@@ -902,10 +902,25 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                 else if (att) bg = "bg-emerald-100 dark:bg-emerald-950/40";
                 return (
                   <div key={d} className={cn(
-                    "rounded border min-h-[68px] p-1.5 text-left",
+                    "rounded border min-h-[68px] p-1.5 text-left relative group",
                     bg,
                   )}>
-                    <div className="text-[11px] font-bold">{d}</div>
+                    <div className="flex items-center justify-between">
+                      <div className="text-[11px] font-bold">{d}</div>
+                      {canEditAttendance && !isDayOff && (
+                        <button
+                          type="button"
+                          onClick={() => openEdit(
+                            `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`,
+                            att,
+                          )}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                          title="Kelish vaqtini tahrirlash"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      )}
+                    </div>
                     {isDayOff ? (
                       <div className="text-[10px] text-muted-foreground">Dam</div>
                     ) : att ? (
