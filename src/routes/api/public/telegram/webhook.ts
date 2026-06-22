@@ -50,7 +50,7 @@ function nowInTashkent(): Date {
 const MAIN_KB = {
   keyboard: [
     [{ text: "🟢 Keldim" }],
-    [{ text: "💰 Avans so'rash" }],
+    [{ text: "💰 Avans so'rash" }, { text: "📅 Dam olish" }],
   ],
   resize_keyboard: true,
 };
@@ -66,6 +66,58 @@ const FACE_INLINE = {
     { text: "❌ Yo'q", callback_data: "face_no" },
   ]],
 };
+
+function leaveDecisionKb(id: string) {
+  return {
+    inline_keyboard: [
+      [{ text: "✅ Tasdiq + oylik hisoblansin", callback_data: `lv_ac_${id}` }],
+      [{ text: "✅ Tasdiq + oylik hisoblanmasin", callback_data: `lv_an_${id}` }],
+      [{ text: "❌ Rad etish", callback_data: `lv_rj_${id}` }],
+    ],
+  };
+}
+
+function parseLeaveDate(input: string): string | null {
+  const s = input.trim().toLowerCase();
+  const now = nowInTashkent();
+  const fmtD = (d: Date) => d.toISOString().slice(0, 10);
+  if (s === "bugun") return fmtD(now);
+  if (s === "ertaga") { const d = new Date(now); d.setUTCDate(d.getUTCDate() + 1); return fmtD(d); }
+  // YYYY-MM-DD
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+  // DD.MM.YYYY or DD/MM/YYYY or DD-MM-YYYY
+  m = s.match(/^(\d{1,2})[.\/\-](\d{1,2})[.\/\-](\d{4})$/);
+  if (m) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  // DD.MM (current year)
+  m = s.match(/^(\d{1,2})[.\/\-](\d{1,2})$/);
+  if (m) return `${now.getUTCFullYear()}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  return null;
+}
+
+async function notifyDirectorsAboutLeave(leaveId: string, empName: string, date: string, reason: string | null) {
+  const c = sb();
+  const { data: dirs } = await c
+    .from("employee_telegram")
+    .select("telegram_id")
+    .eq("bot_role", "director");
+  const text = `📅 *Yangi dam olish so'rovi*\n\n👤 Ishchi: ${empName}\n📆 Sana: ${date}\n📝 Sabab: ${reason || "—"}`;
+  const messages: Array<{ chat_id: number; message_id: number }> = [];
+  for (const d of dirs || []) {
+    const r: any = await tg("sendMessage", {
+      chat_id: d.telegram_id,
+      text,
+      parse_mode: "Markdown",
+      reply_markup: leaveDecisionKb(leaveId),
+    });
+    if (r?.ok && r.result?.message_id) {
+      messages.push({ chat_id: d.telegram_id, message_id: r.result.message_id });
+    }
+  }
+  if (messages.length) {
+    await c.from("leave_requests").update({ notif_messages: messages }).eq("id", leaveId);
+  }
+}
 
 async function handleCheckIn(chatId: number, telegramId: number) {
   const c = sb();
