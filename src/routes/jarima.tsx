@@ -1165,7 +1165,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                 else if (att) bg = "bg-emerald-100 dark:bg-emerald-950/40";
                 return (
                   <div key={d} className={cn(
-                    "rounded border min-h-[68px] p-1.5 text-left relative group",
+                    "rounded border min-h-[52px] md:min-h-[68px] p-1 md:p-1.5 text-left relative group",
                     bg,
                   )}>
                     <div className="flex items-center justify-between">
