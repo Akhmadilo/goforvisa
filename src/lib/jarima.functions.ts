@@ -356,8 +356,10 @@ export const updateAttendanceCheckIn = createServerFn({ method: "POST" })
       .maybeSingle();
 
     let minutesLate = 0;
-    if (sched?.is_working !== false && sched?.start_time) {
-      const [sh, sm] = String(sched.start_time).split(":").map(Number);
+    const isWorking = sched ? sched.is_working !== false : true;
+    const startStr = (sched?.start_time as string) || "10:00";
+    if (isWorking) {
+      const [sh, sm] = String(startStr).split(":").map(Number);
       const startMin = sh * 60 + sm;
       const arrivalMin = hh * 60 + mm;
       minutesLate = Math.max(0, arrivalMin - startMin);
