@@ -1165,6 +1165,16 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
   );
   const presentDays = (data?.attendance || []).length;
   const fineCount = (data?.fines || []).length;
+  const workingDays = useMemo(() => {
+    let count = 0;
+    for (let d = 1; d <= days; d++) {
+      const wd = new Date(year, month - 1, d).getDay();
+      const sched = schedByWd.get(wd);
+      if (!sched || sched.is_working !== false) count++;
+    }
+    return count;
+  }, [days, year, month, schedByWd]);
+
 
   const openEdit = (dateStr: string, att?: any, fine?: any) => {
     const isAbsent = !att && !!fine;
