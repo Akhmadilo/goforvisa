@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { AlertTriangle, Link2, Trash2, Plus, FileText } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
