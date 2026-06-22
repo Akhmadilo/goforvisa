@@ -471,8 +471,8 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
               const c = sb();
               const { data: actor } = await c
                 .from("employee_telegram").select("bot_role").eq("telegram_id", tgId).maybeSingle();
-              if (actor?.bot_role !== "director") {
-                await tg("answerCallbackQuery", { callback_query_id: cq.id, text: "❌ Sizda ruxsat yo'q (faqat direktor).", show_alert: true });
+              if (!actor || !APPROVER_ROLES.includes(actor.bot_role as any)) {
+                await tg("answerCallbackQuery", { callback_query_id: cq.id, text: "❌ Sizda ruxsat yo'q (faqat Owner/CEO/Moliyachi).", show_alert: true });
               } else {
                 const action = data.slice(3, 5);
                 const leaveId = data.slice(6);
