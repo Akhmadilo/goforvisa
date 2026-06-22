@@ -95,12 +95,14 @@ function parseLeaveDate(input: string): string | null {
   return null;
 }
 
+const APPROVER_ROLES = ["owner", "ceo", "financier", "director"] as const;
+
 async function notifyDirectorsAboutLeave(leaveId: string, empName: string, date: string, reason: string | null) {
   const c = sb();
   const { data: dirs } = await c
     .from("employee_telegram")
     .select("telegram_id")
-    .eq("bot_role", "director");
+    .in("bot_role", APPROVER_ROLES as unknown as string[]);
   const text = `📅 *Yangi dam olish so'rovi*\n\n👤 Ishchi: ${empName}\n📆 Sana: ${date}\n📝 Sabab: ${reason || "—"}`;
   const messages: Array<{ chat_id: number; message_id: number }> = [];
   for (const d of dirs || []) {
@@ -469,8 +471,8 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
               const c = sb();
               const { data: actor } = await c
                 .from("employee_telegram").select("bot_role").eq("telegram_id", tgId).maybeSingle();
-              if (actor?.bot_role !== "director") {
-                await tg("answerCallbackQuery", { callback_query_id: cq.id, text: "❌ Sizda ruxsat yo'q (faqat direktor).", show_alert: true });
+              if (!actor || !APPROVER_ROLES.includes(actor.bot_role as any)) {
+                await tg("answerCallbackQuery", { callback_query_id: cq.id, text: "❌ Sizda ruxsat yo'q (faqat Owner/CEO/Moliyachi).", show_alert: true });
               } else {
                 const action = data.slice(3, 5);
                 const leaveId = data.slice(6);

@@ -523,7 +523,7 @@ function JarimaPage() {
     onError: (e: any) => toast.error(e.message),
   });
   const botRoleMut = useMutation({
-    mutationFn: (v: { telegramRowId: string; botRole: "none" | "director" | "finance" }) => botRoleFn({ data: v }),
+    mutationFn: (v: { telegramRowId: string; botRole: "none" | "owner" | "ceo" | "financier" | "director" | "finance" }) => botRoleFn({ data: v }),
     onSuccess: () => { invalidate(); toast.success("Lavozim saqlandi"); },
     onError: (e: any) => toast.error(e.message),
   });
@@ -742,18 +742,19 @@ function JarimaPage() {
                             <TableCell>
                               <Select
                                 value={tg.bot_role ?? "none"}
-                                onValueChange={(v) => botRoleMut.mutate({
-                                  telegramRowId: tg.id,
-                                  botRole: v as "none" | "director" | "finance",
-                                })}
-                              >
-                                <SelectTrigger className="w-[160px] md:w-[180px]"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="none">— oddiy ishchi —</SelectItem>
-                                  <SelectItem value="director">Direktor</SelectItem>
-                                  <SelectItem value="finance">Moliyachi (CEO)</SelectItem>
-                                </SelectContent>
-                              </Select>
+                                 onValueChange={(v) => botRoleMut.mutate({
+                                   telegramRowId: tg.id,
+                                   botRole: v as "none" | "owner" | "ceo" | "financier",
+                                 })}
+                               >
+                                 <SelectTrigger className="w-[160px] md:w-[200px]"><SelectValue /></SelectTrigger>
+                                 <SelectContent>
+                                   <SelectItem value="none">— oddiy ishchi —</SelectItem>
+                                   <SelectItem value="owner">Owner</SelectItem>
+                                   <SelectItem value="ceo">CEO</SelectItem>
+                                   <SelectItem value="financier">Moliyachi</SelectItem>
+                                 </SelectContent>
+                               </Select>
                             </TableCell>
                           </TableRow>
                         ))}
