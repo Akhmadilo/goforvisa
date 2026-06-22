@@ -346,17 +346,17 @@ function ExpensesPage() {
 
       <div className="relative z-10 md:pl-56">
         <header className="border-b border-border bg-card/40 backdrop-blur sticky top-0 z-20">
-          <div className="mx-auto max-w-[1500px] px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="mx-auto max-w-[1500px] px-4 sm:px-6 py-3 md:py-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 pl-10 md:pl-0">
               <div
-                className="h-10 w-10 rounded-lg flex items-center justify-center"
+                className="h-9 w-9 md:h-10 md:w-10 rounded-lg flex items-center justify-center shrink-0"
                 style={{ background: "var(--gradient-primary)" }}
               >
-                <Receipt className="h-5 w-5 text-primary-foreground" />
+                <Receipt className="h-4 w-4 md:h-5 md:w-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold tracking-tight">{t("exp.title")}</h1>
-                <p className="text-xs text-muted-foreground">
+                <h1 className="text-base md:text-xl font-bold tracking-tight">{t("exp.title")}</h1>
+                <p className="text-[11px] md:text-xs text-muted-foreground">
                   {t("exp.subtitle")}
                 </p>
               </div>
@@ -365,7 +365,7 @@ function ExpensesPage() {
               {canCreate && (
                 <Button
                   onClick={() => setAddOpen(true)}
-                  className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white h-9 px-2 md:px-3"
                 >
                   <Plus className="h-4 w-4" />
                   <span className="hidden sm:inline">{t("exp.add")}</span>
@@ -394,7 +394,7 @@ function ExpensesPage() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1500px] px-6 py-6 space-y-6">
+        <main className="mx-auto max-w-[1500px] px-4 sm:px-6 py-4 md:py-6 space-y-4 md:space-y-6">
           {/* Top filters — affect dashboards, pivot and table */}
           <Card className="p-4 space-y-3">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
