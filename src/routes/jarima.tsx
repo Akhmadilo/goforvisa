@@ -520,10 +520,12 @@ function JarimaPage() {
   return (
     <div className="min-h-screen bg-background">
       <AppSidebar />
-      <main className="md:ml-56 p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <AlertTriangle className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">{t("nav.fines")}</h1>
+      <main className="md:ml-56 p-4 md:p-6">
+        <div className="flex items-center gap-3 mb-4 md:mb-6 pl-10 md:pl-0">
+          <div className="h-9 w-9 md:h-10 md:w-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--gradient-primary)" }}>
+            <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-primary-foreground" />
+          </div>
+          <h1 className="text-base md:text-xl font-bold">{t("nav.fines")}</h1>
         </div>
 
         {isLoading ? (
