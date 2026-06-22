@@ -832,35 +832,37 @@ function FineRulesEditor({
 
   return (
     <Card className="p-4">
-      <div className="font-medium mb-3">Jarima qoidalari (kechikish daqiqasiga qarab)</div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Min (daq)</TableHead>
-            <TableHead>Max (daq)</TableHead>
-            <TableHead>Summa (so'm)</TableHead>
-            <TableHead>Yorliq</TableHead>
-            <TableHead></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rules.map(r => (
-            <RuleRow key={r.id} rule={r} onSave={onSave} onDelete={onDelete} />
-          ))}
-          <TableRow>
-            <TableCell><Input type="number" value={newMin} onChange={e => setNewMin(Number(e.target.value))} /></TableCell>
-            <TableCell><Input type="number" placeholder="cheksiz" value={newMax} onChange={e => setNewMax(e.target.value)} /></TableCell>
-            <TableCell><Input type="number" value={newAmt} onChange={e => setNewAmt(Number(e.target.value))} /></TableCell>
-            <TableCell><Input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="masalan: 10:00–10:30" /></TableCell>
-            <TableCell>
-              <Button size="sm" onClick={() => {
-                onSave({ min: newMin, max: newMax === "" ? null : Number(newMax), amount: newAmt, label: newLabel || null });
-                setNewMin(0); setNewMax(""); setNewAmt(0); setNewLabel("");
-              }}><Plus className="h-4 w-4" /></Button>
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+      <div className="font-medium text-sm md:text-base mb-3">Jarima qoidalari (kechikish daqiqasiga qarab)</div>
+      <div className="overflow-x-auto -mx-4 px-4">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Min (daq)</TableHead>
+              <TableHead>Max (daq)</TableHead>
+              <TableHead>Summa (so'm)</TableHead>
+              <TableHead>Yorliq</TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rules.map(r => (
+              <RuleRow key={r.id} rule={r} onSave={onSave} onDelete={onDelete} />
+            ))}
+            <TableRow>
+              <TableCell><Input type="number" value={newMin} onChange={e => setNewMin(Number(e.target.value))} /></TableCell>
+              <TableCell><Input type="number" placeholder="cheksiz" value={newMax} onChange={e => setNewMax(e.target.value)} /></TableCell>
+              <TableCell><Input type="number" value={newAmt} onChange={e => setNewAmt(Number(e.target.value))} /></TableCell>
+              <TableCell><Input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="masalan: 10:00–10:30" /></TableCell>
+              <TableCell>
+                <Button size="sm" onClick={() => {
+                  onSave({ min: newMin, max: newMax === "" ? null : Number(newMax), amount: newAmt, label: newLabel || null });
+                  setNewMin(0); setNewMax(""); setNewAmt(0); setNewLabel("");
+                }}><Plus className="h-4 w-4" /></Button>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
     </Card>
   );
 }
