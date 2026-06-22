@@ -902,13 +902,13 @@ function Dashboard() {
 
         {can("debtors") && (
         <Card className="shadow-[var(--shadow-card)] overflow-hidden border-destructive/30">
-          <div className="p-5 border-b border-border flex items-center justify-between bg-destructive/5">
+          <div className="p-4 md:p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-destructive/5">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-destructive/15 text-destructive flex items-center justify-center">
+              <div className="h-9 w-9 rounded-lg bg-destructive/15 text-destructive flex items-center justify-center shrink-0">
                 <AlertTriangle className="h-4 w-4" />
               </div>
               <div>
-                <h3 className="font-semibold">
+                <h3 className="font-semibold text-sm md:text-base">
                   {t("dash.debtors.title")}{" "}
                   <span className="text-muted-foreground font-normal">
                     ({debtors.length})
@@ -919,14 +919,14 @@ function Dashboard() {
                 </p>
               </div>
             </div>
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               <div className="text-xs text-muted-foreground">{t("dash.kpi.totalDebt")}</div>
               <div className="text-lg font-bold text-destructive">
                 {fmtUsd(debtorsTotalUsd)}
               </div>
             </div>
           </div>
-          <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+          <div className="overflow-x-auto max-h-[420px] md:max-h-[500px] overflow-y-auto">
             {debtors.length === 0 ? (
               <div className="p-10 text-center text-sm text-muted-foreground">
                 {t("dash.debtors.none")}
