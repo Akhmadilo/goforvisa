@@ -1124,19 +1124,19 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Card className="p-3">
               <div className="text-xs text-muted-foreground">Kelgan kunlar</div>
-              <div className="text-xl font-bold">{presentDays}</div>
+              <div className="text-lg md:text-xl font-bold">{presentDays}</div>
             </Card>
             <Card className="p-3">
               <div className="text-xs text-muted-foreground">Jarima kunlar</div>
-              <div className="text-xl font-bold">{fineCount}</div>
+              <div className="text-lg md:text-xl font-bold">{fineCount}</div>
             </Card>
             <Card className="p-3">
               <div className="text-xs text-muted-foreground">Jami jarima</div>
-              <div className="text-xl font-bold text-red-600 dark:text-red-400">{fmt(totalFine)} so'm</div>
+              <div className="text-lg md:text-xl font-bold text-red-600 dark:text-red-400">{fmt(totalFine)} so'm</div>
             </Card>
             <Card className="p-3">
               <div className="text-xs text-muted-foreground">Oydagi kunlar</div>
-              <div className="text-xl font-bold">{days}</div>
+              <div className="text-lg md:text-xl font-bold">{days}</div>
             </Card>
           </div>
 
