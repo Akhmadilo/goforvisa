@@ -543,37 +543,39 @@ function JarimaPage() {
             {/* === BUGUN === */}
             <TabsContent value="today" className="space-y-4">
               <Card className="p-4">
-                <div className="font-medium mb-3">Bugun kelganlar ({todayAttendance.length})</div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Ishchi</TableHead>
-                      <TableHead>Kelish vaqti</TableHead>
-                      <TableHead>FACE ID</TableHead>
-                      <TableHead>Kechikish</TableHead>
-                      <TableHead className="text-right">Jarima</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {todayAttendance.map(a => {
-                      const fine = todayFines.find(f => f.employee_id === a.employee_id);
-                      return (
-                        <TableRow key={a.id}>
-                          <TableCell>{empMap.get(a.employee_id) || "—"}</TableCell>
-                          <TableCell>{timeFromIso(a.check_in_at)}</TableCell>
-                          <TableCell>{a.face_id_confirmed ? "✅" : "—"}</TableCell>
-                          <TableCell>{fine ? `${fine.minutes_late} daq` : "—"}</TableCell>
-                          <TableCell className="text-right">
-                            {fine ? <Badge variant="destructive">{fmt(fine.amount_uzs)} so'm</Badge> : <Badge variant="secondary">0</Badge>}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                    {todayAttendance.length === 0 && (
-                      <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Hech kim kelmadi</TableCell></TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                <div className="font-medium text-sm md:text-base mb-3">Bugun kelganlar ({todayAttendance.length})</div>
+                <div className="overflow-x-auto -mx-4 px-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Ishchi</TableHead>
+                        <TableHead>Kelish vaqti</TableHead>
+                        <TableHead>FACE ID</TableHead>
+                        <TableHead>Kechikish</TableHead>
+                        <TableHead className="text-right">Jarima</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {todayAttendance.map(a => {
+                        const fine = todayFines.find(f => f.employee_id === a.employee_id);
+                        return (
+                          <TableRow key={a.id}>
+                            <TableCell>{empMap.get(a.employee_id) || "—"}</TableCell>
+                            <TableCell>{timeFromIso(a.check_in_at)}</TableCell>
+                            <TableCell>{a.face_id_confirmed ? "✅" : "—"}</TableCell>
+                            <TableCell>{fine ? `${fine.minutes_late} daq` : "—"}</TableCell>
+                            <TableCell className="text-right">
+                              {fine ? <Badge variant="destructive">{fmt(fine.amount_uzs)} so'm</Badge> : <Badge variant="secondary">0</Badge>}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {todayAttendance.length === 0 && (
+                        <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Hech kim kelmadi</TableCell></TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </Card>
 
               <Card className="p-4">
