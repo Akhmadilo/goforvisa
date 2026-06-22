@@ -1004,8 +1004,8 @@ function Dashboard() {
         {/* Table */}
         {can("contracts_table") && (
         <Card className="shadow-[var(--shadow-card)] overflow-hidden">
-          <div className="p-5 border-b border-border flex items-center justify-between">
-            <h3 className="font-semibold">
+          <div className="p-4 md:p-5 border-b border-border flex items-center justify-between">
+            <h3 className="font-semibold text-sm md:text-base">
               {t("dash.table.contractsList")}{" "}
               <span className="text-muted-foreground font-normal">
                 ({filtered.length})
@@ -1017,7 +1017,7 @@ function Dashboard() {
               </span>
             )}
           </div>
-          <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+          <div className="overflow-x-auto max-h-[420px] md:max-h-[600px] overflow-y-auto">
             <Table>
               <TableHeader className="sticky top-0 bg-card z-10">
                 <TableRow>
