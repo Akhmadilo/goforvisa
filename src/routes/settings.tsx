@@ -47,15 +47,17 @@ function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
-        <div className="mb-2 flex items-center gap-2">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
-        </div>
+      <AppSidebar />
+      <div className="md:pl-56">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 py-6 md:py-8 space-y-6">
+          <div className="mb-2 flex items-center gap-2 pl-10 md:pl-0">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/">
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            </Button>
+            <h1 className="text-base md:text-xl font-bold">{t("settings.title")}</h1>
+          </div>
 
         <Card className="p-6">
           <h2 className="text-lg font-semibold">{t("settings.appearance")}</h2>
