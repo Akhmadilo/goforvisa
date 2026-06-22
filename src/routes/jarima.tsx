@@ -986,13 +986,13 @@ function EmployeeRules({
     </div>
   );
 }
-}
 
 function RuleRow({
-  rule, onSave, onDelete,
+  rule, employeeId, onSave, onDelete,
 }: {
   rule: { id: string; min_minutes: number | null; max_minutes: number | null; amount_uzs: number; label: string | null };
-  onSave: (v: { id: string; min: number | null; max: number | null; amount: number; label: string | null; kind?: "late" | "absence" }) => void;
+  employeeId: string;
+  onSave: (v: { id: string; employeeId?: string | null; min: number | null; max: number | null; amount: number; label: string | null; kind?: "late" | "absence" }) => void;
   onDelete: (id: string) => void;
 }) {
   const [min, setMin] = useState<number>(rule.min_minutes ?? 0);
