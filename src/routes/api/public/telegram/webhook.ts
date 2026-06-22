@@ -333,12 +333,86 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                   reply_markup: MAIN_KB,
                 });
               }
+            } else if (state?.step === "await_leave_date") {
+              const d = parseLeaveDate(text);
+              if (!d) {
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "❗️ Sanani to'g'ri kiriting. Masalan: 2026-06-25, 25.06.2026, 25.06, yoki 'bugun' / 'ertaga'.",
+                  reply_markup: CANCEL_KB,
+                });
+              } else {
+                await setState({ step: "await_leave_reason", date: d });
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: `Sana: ${d} ✅\n\nEndi dam olish sababini yozing:`,
+                  reply_markup: CANCEL_KB,
+                });
+              }
+            } else if (state?.step === "await_leave_reason") {
+              const reason = text.slice(0, 500).trim();
+              if (reason.length < 3) {
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "❗️ Sabab juda qisqa. Iltimos batafsilroq yozing.",
+                  reply_markup: CANCEL_KB,
+                });
+              } else if (!tgRow?.employee_id) {
+                await resetState();
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "⚠️ Akkauntingiz ishchiga bog'lanmagan. Admin sizni tizimda ulashini kuting.",
+                  reply_markup: MAIN_KB,
+                });
+              } else {
+                const { data: emp } = await sb()
+                  .from("employees").select("full_name").eq("id", tgRow.employee_id).maybeSingle();
+                const { data: ins, error: insErr } = await sb()
+                  .from("leave_requests")
+                  .upsert({
+                    employee_id: tgRow.employee_id,
+                    date: state.date,
+                    reason,
+                    status: "pending",
+                    salary_counts: null,
+                    fine_amount_uzs: 0,
+                    telegram_id: tgId,
+                    source: "telegram",
+                  }, { onConflict: "employee_id,date" })
+                  .select("id").maybeSingle();
+                await resetState();
+                if (insErr || !ins) {
+                  await tg("sendMessage", { chat_id: chatId, text: `❗️ Xatolik: ${insErr?.message || "saqlanmadi"}`, reply_markup: MAIN_KB });
+                } else {
+                  await tg("sendMessage", {
+                    chat_id: chatId,
+                    text: `✅ Dam olish so'rovingiz yuborildi!\n\n📆 Sana: ${state.date}\n📝 Sabab: ${reason}\n\nDirektor ko'rib chiqgach xabar yuboramiz.`,
+                    reply_markup: MAIN_KB,
+                  });
+                  await notifyDirectorsAboutLeave(ins.id, emp?.full_name || "—", state.date, reason);
+                }
+              }
             } else if (text.startsWith("/start")) {
               await tg("sendMessage", {
                 chat_id: chatId,
-                text: `Assalomu alaykum${from.first_name ? ", " + from.first_name : ""}! 👋\n\n🟢 Keldim — kelganingizni belgilang (FACE ID dan keyin)\n💰 Avans so'rash — avans uchun ariza`,
+                text: `Assalomu alaykum${from.first_name ? ", " + from.first_name : ""}! 👋\n\n🟢 Keldim — kelganingizni belgilang\n💰 Avans so'rash — avans uchun ariza\n📅 Dam olish — dam olish so'rovi`,
                 reply_markup: MAIN_KB,
               });
+            } else if (text.startsWith("/dam_olish") || text === "📅 Dam olish" || text.toLowerCase() === "dam olish") {
+              if (!tgRow?.employee_id) {
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "⚠️ Akkauntingiz hali ishchiga bog'lanmagan. Admin sizni tizimda ulashini kuting.",
+                  reply_markup: MAIN_KB,
+                });
+              } else {
+                await setState({ step: "await_leave_date" });
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "📅 Qaysi kunga dam olmoqchisiz?\n\nSanani kiriting (masalan: 2026-06-25, 25.06.2026, 25.06, bugun, ertaga):",
+                  reply_markup: CANCEL_KB,
+                });
+              }
             } else if (text.startsWith("/chatid") || text.startsWith("/id")) {
               await tg("sendMessage", {
                 chat_id: chatId,
