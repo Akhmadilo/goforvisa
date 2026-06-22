@@ -27,6 +27,7 @@ export type Database = {
           finance_approved_by: string | null
           finance_note: string | null
           id: string
+          notif_messages: Json | null
           paid_at: string | null
           paid_by: string | null
           purpose: string
@@ -50,6 +51,7 @@ export type Database = {
           finance_approved_by?: string | null
           finance_note?: string | null
           id?: string
+          notif_messages?: Json | null
           paid_at?: string | null
           paid_by?: string | null
           purpose: string
@@ -73,6 +75,7 @@ export type Database = {
           finance_approved_by?: string | null
           finance_note?: string | null
           id?: string
+          notif_messages?: Json | null
           paid_at?: string | null
           paid_by?: string | null
           purpose?: string
@@ -619,6 +622,10 @@ export type Database = {
       }
       leave_requests: {
         Row: {
+          ceo_decided_at: string | null
+          ceo_decided_by_tg: number | null
+          ceo_note: string | null
+          ceo_status: string
           created_at: string
           created_by: string | null
           date: string
@@ -629,6 +636,7 @@ export type Database = {
           id: string
           note: string | null
           notif_messages: Json
+          proposed_salary_counts: boolean | null
           reason: string | null
           salary_counts: boolean | null
           source: string
@@ -637,6 +645,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ceo_decided_at?: string | null
+          ceo_decided_by_tg?: number | null
+          ceo_note?: string | null
+          ceo_status?: string
           created_at?: string
           created_by?: string | null
           date: string
@@ -647,6 +659,7 @@ export type Database = {
           id?: string
           note?: string | null
           notif_messages?: Json
+          proposed_salary_counts?: boolean | null
           reason?: string | null
           salary_counts?: boolean | null
           source?: string
@@ -655,6 +668,10 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ceo_decided_at?: string | null
+          ceo_decided_by_tg?: number | null
+          ceo_note?: string | null
+          ceo_status?: string
           created_at?: string
           created_by?: string | null
           date?: string
@@ -665,6 +682,7 @@ export type Database = {
           id?: string
           note?: string | null
           notif_messages?: Json
+          proposed_salary_counts?: boolean | null
           reason?: string | null
           salary_counts?: boolean | null
           source?: string
