@@ -33,6 +33,7 @@ export const Route = createFileRoute("/javoblar")({
 });
 
 type LeaveStatus = "pending" | "approved" | "rejected";
+type CeoStatus = "pending" | "approved" | "rejected";
 type Leave = {
   id: string;
   employee_id: string;
@@ -46,6 +47,9 @@ type Leave = {
   decided_by: string | null;
   decided_at: string | null;
   created_at: string;
+  ceo_status: CeoStatus;
+  proposed_salary_counts: boolean | null;
+  ceo_note: string | null;
 };
 type Employee = { id: string; full_name: string; terminated_at: string | null };
 
@@ -242,14 +246,19 @@ function LeavesPage() {
                       {l.note && <div className="text-xs text-muted-foreground mt-0.5">Izoh: {l.note}</div>}
                     </div>
                     <div className="flex items-center gap-1.5">
-                      {l.status === "pending" && isAdmin && (
+                      {l.status === "pending" && l.ceo_status === "pending" && (
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Clock className="h-3 w-3" /> Direktor Telegramda tasdiqlashi kutilmoqda
+                        </span>
+                      )}
+                      {l.status === "pending" && l.ceo_status === "approved" && isAdmin && (
                         <Button size="sm" onClick={() => setDecideOpen(l)} className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white">
-                          <Check className="h-3.5 w-3.5" /> Ko'rib chiqish
+                          <Check className="h-3.5 w-3.5" /> Yakuniylashtirish
                         </Button>
                       )}
-                      {l.status === "pending" && !isAdmin && (
+                      {l.status === "pending" && l.ceo_status === "approved" && !isAdmin && (
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Clock className="h-3 w-3" /> Direktor tasdiqlashi kutilmoqda
+                          <Clock className="h-3 w-3" /> Admin yakuniylashtirishi kutilmoqda
                         </span>
                       )}
                       {isAdmin && (
@@ -385,9 +394,9 @@ function DecideDialog({
 
   useEffect(() => {
     if (leave) {
-      setSalaryCounts(true);
+      setSalaryCounts(leave.proposed_salary_counts ?? true);
       setFineStr("");
-      setNote("");
+      setNote(leave.ceo_note ?? "");
     }
   }, [leave]);
 

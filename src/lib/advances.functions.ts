@@ -247,6 +247,100 @@ export const markAdvancePaid = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+// ---- Admin final decision: approve+pay or reject in one step ----
+export const adminFinalizeAdvance = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string; approve: boolean; note?: string }) =>
+    z.object({
+      id: z.string().uuid(),
+      approve: z.boolean(),
+      note: z.string().max(500).optional(),
+    }).parse(d)
+  )
+  .handler(async ({ data, context }) => {
+    const c = context.supabase;
+    const { data: isAdmin } = await c.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Faqat admin yakuniylashtirishi mumkin");
+
+    const { data: row, error: e1 } = await c
+      .from("advance_requests").select("*").eq("id", data.id).maybeSingle();
+    if (e1 || !row) throw new Error(e1?.message || "So'rov topilmadi");
+    if (row.status !== "ceo_approved") throw new Error("Avval direktor tasdiqlashi kerak");
+
+    if (!data.approve) {
+      const { error } = await c.from("advance_requests").update({
+        status: "rejected",
+        rejected_by: context.userId,
+        rejected_at: new Date().toISOString(),
+        rejected_reason: data.note ?? "Admin rad etdi",
+      }).eq("id", data.id);
+      if (error) throw new Error(error.message);
+      await notifyEmployee(
+        row.telegram_id,
+        `❌ Avans so'rovingiz rad etildi.\n\nSumma: ${fmtUzs(Number(row.amount_uzs))} so'm\nSabab: ${data.note || "—"}`
+      );
+      return { ok: true };
+    }
+
+    if (!row.employee_id) throw new Error("Xodim bog'lanmagan");
+
+    // Approve: deduct from current month salary, mark paid.
+    const now = new Date(Date.now() + 5 * 3600 * 1000);
+    const year = now.getUTCFullYear();
+    const month = now.getUTCMonth() + 1;
+    const empName = await getEmployeeName(c, row.employee_id);
+    const advance = Number(row.amount_uzs);
+
+    const { data: existingSalary } = await c
+      .from("salaries")
+      .select("id, advance_amount")
+      .eq("employee_name", empName)
+      .eq("year", year)
+      .eq("month", month)
+      .maybeSingle();
+
+    let salaryId: string;
+    if (existingSalary) {
+      const newAmt = Number(existingSalary.advance_amount || 0) + advance;
+      const { error } = await c.from("salaries")
+        .update({ advance_amount: newAmt })
+        .eq("id", existingSalary.id);
+      if (error) throw new Error(error.message);
+      salaryId = existingSalary.id as string;
+    } else {
+      const { data: ins, error } = await c.from("salaries").insert({
+        employee_name: empName,
+        year, month,
+        fixed_amount: 0,
+        kpi_amount: 0,
+        penalty_amount: 0,
+        advance_amount: advance,
+        note: "Avtomatik: avans ushlanmasi",
+        created_by: context.userId,
+      }).select("id").maybeSingle();
+      if (error || !ins) throw new Error(error?.message || "Oylik yarata olmadim");
+      salaryId = ins.id as string;
+    }
+
+    const { error: eUp } = await c.from("advance_requests").update({
+      status: "paid",
+      finance_approved_by: context.userId,
+      finance_approved_at: new Date().toISOString(),
+      finance_note: data.note ?? null,
+      paid_at: new Date().toISOString(),
+      paid_by: context.userId,
+      deducted_in_salary_id: salaryId,
+    }).eq("id", data.id);
+    if (eUp) throw new Error(eUp.message);
+
+    await notifyEmployee(
+      row.telegram_id,
+      `✅ Avans tasdiqlandi va berildi!\n\nSumma: ${fmtUzs(advance)} so'm\nMaqsad: ${row.purpose}\n\nℹ️ Ushbu summa keyingi oylikingizdan ushlab qolinadi.`
+    );
+    return { ok: true };
+  });
+
+
 // ---- Per-employee attendance & fines for a given month ----
 export const getEmployeeMonth = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

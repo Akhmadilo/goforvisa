@@ -27,7 +27,7 @@ import {
 } from "@/lib/jarima.functions";
 import { Pencil } from "lucide-react";
 import {
-  listAdvances, ceoDecideAdvance, financeDecideAdvance, markAdvancePaid,
+  listAdvances, ceoDecideAdvance, financeDecideAdvance, markAdvancePaid, adminFinalizeAdvance,
   createAdvanceManual, getEmployeeMonth, type AdvanceRequest, type AdvanceStatus,
 } from "@/lib/advances.functions";
 import { useRoles } from "@/hooks/use-roles";
@@ -1458,10 +1458,10 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
 
 function statusBadge(s: AdvanceStatus) {
   const map: Record<AdvanceStatus, { label: string; variant: any }> = {
-    pending: { label: "Kutilmoqda", variant: "secondary" },
-    ceo_approved: { label: "Direktor ✓ — Moliyachi kutilmoqda", variant: "default" },
+    pending: { label: "Direktor tasdig'i kutilmoqda (Telegram)", variant: "secondary" },
+    ceo_approved: { label: "Direktor ✓ — Admin yakuniylashtirishi kutilmoqda", variant: "default" },
     approved: { label: "Tasdiqlandi — To'lov kutilmoqda", variant: "default" },
-    paid: { label: "✅ To'landi", variant: "secondary" },
+    paid: { label: "✅ Berildi (oylikdan ushlanadi)", variant: "secondary" },
     rejected: { label: "❌ Rad etildi", variant: "destructive" },
     cancelled: { label: "Bekor", variant: "outline" },
   };
@@ -1470,12 +1470,11 @@ function statusBadge(s: AdvanceStatus) {
 }
 
 function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<string, string> }) {
-  const { isCeo, isFinance, isAdmin: isAdm, canApproveAdvances } = useRoles();
+  const { isCeo, isAdmin: isAdm, canApproveAdvances } = useRoles();
   const qc = useQueryClient();
   const listFn = useServerFn(listAdvances);
   const ceoFn = useServerFn(ceoDecideAdvance);
-  const finFn = useServerFn(financeDecideAdvance);
-  const payFn = useServerFn(markAdvancePaid);
+  const adminFn = useServerFn(adminFinalizeAdvance);
   const createFn = useServerFn(createAdvanceManual);
 
   const { data: list = [], isLoading } = useQuery({
@@ -1485,7 +1484,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["advance-requests"] });
 
-  const [decision, setDecision] = useState<{ id: string; approve: boolean; role: "ceo" | "fin" } | null>(null);
+  const [decision, setDecision] = useState<{ id: string; approve: boolean; role: "ceo" | "admin" } | null>(null);
   const [note, setNote] = useState("");
 
   const submitDecision = async () => {
@@ -1494,22 +1493,11 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
       if (decision.role === "ceo") {
         await ceoFn({ data: { id: decision.id, approve: decision.approve, note: note || undefined } });
       } else {
-        await finFn({ data: { id: decision.id, approve: decision.approve, note: note || undefined } });
+        await adminFn({ data: { id: decision.id, approve: decision.approve, note: note || undefined } });
       }
       toast.success(decision.approve ? "Tasdiqlandi" : "Rad etildi");
       setDecision(null);
       setNote("");
-      invalidate();
-    } catch (e: any) {
-      toast.error(e?.message || "Xatolik");
-    }
-  };
-
-  const pay = async (id: string) => {
-    if (!confirm("To'lov amalga oshirildi va keyingi oylikdan ushlanadi. Davom etamizmi?")) return;
-    try {
-      await payFn({ data: { id } });
-      toast.success("To'lov belgilandi va oylikka qo'shildi");
       invalidate();
     } catch (e: any) {
       toast.error(e?.message || "Xatolik");
@@ -1539,9 +1527,8 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
   };
 
   const pending = list.filter(r => r.status === "pending");
-  const awaitingFinance = list.filter(r => r.status === "ceo_approved");
-  const awaitingPayment = list.filter(r => r.status === "approved");
-  const done = list.filter(r => r.status === "paid" || r.status === "rejected");
+  const awaitingAdmin = list.filter(r => r.status === "ceo_approved");
+  const done = list.filter(r => r.status === "paid" || r.status === "approved" || r.status === "rejected");
 
   const renderRow = (r: AdvanceRequest, actions?: React.ReactNode) => (
     <TableRow key={r.id}>
@@ -1597,7 +1584,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
           <div>
             <div className="font-medium">Avans so'rovlari</div>
             <div className="text-xs text-muted-foreground mt-1">
-              Ishchi botda <b>💰 Avans so'rash</b> tugmasini bossa, so'rov shu yerga keladi. Direktor → Moliyachi tasdiqlasa, "To'landi" tugmasi bilan oylikdan ushlanadi.
+              Ishchi botda <b>💰 Avans so'rash</b> tugmasini bossa, direktorga Telegram orqali xabar boradi. Direktor tasdiqlasa, admin shu yerda yakuniylashtiradi va summa keyingi oylikdan ushlanadi.
             </div>
           </div>
           {canApproveAdvances && (
@@ -1609,33 +1596,25 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
       </Card>
 
       {section(
-        "1️⃣ Direktor tasdig'i kutilmoqda",
+        "1️⃣ Direktor tasdig'i kutilmoqda (Telegram)",
         pending,
-        (r) => (isCeo || isAdm) ? (
+        (r) => isAdm ? (
           <div className="flex gap-2 justify-end">
-            <Button size="sm" variant="default" onClick={() => { setNote(""); setDecision({ id: r.id, approve: true, role: "ceo" }); }}>Tasdiq</Button>
-            <Button size="sm" variant="outline" onClick={() => { setNote(""); setDecision({ id: r.id, approve: false, role: "ceo" }); }}>Rad</Button>
+            <Button size="sm" variant="outline" onClick={() => { setNote(""); setDecision({ id: r.id, approve: true, role: "ceo" }); }}>Admin override: Tasdiq</Button>
+            <Button size="sm" variant="ghost" onClick={() => { setNote(""); setDecision({ id: r.id, approve: false, role: "ceo" }); }}>Rad</Button>
           </div>
-        ) : <span className="text-xs text-muted-foreground">Faqat direktor</span>,
+        ) : <span className="text-xs text-muted-foreground">Direktor Telegramdan tasdiqlaydi</span>,
       )}
 
       {section(
-        "2️⃣ Moliyachi tasdig'i kutilmoqda",
-        awaitingFinance,
-        (r) => (isFinance || isAdm) ? (
+        "2️⃣ Admin yakuniy tasdig'i kutilmoqda",
+        awaitingAdmin,
+        (r) => isAdm ? (
           <div className="flex gap-2 justify-end">
-            <Button size="sm" variant="default" onClick={() => { setNote(""); setDecision({ id: r.id, approve: true, role: "fin" }); }}>Tasdiq</Button>
-            <Button size="sm" variant="outline" onClick={() => { setNote(""); setDecision({ id: r.id, approve: false, role: "fin" }); }}>Rad</Button>
+            <Button size="sm" variant="default" onClick={() => { setNote(""); setDecision({ id: r.id, approve: true, role: "admin" }); }}>Tasdiq + Ber</Button>
+            <Button size="sm" variant="outline" onClick={() => { setNote(""); setDecision({ id: r.id, approve: false, role: "admin" }); }}>Rad</Button>
           </div>
-        ) : <span className="text-xs text-muted-foreground">Faqat moliyachi</span>,
-      )}
-
-      {section(
-        "3️⃣ To'lov kutilmoqda",
-        awaitingPayment,
-        (r) => (isFinance || isAdm) ? (
-          <Button size="sm" onClick={() => pay(r.id)}>To'landi</Button>
-        ) : <span className="text-xs text-muted-foreground">Faqat moliyachi</span>,
+        ) : <span className="text-xs text-muted-foreground">Faqat admin</span>,
       )}
 
       {section("📜 Tarix", done, () => null)}
