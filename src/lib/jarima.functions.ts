@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-export type TelegramBotRole = "none" | "director" | "finance";
+export type TelegramBotRole = "none" | "owner" | "ceo" | "financier" | "director" | "finance";
 
 export type TelegramLink = {
   id: string;
