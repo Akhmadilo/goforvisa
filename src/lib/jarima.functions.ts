@@ -115,7 +115,8 @@ export const saveSchedule = createServerFn({ method: "POST" })
     }).parse(d)
   )
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const c: any = context.supabase;
+    const { error } = await c
       .from("employee_schedules")
       .upsert({
         employee_id: data.employeeId,
@@ -124,6 +125,62 @@ export const saveSchedule = createServerFn({ method: "POST" })
         is_working: data.isWorking,
       }, { onConflict: "employee_id,weekday" });
     if (error) throw new Error(error.message);
+
+    // Recompute fines for all past attendance of this employee on this weekday
+    const { data: attRows } = await c
+      .from("attendance")
+      .select("date, check_in_at")
+      .eq("employee_id", data.employeeId);
+
+    const { data: rules } = await c
+      .from("fine_rules")
+      .select("min_minutes, max_minutes, amount_uzs, kind")
+      .order("min_minutes", { ascending: true });
+
+    for (const a of attRows || []) {
+      const wd = new Date(`${a.date}T00:00:00Z`).getUTCDay();
+      if (wd !== data.weekday) continue;
+
+      let minutesLate = 0;
+      if (data.isWorking) {
+        // Tashkent local time (UTC+5) arrival
+        const arrival = new Date(new Date(a.check_in_at).getTime() + 5 * 3600 * 1000);
+        const arrivalMin = arrival.getUTCHours() * 60 + arrival.getUTCMinutes();
+        const [sh, sm] = data.startTime.split(":").map(Number);
+        const startMin = sh * 60 + sm;
+        minutesLate = Math.max(0, arrivalMin - startMin);
+      }
+
+      if (minutesLate > 0) {
+        let amount = 0;
+        for (const r of rules || []) {
+          if (r.kind && r.kind !== "late") continue;
+          if (
+            minutesLate >= Number(r.min_minutes) &&
+            (r.max_minutes == null || minutesLate <= Number(r.max_minutes))
+          ) {
+            amount = Number(r.amount_uzs);
+          }
+        }
+        await c.from("fines").upsert(
+          {
+            employee_id: data.employeeId,
+            date: a.date,
+            minutes_late: minutesLate,
+            amount_uzs: amount,
+            reason: "late",
+          },
+          { onConflict: "employee_id,date,reason" },
+        );
+      } else {
+        await c.from("fines")
+          .delete()
+          .eq("employee_id", data.employeeId)
+          .eq("date", a.date)
+          .eq("reason", "late");
+      }
+    }
+
     return { ok: true };
   });
 
