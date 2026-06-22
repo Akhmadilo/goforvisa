@@ -446,6 +446,7 @@ function AdminPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
