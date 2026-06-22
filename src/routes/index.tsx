@@ -1142,19 +1142,19 @@ function Kpi({
           ? "var(--color-destructive)"
           : undefined;
   return (
-    <Card className="p-5 shadow-[var(--shadow-card)] relative overflow-hidden">
+    <Card className="p-3 md:p-5 shadow-[var(--shadow-card)] relative overflow-hidden">
       {tone && (
         <div
           className="absolute inset-x-0 top-0 h-1"
           style={{ background: toneBg }}
         />
       )}
-      <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wide">
+      <div className="flex items-center gap-1.5 md:gap-2 text-muted-foreground text-[10px] md:text-xs uppercase tracking-wide">
         {icon}
-        {label}
+        <span className="truncate">{label}</span>
       </div>
-      <div className="mt-2 text-2xl font-bold tracking-tight">{value}</div>
-      {sub && <div className="text-xs text-muted-foreground mt-1">{sub}</div>}
+      <div className="mt-1 md:mt-2 text-lg md:text-2xl font-bold tracking-tight">{value}</div>
+      {sub && <div className="text-[10px] md:text-xs text-muted-foreground mt-1 truncate">{sub}</div>}
     </Card>
   );
 }
