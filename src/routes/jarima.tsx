@@ -855,10 +855,50 @@ function DayRow({
 }
 
 function FineRulesEditor({
-  rules, onSave, onDelete,
+  employees, rules, onSave, onDelete,
 }: {
-  rules: { id: string; min_minutes: number | null; max_minutes: number | null; amount_uzs: number; label: string | null; kind?: "late" | "absence" | string }[];
-  onSave: (v: { id?: string; min: number | null; max: number | null; amount: number; label: string | null; kind?: "late" | "absence" }) => void;
+  employees: Emp[];
+  rules: { id: string; employee_id: string | null; min_minutes: number | null; max_minutes: number | null; amount_uzs: number; label: string | null; kind?: "late" | "absence" | string }[];
+  onSave: (v: { id?: string; employeeId?: string | null; min: number | null; max: number | null; amount: number; label: string | null; kind?: "late" | "absence" }) => void;
+  onDelete: (id: string) => void;
+}) {
+  return (
+    <Card className="p-4">
+      <div className="font-medium mb-3">Jarima qoidalari (har xodim uchun alohida)</div>
+      <Accordion type="multiple" className="w-full">
+        {employees.map(emp => {
+          const empRules = rules.filter(r => r.employee_id === emp.id);
+          const globalRules = rules.filter(r => r.employee_id == null);
+          return (
+            <AccordionItem key={emp.id} value={emp.id}>
+              <AccordionTrigger className="text-sm md:text-base">{emp.full_name}</AccordionTrigger>
+              <AccordionContent>
+                <EmployeeRules
+                  employeeId={emp.id}
+                  empRules={empRules}
+                  globalRules={globalRules}
+                  onSave={onSave}
+                  onDelete={onDelete}
+                />
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
+        {employees.length === 0 && (
+          <div className="text-sm text-muted-foreground">Xodimlar yo'q.</div>
+        )}
+      </Accordion>
+    </Card>
+  );
+}
+
+function EmployeeRules({
+  employeeId, empRules, globalRules, onSave, onDelete,
+}: {
+  employeeId: string;
+  empRules: { id: string; employee_id: string | null; min_minutes: number | null; max_minutes: number | null; amount_uzs: number; label: string | null; kind?: string }[];
+  globalRules: { id: string; employee_id: string | null; min_minutes: number | null; max_minutes: number | null; amount_uzs: number; label: string | null; kind?: string }[];
+  onSave: (v: { id?: string; employeeId?: string | null; min: number | null; max: number | null; amount: number; label: string | null; kind?: "late" | "absence" }) => void;
   onDelete: (id: string) => void;
 }) {
   const [newMin, setNewMin] = useState(0);
@@ -866,14 +906,19 @@ function FineRulesEditor({
   const [newAmt, setNewAmt] = useState(0);
   const [newLabel, setNewLabel] = useState("");
 
-  const lateRules = rules.filter(r => (r.kind || "late") === "late");
-  const absenceRule = rules.find(r => r.kind === "absence");
+  const lateRules = empRules.filter(r => (r.kind || "late") === "late");
+  const absenceRule = empRules.find(r => r.kind === "absence");
   const [absAmt, setAbsAmt] = useState<number>(absenceRule ? Number(absenceRule.amount_uzs) : 0);
 
+  const hasOwn = lateRules.length > 0;
+  const fallbackLate = globalRules.filter(r => (r.kind || "late") === "late");
+
   return (
-    <>
-      <Card className="p-4">
-        <div className="font-medium text-sm md:text-base mb-3">Jarima qoidalari (kechikish daqiqasiga qarab)</div>
+    <div className="space-y-4 pt-2">
+      <div>
+        <div className="text-xs text-muted-foreground mb-2">
+          {hasOwn ? "Bu xodim uchun shaxsiy qoidalar" : `Hozir umumiy qoidalardan foydalanmoqda (${fallbackLate.length} ta). Quyida qo'shsangiz shaxsiy qoidalar ishlaydi.`}
+        </div>
         <div className="overflow-x-auto -mx-4 px-4">
           <Table>
             <TableHeader>
@@ -887,7 +932,7 @@ function FineRulesEditor({
             </TableHeader>
             <TableBody>
               {lateRules.map(r => (
-                <RuleRow key={r.id} rule={r as any} onSave={onSave} onDelete={onDelete} />
+                <RuleRow key={r.id} rule={r as any} employeeId={employeeId} onSave={onSave} onDelete={onDelete} />
               ))}
               <TableRow>
                 <TableCell><Input type="number" value={newMin} onChange={e => setNewMin(Number(e.target.value))} /></TableCell>
@@ -896,7 +941,7 @@ function FineRulesEditor({
                 <TableCell><Input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="masalan: 10:00–10:30" /></TableCell>
                 <TableCell>
                   <Button size="sm" onClick={() => {
-                    onSave({ min: newMin, max: newMax === "" ? null : Number(newMax), amount: newAmt, label: newLabel || null, kind: "late" });
+                    onSave({ employeeId, min: newMin, max: newMax === "" ? null : Number(newMax), amount: newAmt, label: newLabel || null, kind: "late" });
                     setNewMin(0); setNewMax(""); setNewAmt(0); setNewLabel("");
                   }}><Plus className="h-4 w-4" /></Button>
                 </TableCell>
@@ -904,10 +949,10 @@ function FineRulesEditor({
             </TableBody>
           </Table>
         </div>
-      </Card>
+      </div>
 
-      <Card className="p-4">
-        <div className="font-medium text-sm md:text-base mb-1">Kelmagan kun uchun jarima</div>
+      <div className="border rounded p-3">
+        <div className="font-medium text-sm mb-1">Kelmagan kun uchun jarima</div>
         <div className="text-xs text-muted-foreground mb-3">Xodim ish kunida (dam olish yoki tasdiqlangan ta'tilsiz) kelmasa shu summa qo'llaniladi.</div>
         <div className="flex items-end gap-2 flex-wrap">
           <div className="flex flex-col">
@@ -923,6 +968,7 @@ function FineRulesEditor({
             size="sm"
             onClick={() => onSave({
               id: absenceRule?.id,
+              employeeId,
               min: null,
               max: null,
               amount: absAmt,
@@ -936,9 +982,10 @@ function FineRulesEditor({
             </Button>
           )}
         </div>
-      </Card>
-    </>
+      </div>
+    </div>
   );
+}
 }
 
 function RuleRow({
