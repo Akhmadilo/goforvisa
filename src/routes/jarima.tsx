@@ -444,12 +444,15 @@ function JarimaPage() {
   const qc = useQueryClient();
 
   const { data: allEmployees = [] } = useQuery({
-    queryKey: ["employees-min"],
+    queryKey: ["employees-min-active"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("employees").select("id, full_name, user_id").order("full_name");
+        .from("employees")
+        .select("id, full_name, user_id, terminated_at")
+        .is("terminated_at", null)
+        .order("full_name");
       if (error) throw error;
-      return (data ?? []) as (Emp & { user_id: string | null })[];
+      return (data ?? []) as (Emp & { user_id: string | null; terminated_at: string | null })[];
     },
     enabled: !!user,
   });
