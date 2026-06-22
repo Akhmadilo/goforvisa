@@ -184,6 +184,56 @@ export const saveSchedule = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+async function recomputeAllLateFines(c: any) {
+  // Recompute late fines for ALL past attendance using current fine_rules + schedules.
+  await c.rpc("exec_recompute_late_fines").catch(() => null);
+  const { data: atts } = await c
+    .from("attendance")
+    .select("employee_id, date, check_in_at");
+  const { data: scheds } = await c
+    .from("employee_schedules")
+    .select("employee_id, weekday, start_time, is_working");
+  const { data: rules } = await c
+    .from("fine_rules")
+    .select("min_minutes, max_minutes, amount_uzs, kind")
+    .order("min_minutes", { ascending: true });
+  const schedMap = new Map<string, any>();
+  (scheds || []).forEach((s: any) => schedMap.set(`${s.employee_id}_${s.weekday}`, s));
+
+  for (const a of atts || []) {
+    const arrival = new Date(new Date(a.check_in_at).getTime() + 5 * 3600 * 1000);
+    const wd = new Date(`${a.date}T00:00:00Z`).getUTCDay();
+    const sched = schedMap.get(`${a.employee_id}_${wd}`);
+    const isWorking = sched ? sched.is_working !== false : true;
+    const startStr: string = (sched?.start_time as string) || "10:00";
+    const [sh, sm] = startStr.split(":").map(Number);
+    const startMin = sh * 60 + sm;
+    const arrMin = arrival.getUTCHours() * 60 + arrival.getUTCMinutes();
+    const lateMin = isWorking ? Math.max(0, arrMin - startMin) : 0;
+    if (lateMin > 0) {
+      let amount = 0;
+      for (const r of rules || []) {
+        if (r.kind && r.kind !== "late") continue;
+        if (lateMin >= Number(r.min_minutes) && (r.max_minutes == null || lateMin <= Number(r.max_minutes))) {
+          amount = Number(r.amount_uzs);
+        }
+      }
+      await c.from("fines").upsert({
+        employee_id: a.employee_id,
+        date: a.date,
+        minutes_late: lateMin,
+        amount_uzs: amount,
+        reason: "late",
+      }, { onConflict: "employee_id,date,reason" });
+    } else {
+      await c.from("fines").delete()
+        .eq("employee_id", a.employee_id)
+        .eq("date", a.date)
+        .eq("reason", "late");
+    }
+  }
+}
+
 export const saveFineRule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id?: string; min: number | null; max: number | null; amount: number; label: string | null; kind?: "late" | "absence" }) =>
@@ -212,6 +262,9 @@ export const saveFineRule = createServerFn({ method: "POST" })
       const { error } = await context.supabase.from("fine_rules").insert(row);
       if (error) throw new Error(error.message);
     }
+    if (kind === "late") {
+      await recomputeAllLateFines(context.supabase);
+    }
     return { ok: true };
   });
 
@@ -219,8 +272,13 @@ export const deleteFineRule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("fine_rules").delete().eq("id", data.id);
+    const c: any = context.supabase;
+    const { data: row } = await c.from("fine_rules").select("kind").eq("id", data.id).maybeSingle();
+    const { error } = await c.from("fine_rules").delete().eq("id", data.id);
     if (error) throw new Error(error.message);
+    if (!row || row.kind === "late" || !row.kind) {
+      await recomputeAllLateFines(c);
+    }
     return { ok: true };
   });
 
