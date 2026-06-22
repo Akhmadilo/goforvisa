@@ -394,9 +394,9 @@ function DecideDialog({
 
   useEffect(() => {
     if (leave) {
-      setSalaryCounts(true);
+      setSalaryCounts(leave.proposed_salary_counts ?? true);
       setFineStr("");
-      setNote("");
+      setNote(leave.ceo_note ?? "");
     }
   }, [leave]);
 
