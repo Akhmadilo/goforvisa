@@ -133,10 +133,13 @@ export const saveSchedule = createServerFn({ method: "POST" })
       .select("date, check_in_at")
       .eq("employee_id", data.employeeId);
 
-    const { data: rules } = await c
+    const { data: empRules } = await c
       .from("fine_rules")
-      .select("min_minutes, max_minutes, amount_uzs, kind")
+      .select("min_minutes, max_minutes, amount_uzs, kind, employee_id")
+      .or(`employee_id.eq.${data.employeeId},employee_id.is.null`)
       .order("min_minutes", { ascending: true });
+    const empLate = (empRules || []).filter((r: any) => (r.kind || "late") === "late" && r.employee_id === data.employeeId);
+    const rules = empLate.length > 0 ? empLate : (empRules || []).filter((r: any) => (r.kind || "late") === "late" && r.employee_id == null);
 
     for (const a of attRows || []) {
       const wd = new Date(`${a.date}T00:00:00Z`).getUTCDay();
