@@ -600,59 +600,61 @@ function JarimaPage() {
                     approverName={approverName}
                   />
                 </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Sana</TableHead>
-                      <TableHead>Ishchi</TableHead>
-                      <TableHead>Kechikish</TableHead>
-                      <TableHead>Sabab</TableHead>
-                      <TableHead className="text-right">Summa</TableHead>
-                      <TableHead className="text-right">Dalolatnoma</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(data?.fines || []).map(f => {
-                      const name = empMap.get(f.employee_id) || "—";
-                      return (
-                        <TableRow key={f.id}>
-                          <TableCell>{f.date}</TableCell>
-                          <TableCell>{name}</TableCell>
-                          <TableCell>{f.minutes_late} daq</TableCell>
-                          <TableCell>{f.reason}</TableCell>
-                          <TableCell className="text-right">{fmt(f.amount_uzs)} so'm</TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={async () => {
-                                if (!confirm(`Jarimani tasdiqlaysizmi?\n\nXodim: ${name}\nSumma: ${fmt(f.amount_uzs)} so'm\n\nTasdiqlovchi: ${approverName}`)) return;
-                                try {
-                                  await generateFinePdf({
-                                    date: f.date,
-                                    employeeName: name,
-                                    minutes_late: f.minutes_late,
-                                    amount_uzs: f.amount_uzs,
-                                    reason: f.reason,
-                                  }, approverName);
-                                  toast.success("PDF tayyor");
-                                } catch (e: any) {
-                                  toast.error(e?.message || "Xatolik");
-                                }
-                              }}
-                            >
-                              <FileText className="h-4 w-4 mr-1" />
-                              Tasdiqlash & PDF
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                    {(data?.fines || []).length === 0 && (
-                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Jarimalar yo'q</TableCell></TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                <div className="overflow-x-auto -mx-4 px-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Sana</TableHead>
+                        <TableHead>Ishchi</TableHead>
+                        <TableHead>Kechikish</TableHead>
+                        <TableHead>Sabab</TableHead>
+                        <TableHead className="text-right">Summa</TableHead>
+                        <TableHead className="text-right">Dalolatnoma</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(data?.fines || []).map(f => {
+                        const name = empMap.get(f.employee_id) || "—";
+                        return (
+                          <TableRow key={f.id}>
+                            <TableCell>{f.date}</TableCell>
+                            <TableCell>{name}</TableCell>
+                            <TableCell>{f.minutes_late} daq</TableCell>
+                            <TableCell>{f.reason}</TableCell>
+                            <TableCell className="text-right">{fmt(f.amount_uzs)} so'm</TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={async () => {
+                                  if (!confirm(`Jarimani tasdiqlaysizmi?\n\nXodim: ${name}\nSumma: ${fmt(f.amount_uzs)} so'm\n\nTasdiqlovchi: ${approverName}`)) return;
+                                  try {
+                                    await generateFinePdf({
+                                      date: f.date,
+                                      employeeName: name,
+                                      minutes_late: f.minutes_late,
+                                      amount_uzs: f.amount_uzs,
+                                      reason: f.reason,
+                                    }, approverName);
+                                    toast.success("PDF tayyor");
+                                  } catch (e: any) {
+                                    toast.error(e?.message || "Xatolik");
+                                  }
+                                }}
+                              >
+                                <FileText className="h-4 w-4 mr-1" />
+                                Tasdiqlash & PDF
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {(data?.fines || []).length === 0 && (
+                        <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Jarimalar yo'q</TableCell></TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
 
               </Card>
             </TabsContent>
