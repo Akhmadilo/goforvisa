@@ -1129,7 +1129,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
   const startWeekday = new Date(year, month - 1, 1).getDay(); // 0=Sun
 
   const dayMap = useMemo(() => {
-    const m = new Map<number, { att?: any; fine?: any }>();
+    const m = new Map<number, { att?: any; fine?: any; leave?: any }>();
     (data?.attendance || []).forEach((a: any) => {
       const d = Number(a.date.slice(8, 10));
       m.set(d, { ...(m.get(d) || {}), att: a });
@@ -1137,6 +1137,10 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
     (data?.fines || []).forEach((f: any) => {
       const d = Number(f.date.slice(8, 10));
       m.set(d, { ...(m.get(d) || {}), fine: f });
+    });
+    ((data as any)?.leaves || []).forEach((l: any) => {
+      const d = Number(l.date.slice(8, 10));
+      m.set(d, { ...(m.get(d) || {}), leave: l });
     });
     return m;
   }, [data]);
