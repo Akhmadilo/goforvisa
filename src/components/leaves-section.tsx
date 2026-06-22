@@ -17,6 +17,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { createLeaveRequest } from "@/lib/leaves.functions";
 
 type LeaveStatus = "pending" | "approved" | "rejected";
 type CeoStatus = "pending" | "approved" | "rejected";
@@ -261,20 +263,20 @@ function LeaveFormDialog({
     }
   }, [open]);
 
+  const createFn = useServerFn(createLeaveRequest);
+
   const handleSave = async () => {
     if (!employeeId) { toast.error("Ishchini tanlang"); return; }
     setSaving(true);
-    const { error } = await supabase.from("leave_requests").insert({
-      employee_id: employeeId,
-      date,
-      reason: reason.trim() || null,
-      status: "pending",
-      created_by: userId,
-    });
-    setSaving(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success("So'rov yaratildi — direktor tasdiqlashi kutilmoqda");
-    onOpenChange(false);
+    try {
+      await createFn({ data: { employeeId, date, reason: reason.trim() || undefined } });
+      toast.success("So'rov yaratildi — direktorga Telegramda yuborildi");
+      onOpenChange(false);
+    } catch (e: any) {
+      toast.error(e?.message || "Xatolik");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
