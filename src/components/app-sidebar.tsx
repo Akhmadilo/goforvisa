@@ -36,7 +36,6 @@ function SidebarContent({ onClick }: { onClick?: () => void }) {
     { to: "/shartnomalar", label: t("nav.contracts"), icon: FileText, widget: "contracts_section" },
     { to: "/kpi", label: t("nav.kpi"), icon: Target, widget: "kpi_section" },
     { to: "/jarima", label: t("nav.fines"), icon: AlertTriangle, widget: "fines_section" },
-    { to: "/javoblar", label: "Dam olish", icon: CalendarDays, widget: "fines_section" },
   ] as const;
 
   return (
