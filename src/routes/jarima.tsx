@@ -1165,6 +1165,16 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
   );
   const presentDays = (data?.attendance || []).length;
   const fineCount = (data?.fines || []).length;
+  const workingDays = useMemo(() => {
+    let count = 0;
+    for (let d = 1; d <= days; d++) {
+      const wd = new Date(year, month - 1, d).getDay();
+      const sched = schedByWd.get(wd);
+      if (!sched || sched.is_working !== false) count++;
+    }
+    return count;
+  }, [days, year, month, schedByWd]);
+
 
   const openEdit = (dateStr: string, att?: any, fine?: any) => {
     const isAbsent = !att && !!fine;
@@ -1272,10 +1282,11 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
               <div className="text-lg md:text-xl font-bold text-red-600 dark:text-red-400">{fmt(totalFine)} so'm</div>
             </Card>
             <Card className="p-3">
-              <div className="text-xs text-muted-foreground">Oydagi kunlar</div>
-              <div className="text-lg md:text-xl font-bold">{days}</div>
+              <div className="text-xs text-muted-foreground">Oydagi ish kunlari</div>
+              <div className="text-lg md:text-xl font-bold">{workingDays}</div>
             </Card>
           </div>
+
 
           {/* Calendar grid */}
           <Card className="p-4">
