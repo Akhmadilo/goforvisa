@@ -545,27 +545,30 @@ export type Database = {
           amount_uzs: number
           created_at: string
           id: string
+          kind: string
           label: string | null
           max_minutes: number | null
-          min_minutes: number
+          min_minutes: number | null
           updated_at: string
         }
         Insert: {
           amount_uzs: number
           created_at?: string
           id?: string
+          kind?: string
           label?: string | null
           max_minutes?: number | null
-          min_minutes: number
+          min_minutes?: number | null
           updated_at?: string
         }
         Update: {
           amount_uzs?: number
           created_at?: string
           id?: string
+          kind?: string
           label?: string | null
           max_minutes?: number | null
-          min_minutes?: number
+          min_minutes?: number | null
           updated_at?: string
         }
         Relationships: []

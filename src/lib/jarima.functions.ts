@@ -25,10 +25,11 @@ export type Schedule = {
 
 export type FineRule = {
   id: string;
-  min_minutes: number;
+  min_minutes: number | null;
   max_minutes: number | null;
   amount_uzs: number;
   label: string | null;
+  kind: "late" | "absence";
 };
 
 export type AttendanceRow = {
@@ -128,25 +129,30 @@ export const saveSchedule = createServerFn({ method: "POST" })
 
 export const saveFineRule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { id?: string; min: number; max: number | null; amount: number; label: string | null }) =>
+  .inputValidator((d: { id?: string; min: number | null; max: number | null; amount: number; label: string | null; kind?: "late" | "absence" }) =>
     z.object({
       id: z.string().uuid().optional(),
-      min: z.number().int().min(0),
+      min: z.number().int().min(0).nullable(),
       max: z.number().int().nullable(),
       amount: z.number().min(0),
       label: z.string().nullable(),
+      kind: z.enum(["late", "absence"]).optional(),
     }).parse(d)
   )
   .handler(async ({ data, context }) => {
+    const kind = data.kind || "late";
+    const row = {
+      min_minutes: kind === "absence" ? null : (data.min ?? 0),
+      max_minutes: data.max,
+      amount_uzs: data.amount,
+      label: data.label,
+      kind,
+    };
     if (data.id) {
-      const { error } = await context.supabase.from("fine_rules").update({
-        min_minutes: data.min, max_minutes: data.max, amount_uzs: data.amount, label: data.label,
-      }).eq("id", data.id);
+      const { error } = await context.supabase.from("fine_rules").update(row).eq("id", data.id);
       if (error) throw new Error(error.message);
     } else {
-      const { error } = await context.supabase.from("fine_rules").insert({
-        min_minutes: data.min, max_minutes: data.max, amount_uzs: data.amount, label: data.label,
-      });
+      const { error } = await context.supabase.from("fine_rules").insert(row);
       if (error) throw new Error(error.message);
     }
     return { ok: true };

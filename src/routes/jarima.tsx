@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { AlertTriangle, Link2, Trash2, Plus, FileText } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
@@ -534,7 +535,7 @@ function JarimaPage() {
     onError: (e: any) => toast.error(e.message),
   });
   const ruleMut = useMutation({
-    mutationFn: (v: { id?: string; min: number; max: number | null; amount: number; label: string | null }) =>
+    mutationFn: (v: { id?: string; min: number | null; max: number | null; amount: number; label: string | null; kind?: "late" | "absence" }) =>
       saveRuleFn({ data: v }),
     onSuccess: () => { invalidate(); toast.success("Saqlandi"); },
     onError: (e: any) => toast.error(e.message),
@@ -768,7 +769,7 @@ function JarimaPage() {
                   </div>
                 </Card>
 
-                {/* Haftalik jadval */}
+                {/* Haftalik jadval — har xodim uchun alohida */}
                 <ScheduleEditor
                   employees={employees}
                   schedules={data?.schedules || []}
@@ -777,7 +778,7 @@ function JarimaPage() {
 
                 {/* Jarima qoidalari */}
                 <FineRulesEditor
-                  rules={data?.rules || []}
+                  rules={(data?.rules || []) as any}
                   onSave={(v) => ruleMut.mutate(v)}
                   onDelete={(id) => delRuleMut.mutate(id)}
                 />
@@ -797,36 +798,39 @@ function ScheduleEditor({
   schedules: { employee_id: string; weekday: number; start_time: string; is_working: boolean }[];
   onSave: (v: { employeeId: string; weekday: number; startTime: string; isWorking: boolean }) => void;
 }) {
-  const [empId, setEmpId] = useState<string>("");
-  const sched = schedules.filter(s => s.employee_id === empId);
-  const getDay = (wd: number) =>
-    sched.find(s => s.weekday === wd) || { start_time: "10:00", is_working: wd !== 0 };
+  const getDay = (empId: string, wd: number) =>
+    schedules.find(s => s.employee_id === empId && s.weekday === wd)
+    || { start_time: "10:00", is_working: wd !== 0 };
 
   return (
     <Card className="p-4">
-      <div className="font-medium mb-3">Haftalik ish jadvali</div>
-      <Select value={empId} onValueChange={setEmpId}>
-        <SelectTrigger className="w-full md:w-[300px] mb-3"><SelectValue placeholder="Ishchini tanlang" /></SelectTrigger>
-        <SelectContent>
-          {employees.map(e => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}
-        </SelectContent>
-      </Select>
-      {empId && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {WEEKDAYS.map((d, wd) => {
-            const cur = getDay(wd);
-            return (
-              <DayRow
-                key={wd}
-                label={d}
-                startTime={cur.start_time.slice(0, 5)}
-                isWorking={cur.is_working}
-                onSave={(startTime, isWorking) => onSave({ employeeId: empId, weekday: wd, startTime, isWorking })}
-              />
-            );
-          })}
-        </div>
-      )}
+      <div className="font-medium mb-3">Haftalik ish jadvali (har xodim uchun alohida)</div>
+      <Accordion type="multiple" className="w-full">
+        {employees.map(emp => (
+          <AccordionItem key={emp.id} value={emp.id}>
+            <AccordionTrigger className="text-sm md:text-base">{emp.full_name}</AccordionTrigger>
+            <AccordionContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">
+                {WEEKDAYS.map((d, wd) => {
+                  const cur = getDay(emp.id, wd);
+                  return (
+                    <DayRow
+                      key={wd}
+                      label={d}
+                      startTime={cur.start_time.slice(0, 5)}
+                      isWorking={cur.is_working}
+                      onSave={(startTime, isWorking) => onSave({ employeeId: emp.id, weekday: wd, startTime, isWorking })}
+                    />
+                  );
+                })}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+        {employees.length === 0 && (
+          <div className="text-sm text-muted-foreground">Xodimlar yo'q.</div>
+        )}
+      </Accordion>
     </Card>
   );
 }
@@ -849,8 +853,8 @@ function DayRow({
 function FineRulesEditor({
   rules, onSave, onDelete,
 }: {
-  rules: { id: string; min_minutes: number; max_minutes: number | null; amount_uzs: number; label: string | null }[];
-  onSave: (v: { id?: string; min: number; max: number | null; amount: number; label: string | null }) => void;
+  rules: { id: string; min_minutes: number | null; max_minutes: number | null; amount_uzs: number; label: string | null; kind?: "late" | "absence" | string }[];
+  onSave: (v: { id?: string; min: number | null; max: number | null; amount: number; label: string | null; kind?: "late" | "absence" }) => void;
   onDelete: (id: string) => void;
 }) {
   const [newMin, setNewMin] = useState(0);
@@ -858,51 +862,89 @@ function FineRulesEditor({
   const [newAmt, setNewAmt] = useState(0);
   const [newLabel, setNewLabel] = useState("");
 
+  const lateRules = rules.filter(r => (r.kind || "late") === "late");
+  const absenceRule = rules.find(r => r.kind === "absence");
+  const [absAmt, setAbsAmt] = useState<number>(absenceRule ? Number(absenceRule.amount_uzs) : 0);
+
   return (
-    <Card className="p-4">
-      <div className="font-medium text-sm md:text-base mb-3">Jarima qoidalari (kechikish daqiqasiga qarab)</div>
-      <div className="overflow-x-auto -mx-4 px-4">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Min (daq)</TableHead>
-              <TableHead>Max (daq)</TableHead>
-              <TableHead>Summa (so'm)</TableHead>
-              <TableHead>Yorliq</TableHead>
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rules.map(r => (
-              <RuleRow key={r.id} rule={r} onSave={onSave} onDelete={onDelete} />
-            ))}
-            <TableRow>
-              <TableCell><Input type="number" value={newMin} onChange={e => setNewMin(Number(e.target.value))} /></TableCell>
-              <TableCell><Input type="number" placeholder="cheksiz" value={newMax} onChange={e => setNewMax(e.target.value)} /></TableCell>
-              <TableCell><Input type="number" value={newAmt} onChange={e => setNewAmt(Number(e.target.value))} /></TableCell>
-              <TableCell><Input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="masalan: 10:00–10:30" /></TableCell>
-              <TableCell>
-                <Button size="sm" onClick={() => {
-                  onSave({ min: newMin, max: newMax === "" ? null : Number(newMax), amount: newAmt, label: newLabel || null });
-                  setNewMin(0); setNewMax(""); setNewAmt(0); setNewLabel("");
-                }}><Plus className="h-4 w-4" /></Button>
-              </TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-      </div>
-    </Card>
+    <>
+      <Card className="p-4">
+        <div className="font-medium text-sm md:text-base mb-3">Jarima qoidalari (kechikish daqiqasiga qarab)</div>
+        <div className="overflow-x-auto -mx-4 px-4">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Min (daq)</TableHead>
+                <TableHead>Max (daq)</TableHead>
+                <TableHead>Summa (so'm)</TableHead>
+                <TableHead>Yorliq</TableHead>
+                <TableHead></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {lateRules.map(r => (
+                <RuleRow key={r.id} rule={r as any} onSave={onSave} onDelete={onDelete} />
+              ))}
+              <TableRow>
+                <TableCell><Input type="number" value={newMin} onChange={e => setNewMin(Number(e.target.value))} /></TableCell>
+                <TableCell><Input type="number" placeholder="cheksiz" value={newMax} onChange={e => setNewMax(e.target.value)} /></TableCell>
+                <TableCell><Input type="number" value={newAmt} onChange={e => setNewAmt(Number(e.target.value))} /></TableCell>
+                <TableCell><Input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="masalan: 10:00–10:30" /></TableCell>
+                <TableCell>
+                  <Button size="sm" onClick={() => {
+                    onSave({ min: newMin, max: newMax === "" ? null : Number(newMax), amount: newAmt, label: newLabel || null, kind: "late" });
+                    setNewMin(0); setNewMax(""); setNewAmt(0); setNewLabel("");
+                  }}><Plus className="h-4 w-4" /></Button>
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+
+      <Card className="p-4">
+        <div className="font-medium text-sm md:text-base mb-1">Kelmagan kun uchun jarima</div>
+        <div className="text-xs text-muted-foreground mb-3">Xodim ish kunida (dam olish yoki tasdiqlangan ta'tilsiz) kelmasa shu summa qo'llaniladi.</div>
+        <div className="flex items-end gap-2 flex-wrap">
+          <div className="flex flex-col">
+            <label className="text-xs text-muted-foreground mb-1">Summa (so'm)</label>
+            <Input
+              type="number"
+              className="w-40"
+              value={absAmt}
+              onChange={e => setAbsAmt(Number(e.target.value))}
+            />
+          </div>
+          <Button
+            size="sm"
+            onClick={() => onSave({
+              id: absenceRule?.id,
+              min: null,
+              max: null,
+              amount: absAmt,
+              label: "Kelmagan kun",
+              kind: "absence",
+            })}
+          >Saqlash</Button>
+          {absenceRule && (
+            <Button size="sm" variant="ghost" onClick={() => onDelete(absenceRule.id)}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </Card>
+    </>
   );
 }
 
 function RuleRow({
   rule, onSave, onDelete,
 }: {
-  rule: { id: string; min_minutes: number; max_minutes: number | null; amount_uzs: number; label: string | null };
-  onSave: (v: { id: string; min: number; max: number | null; amount: number; label: string | null }) => void;
+  rule: { id: string; min_minutes: number | null; max_minutes: number | null; amount_uzs: number; label: string | null };
+  onSave: (v: { id: string; min: number | null; max: number | null; amount: number; label: string | null; kind?: "late" | "absence" }) => void;
   onDelete: (id: string) => void;
 }) {
-  const [min, setMin] = useState(rule.min_minutes);
+  const [min, setMin] = useState<number>(rule.min_minutes ?? 0);
   const [max, setMax] = useState(rule.max_minutes == null ? "" : String(rule.max_minutes));
   const [amt, setAmt] = useState(Number(rule.amount_uzs));
   const [label, setLabel] = useState(rule.label || "");
@@ -914,7 +956,7 @@ function RuleRow({
       <TableCell><Input value={label} onChange={e => setLabel(e.target.value)} /></TableCell>
       <TableCell className="flex gap-1">
         <Button size="sm" variant="secondary" onClick={() =>
-          onSave({ id: rule.id, min, max: max === "" ? null : Number(max), amount: amt, label: label || null })
+          onSave({ id: rule.id, min, max: max === "" ? null : Number(max), amount: amt, label: label || null, kind: "late" })
         }>Saqlash</Button>
         <Button size="sm" variant="ghost" onClick={() => onDelete(rule.id)}><Trash2 className="h-4 w-4" /></Button>
       </TableCell>
