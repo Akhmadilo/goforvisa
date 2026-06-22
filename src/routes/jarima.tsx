@@ -538,7 +538,7 @@ function JarimaPage() {
     onError: (e: any) => toast.error(e.message),
   });
   const ruleMut = useMutation({
-    mutationFn: (v: { id?: string; min: number | null; max: number | null; amount: number; label: string | null; kind?: "late" | "absence" }) =>
+    mutationFn: (v: { id?: string; employeeId?: string | null; min: number | null; max: number | null; amount: number; label: string | null; kind?: "late" | "absence" }) =>
       saveRuleFn({ data: v }),
     onSuccess: () => { invalidate(); toast.success("Saqlandi"); },
     onError: (e: any) => toast.error(e.message),
