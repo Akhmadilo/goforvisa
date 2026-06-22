@@ -622,9 +622,12 @@ export type Database = {
           fine_amount_uzs: number
           id: string
           note: string | null
+          notif_messages: Json
           reason: string | null
           salary_counts: boolean | null
+          source: string
           status: Database["public"]["Enums"]["leave_status"]
+          telegram_id: number | null
           updated_at: string
         }
         Insert: {
@@ -637,9 +640,12 @@ export type Database = {
           fine_amount_uzs?: number
           id?: string
           note?: string | null
+          notif_messages?: Json
           reason?: string | null
           salary_counts?: boolean | null
+          source?: string
           status?: Database["public"]["Enums"]["leave_status"]
+          telegram_id?: number | null
           updated_at?: string
         }
         Update: {
@@ -652,9 +658,12 @@ export type Database = {
           fine_amount_uzs?: number
           id?: string
           note?: string | null
+          notif_messages?: Json
           reason?: string | null
           salary_counts?: boolean | null
+          source?: string
           status?: Database["public"]["Enums"]["leave_status"]
+          telegram_id?: number | null
           updated_at?: string
         }
         Relationships: [

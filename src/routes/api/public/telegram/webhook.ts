@@ -50,7 +50,7 @@ function nowInTashkent(): Date {
 const MAIN_KB = {
   keyboard: [
     [{ text: "🟢 Keldim" }],
-    [{ text: "💰 Avans so'rash" }],
+    [{ text: "💰 Avans so'rash" }, { text: "📅 Dam olish" }],
   ],
   resize_keyboard: true,
 };
@@ -66,6 +66,58 @@ const FACE_INLINE = {
     { text: "❌ Yo'q", callback_data: "face_no" },
   ]],
 };
+
+function leaveDecisionKb(id: string) {
+  return {
+    inline_keyboard: [
+      [{ text: "✅ Tasdiq + oylik hisoblansin", callback_data: `lv_ac_${id}` }],
+      [{ text: "✅ Tasdiq + oylik hisoblanmasin", callback_data: `lv_an_${id}` }],
+      [{ text: "❌ Rad etish", callback_data: `lv_rj_${id}` }],
+    ],
+  };
+}
+
+function parseLeaveDate(input: string): string | null {
+  const s = input.trim().toLowerCase();
+  const now = nowInTashkent();
+  const fmtD = (d: Date) => d.toISOString().slice(0, 10);
+  if (s === "bugun") return fmtD(now);
+  if (s === "ertaga") { const d = new Date(now); d.setUTCDate(d.getUTCDate() + 1); return fmtD(d); }
+  // YYYY-MM-DD
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (m) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+  // DD.MM.YYYY or DD/MM/YYYY or DD-MM-YYYY
+  m = s.match(/^(\d{1,2})[.\/\-](\d{1,2})[.\/\-](\d{4})$/);
+  if (m) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  // DD.MM (current year)
+  m = s.match(/^(\d{1,2})[.\/\-](\d{1,2})$/);
+  if (m) return `${now.getUTCFullYear()}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  return null;
+}
+
+async function notifyDirectorsAboutLeave(leaveId: string, empName: string, date: string, reason: string | null) {
+  const c = sb();
+  const { data: dirs } = await c
+    .from("employee_telegram")
+    .select("telegram_id")
+    .eq("bot_role", "director");
+  const text = `📅 *Yangi dam olish so'rovi*\n\n👤 Ishchi: ${empName}\n📆 Sana: ${date}\n📝 Sabab: ${reason || "—"}`;
+  const messages: Array<{ chat_id: number; message_id: number }> = [];
+  for (const d of dirs || []) {
+    const r: any = await tg("sendMessage", {
+      chat_id: d.telegram_id,
+      text,
+      parse_mode: "Markdown",
+      reply_markup: leaveDecisionKb(leaveId),
+    });
+    if (r?.ok && r.result?.message_id) {
+      messages.push({ chat_id: d.telegram_id, message_id: r.result.message_id });
+    }
+  }
+  if (messages.length) {
+    await c.from("leave_requests").update({ notif_messages: messages }).eq("id", leaveId);
+  }
+}
 
 async function handleCheckIn(chatId: number, telegramId: number) {
   const c = sb();
@@ -281,12 +333,86 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                   reply_markup: MAIN_KB,
                 });
               }
+            } else if (state?.step === "await_leave_date") {
+              const d = parseLeaveDate(text);
+              if (!d) {
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "❗️ Sanani to'g'ri kiriting. Masalan: 2026-06-25, 25.06.2026, 25.06, yoki 'bugun' / 'ertaga'.",
+                  reply_markup: CANCEL_KB,
+                });
+              } else {
+                await setState({ step: "await_leave_reason", date: d });
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: `Sana: ${d} ✅\n\nEndi dam olish sababini yozing:`,
+                  reply_markup: CANCEL_KB,
+                });
+              }
+            } else if (state?.step === "await_leave_reason") {
+              const reason = text.slice(0, 500).trim();
+              if (reason.length < 3) {
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "❗️ Sabab juda qisqa. Iltimos batafsilroq yozing.",
+                  reply_markup: CANCEL_KB,
+                });
+              } else if (!tgRow?.employee_id) {
+                await resetState();
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "⚠️ Akkauntingiz ishchiga bog'lanmagan. Admin sizni tizimda ulashini kuting.",
+                  reply_markup: MAIN_KB,
+                });
+              } else {
+                const { data: emp } = await sb()
+                  .from("employees").select("full_name").eq("id", tgRow.employee_id).maybeSingle();
+                const { data: ins, error: insErr } = await sb()
+                  .from("leave_requests")
+                  .upsert({
+                    employee_id: tgRow.employee_id,
+                    date: state.date,
+                    reason,
+                    status: "pending",
+                    salary_counts: null,
+                    fine_amount_uzs: 0,
+                    telegram_id: tgId,
+                    source: "telegram",
+                  }, { onConflict: "employee_id,date" })
+                  .select("id").maybeSingle();
+                await resetState();
+                if (insErr || !ins) {
+                  await tg("sendMessage", { chat_id: chatId, text: `❗️ Xatolik: ${insErr?.message || "saqlanmadi"}`, reply_markup: MAIN_KB });
+                } else {
+                  await tg("sendMessage", {
+                    chat_id: chatId,
+                    text: `✅ Dam olish so'rovingiz yuborildi!\n\n📆 Sana: ${state.date}\n📝 Sabab: ${reason}\n\nDirektor ko'rib chiqgach xabar yuboramiz.`,
+                    reply_markup: MAIN_KB,
+                  });
+                  await notifyDirectorsAboutLeave(ins.id, emp?.full_name || "—", state.date, reason);
+                }
+              }
             } else if (text.startsWith("/start")) {
               await tg("sendMessage", {
                 chat_id: chatId,
-                text: `Assalomu alaykum${from.first_name ? ", " + from.first_name : ""}! 👋\n\n🟢 Keldim — kelganingizni belgilang (FACE ID dan keyin)\n💰 Avans so'rash — avans uchun ariza`,
+                text: `Assalomu alaykum${from.first_name ? ", " + from.first_name : ""}! 👋\n\n🟢 Keldim — kelganingizni belgilang\n💰 Avans so'rash — avans uchun ariza\n📅 Dam olish — dam olish so'rovi`,
                 reply_markup: MAIN_KB,
               });
+            } else if (text.startsWith("/dam_olish") || text === "📅 Dam olish" || text.toLowerCase() === "dam olish") {
+              if (!tgRow?.employee_id) {
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "⚠️ Akkauntingiz hali ishchiga bog'lanmagan. Admin sizni tizimda ulashini kuting.",
+                  reply_markup: MAIN_KB,
+                });
+              } else {
+                await setState({ step: "await_leave_date" });
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "📅 Qaysi kunga dam olmoqchisiz?\n\nSanani kiriting (masalan: 2026-06-25, 25.06.2026, 25.06, bugun, ertaga):",
+                  reply_markup: CANCEL_KB,
+                });
+              }
             } else if (text.startsWith("/chatid") || text.startsWith("/id")) {
               await tg("sendMessage", {
                 chat_id: chatId,
@@ -338,6 +464,59 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
               });
             } else if (data === "face_yes") {
               await handleCheckIn(chatId, tgId);
+            } else if (data.startsWith("lv_")) {
+              // Director leave decisions: lv_ac_<id>, lv_an_<id>, lv_rj_<id>
+              const c = sb();
+              const { data: actor } = await c
+                .from("employee_telegram").select("bot_role").eq("telegram_id", tgId).maybeSingle();
+              if (actor?.bot_role !== "director") {
+                await tg("answerCallbackQuery", { callback_query_id: cq.id, text: "❌ Sizda ruxsat yo'q (faqat direktor).", show_alert: true });
+              } else {
+                const action = data.slice(3, 5);
+                const leaveId = data.slice(6);
+                const { data: lv } = await c
+                  .from("leave_requests")
+                  .select("id, employee_id, date, reason, status, telegram_id, notif_messages, employees(full_name)")
+                  .eq("id", leaveId).maybeSingle();
+                if (!lv) {
+                  await tg("answerCallbackQuery", { callback_query_id: cq.id, text: "So'rov topilmadi", show_alert: true });
+                } else if (lv.status !== "pending") {
+                  await tg("answerCallbackQuery", { callback_query_id: cq.id, text: `Allaqachon ${lv.status}`, show_alert: true });
+                } else {
+                  let newStatus: "approved" | "rejected" = "approved";
+                  let salaryCounts: boolean | null = null;
+                  let resultText = "";
+                  if (action === "ac") { newStatus = "approved"; salaryCounts = true; resultText = "✅ Tasdiqlandi — oylik hisoblanadi"; }
+                  else if (action === "an") { newStatus = "approved"; salaryCounts = false; resultText = "✅ Tasdiqlandi — oylik hisoblanmaydi"; }
+                  else if (action === "rj") { newStatus = "rejected"; salaryCounts = null; resultText = "❌ Rad etildi"; }
+
+                  await c.from("leave_requests").update({
+                    status: newStatus,
+                    salary_counts: salaryCounts,
+                    decided_at: new Date().toISOString(),
+                  }).eq("id", leaveId);
+
+                  const empName = (lv as any).employees?.full_name || "—";
+                  // Update notification messages in all directors' chats
+                  const msgs: Array<{ chat_id: number; message_id: number }> = (lv.notif_messages as any) || [];
+                  const finalText = `📅 *Dam olish so'rovi*\n\n👤 Ishchi: ${empName}\n📆 Sana: ${lv.date}\n📝 Sabab: ${lv.reason || "—"}\n\n${resultText}`;
+                  for (const m of msgs) {
+                    await tg("editMessageText", {
+                      chat_id: m.chat_id, message_id: m.message_id,
+                      text: finalText, parse_mode: "Markdown",
+                    });
+                  }
+                  // Notify the requesting employee
+                  if (lv.telegram_id) {
+                    let userMsg = "";
+                    if (newStatus === "approved" && salaryCounts) userMsg = `✅ Dam olish so'rovingiz tasdiqlandi (${lv.date}).\n💰 Oylik hisoblanadi.`;
+                    else if (newStatus === "approved") userMsg = `✅ Dam olish so'rovingiz tasdiqlandi (${lv.date}).\n⚠️ Oylik hisoblanmaydi.`;
+                    else userMsg = `❌ Dam olish so'rovingiz rad etildi (${lv.date}).`;
+                    await tg("sendMessage", { chat_id: lv.telegram_id, text: userMsg });
+                  }
+                  await tg("answerCallbackQuery", { callback_query_id: cq.id, text: resultText });
+                }
+              }
             }
           }
         } catch (e) {
