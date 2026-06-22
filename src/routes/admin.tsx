@@ -14,6 +14,7 @@ import {
 import { WIDGETS, WIDGET_GROUPS, type WidgetGroup } from "@/lib/widgets";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
+import { AppSidebar } from "@/components/app-sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
