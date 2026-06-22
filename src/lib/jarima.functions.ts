@@ -186,8 +186,7 @@ export const saveSchedule = createServerFn({ method: "POST" })
   });
 
 async function recomputeAllLateFines(c: any) {
-  // Recompute late fines for ALL past attendance using current fine_rules + schedules.
-  await c.rpc("exec_recompute_late_fines").catch(() => null);
+  // Recompute late fines using per-employee rules (fallback to global rules where employee_id IS NULL).
   const { data: atts } = await c
     .from("attendance")
     .select("employee_id, date, check_in_at");
@@ -196,10 +195,21 @@ async function recomputeAllLateFines(c: any) {
     .select("employee_id, weekday, start_time, is_working");
   const { data: rules } = await c
     .from("fine_rules")
-    .select("min_minutes, max_minutes, amount_uzs, kind")
+    .select("employee_id, min_minutes, max_minutes, amount_uzs, kind")
     .order("min_minutes", { ascending: true });
+
   const schedMap = new Map<string, any>();
   (scheds || []).forEach((s: any) => schedMap.set(`${s.employee_id}_${s.weekday}`, s));
+
+  const globalLate = (rules || []).filter((r: any) => (r.kind || "late") === "late" && r.employee_id == null);
+  const empLateMap = new Map<string, any[]>();
+  for (const r of rules || []) {
+    if ((r.kind || "late") !== "late") continue;
+    if (!r.employee_id) continue;
+    const arr = empLateMap.get(r.employee_id) || [];
+    arr.push(r);
+    empLateMap.set(r.employee_id, arr);
+  }
 
   for (const a of atts || []) {
     const arrival = new Date(new Date(a.check_in_at).getTime() + 5 * 3600 * 1000);
@@ -212,9 +222,10 @@ async function recomputeAllLateFines(c: any) {
     const arrMin = arrival.getUTCHours() * 60 + arrival.getUTCMinutes();
     const lateMin = isWorking ? Math.max(0, arrMin - startMin) : 0;
     if (lateMin > 0) {
+      const empRules = empLateMap.get(a.employee_id);
+      const applicable = empRules && empRules.length > 0 ? empRules : globalLate;
       let amount = 0;
-      for (const r of rules || []) {
-        if (r.kind && r.kind !== "late") continue;
+      for (const r of applicable) {
         if (lateMin >= Number(r.min_minutes) && (r.max_minutes == null || lateMin <= Number(r.max_minutes))) {
           amount = Number(r.amount_uzs);
         }
@@ -237,9 +248,10 @@ async function recomputeAllLateFines(c: any) {
 
 export const saveFineRule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { id?: string; min: number | null; max: number | null; amount: number; label: string | null; kind?: "late" | "absence" }) =>
+  .inputValidator((d: { id?: string; employeeId?: string | null; min: number | null; max: number | null; amount: number; label: string | null; kind?: "late" | "absence" }) =>
     z.object({
       id: z.string().uuid().optional(),
+      employeeId: z.string().uuid().nullable().optional(),
       min: z.number().int().min(0).nullable(),
       max: z.number().int().nullable(),
       amount: z.number().min(0),
@@ -249,7 +261,8 @@ export const saveFineRule = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const kind = data.kind || "late";
-    const row = {
+    const row: any = {
+      employee_id: data.employeeId ?? null,
       min_minutes: kind === "absence" ? null : (data.min ?? 0),
       max_minutes: data.max,
       amount_uzs: data.amount,
