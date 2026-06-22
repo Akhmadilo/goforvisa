@@ -1221,61 +1221,63 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
           {/* Table view */}
           <Card className="p-4">
             <div className="text-sm font-semibold mb-3">Kunlar ro'yxati</div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Sana</TableHead>
-                  <TableHead>Kun</TableHead>
-                  <TableHead>Holat</TableHead>
-                  <TableHead>Kelish</TableHead>
-                  <TableHead>Kechikish</TableHead>
-                  <TableHead className="text-right">Jarima</TableHead>
-                  {canEditAttendance && <TableHead className="w-12"></TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {Array.from({ length: days }, (_, i) => i + 1).map(d => {
-                  const cell = dayMap.get(d);
-                  const wd = new Date(year, month - 1, d).getDay();
-                  const sched = schedByWd.get(wd);
-                  const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-                  const isDayOff = sched?.is_working === false;
-                  return (
-                    <TableRow key={d}>
-                      <TableCell className="tabular-nums">{dateStr}</TableCell>
-                      <TableCell>{WEEKDAYS[wd]}</TableCell>
-                      <TableCell>
-                        {isDayOff ? <Badge variant="outline">Dam</Badge>
-                          : cell?.fine?.reason === "absent" ? <Badge variant="destructive">Kelmadi</Badge>
-                          : cell?.fine ? <Badge variant="destructive">Kech</Badge>
-                          : cell?.att ? <Badge variant="secondary">Kelgan</Badge>
-                          : <Badge variant="outline">—</Badge>}
-                      </TableCell>
-                      <TableCell className="tabular-nums">{cell?.att ? timeFromIso(cell.att.check_in_at) : "—"}</TableCell>
-                      <TableCell>{cell?.fine && cell.fine.reason !== "absent" ? `${cell.fine.minutes_late} daq` : "—"}</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {cell?.fine ? <span className="text-red-600 dark:text-red-400 font-semibold">{fmt(cell.fine.amount_uzs)}</span> : "0"}
-                      </TableCell>
-                      {canEditAttendance && (
+            <div className="overflow-x-auto -mx-4 px-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Sana</TableHead>
+                    <TableHead>Kun</TableHead>
+                    <TableHead>Holat</TableHead>
+                    <TableHead>Kelish</TableHead>
+                    <TableHead>Kechikish</TableHead>
+                    <TableHead className="text-right">Jarima</TableHead>
+                    {canEditAttendance && <TableHead className="w-12"></TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: days }, (_, i) => i + 1).map(d => {
+                    const cell = dayMap.get(d);
+                    const wd = new Date(year, month - 1, d).getDay();
+                    const sched = schedByWd.get(wd);
+                    const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                    const isDayOff = sched?.is_working === false;
+                    return (
+                      <TableRow key={d}>
+                        <TableCell className="tabular-nums">{dateStr}</TableCell>
+                        <TableCell>{WEEKDAYS[wd]}</TableCell>
                         <TableCell>
-                          {!isDayOff && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 w-7 p-0"
-                              onClick={() => openEdit(dateStr, cell?.att, cell?.fine)}
-                              title="Kunni tahrirlash"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
+                          {isDayOff ? <Badge variant="outline">Dam</Badge>
+                            : cell?.fine?.reason === "absent" ? <Badge variant="destructive">Kelmadi</Badge>
+                            : cell?.fine ? <Badge variant="destructive">Kech</Badge>
+                            : cell?.att ? <Badge variant="secondary">Kelgan</Badge>
+                            : <Badge variant="outline">—</Badge>}
                         </TableCell>
-                      )}
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                        <TableCell className="tabular-nums">{cell?.att ? timeFromIso(cell.att.check_in_at) : "—"}</TableCell>
+                        <TableCell>{cell?.fine && cell.fine.reason !== "absent" ? `${cell.fine.minutes_late} daq` : "—"}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {cell?.fine ? <span className="text-red-600 dark:text-red-400 font-semibold">{fmt(cell.fine.amount_uzs)}</span> : "0"}
+                        </TableCell>
+                        {canEditAttendance && (
+                          <TableCell>
+                            {!isDayOff && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0"
+                                onClick={() => openEdit(dateStr, cell?.att, cell?.fine)}
+                                title="Kunni tahrirlash"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </Card>
         </>
       )}
