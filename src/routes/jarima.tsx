@@ -1458,10 +1458,10 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
 
 function statusBadge(s: AdvanceStatus) {
   const map: Record<AdvanceStatus, { label: string; variant: any }> = {
-    pending: { label: "Kutilmoqda", variant: "secondary" },
-    ceo_approved: { label: "Direktor ✓ — Moliyachi kutilmoqda", variant: "default" },
+    pending: { label: "Direktor tasdig'i kutilmoqda (Telegram)", variant: "secondary" },
+    ceo_approved: { label: "Direktor ✓ — Admin yakuniylashtirishi kutilmoqda", variant: "default" },
     approved: { label: "Tasdiqlandi — To'lov kutilmoqda", variant: "default" },
-    paid: { label: "✅ To'landi", variant: "secondary" },
+    paid: { label: "✅ Berildi (oylikdan ushlanadi)", variant: "secondary" },
     rejected: { label: "❌ Rad etildi", variant: "destructive" },
     cancelled: { label: "Bekor", variant: "outline" },
   };
