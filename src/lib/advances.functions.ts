@@ -356,7 +356,7 @@ export const getEmployeeMonth = createServerFn({ method: "GET" })
     const endDate = new Date(data.year, data.month, 0).getDate();
     const end = `${data.year}-${String(data.month).padStart(2, "0")}-${String(endDate).padStart(2, "0")}`;
 
-    const [att, fines, sched] = await Promise.all([
+    const [att, fines, sched, leaves] = await Promise.all([
       context.supabase.from("attendance").select("*")
         .eq("employee_id", data.employeeId)
         .gte("date", start).lte("date", end),
@@ -365,12 +365,17 @@ export const getEmployeeMonth = createServerFn({ method: "GET" })
         .gte("date", start).lte("date", end),
       context.supabase.from("employee_schedules").select("*")
         .eq("employee_id", data.employeeId),
+      context.supabase.from("leave_requests").select("date, status, reason, note")
+        .eq("employee_id", data.employeeId)
+        .eq("status", "approved")
+        .gte("date", start).lte("date", end),
     ]);
 
     return {
       attendance: (att.data ?? []) as any[],
       fines: (fines.data ?? []) as any[],
       schedules: (sched.data ?? []) as any[],
+      leaves: (leaves.data ?? []) as any[],
       daysInMonth: endDate,
     };
   });

@@ -416,6 +416,8 @@ function SalaryFormDialog({
   const [fixed, setFixed] = useState<string>("0");
   const [kpi, setKpi] = useState<string>("0");
   const [penalty, setPenalty] = useState<string>("0");
+  const [advance, setAdvance] = useState<string>("0");
+  const [autoAdvance, setAutoAdvance] = useState<number>(0);
   const [note, setNote] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
@@ -428,30 +430,66 @@ function SalaryFormDialog({
         setFixed(String(editing.fixed_amount));
         setKpi(String(editing.kpi_amount));
         setPenalty(String(editing.penalty_amount));
+        setAdvance(String((editing as any).advance_amount ?? 0));
         setNote(editing.note ?? "");
       } else {
         setEmployeeName("");
         setYear(now.getFullYear());
         setMonth(now.getMonth() + 1);
-        setFixed("0"); setKpi("0"); setPenalty("0"); setNote("");
+        setFixed("0"); setKpi("0"); setPenalty("0"); setAdvance("0"); setNote("");
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editing]);
 
+  // Auto-fetch approved/paid advances for this employee/month
+  useEffect(() => {
+    if (!open || !employeeName.trim()) { setAutoAdvance(0); return; }
+    let cancelled = false;
+    (async () => {
+      // Resolve employee id by name
+      const { data: emp } = await supabase
+        .from("employees")
+        .select("id")
+        .eq("full_name", employeeName.trim())
+        .maybeSingle();
+      if (!emp?.id) { if (!cancelled) setAutoAdvance(0); return; }
+      const start = `${year}-${String(month).padStart(2, "0")}-01`;
+      const endDate = new Date(year, month, 0).getDate();
+      const end = `${year}-${String(month).padStart(2, "0")}-${String(endDate).padStart(2, "0")}T23:59:59`;
+      const { data: rows } = await supabase
+        .from("advance_requests")
+        .select("amount_uzs, status, created_at, paid_at")
+        .eq("employee_id", emp.id)
+        .in("status", ["approved", "paid"]);
+      if (cancelled) return;
+      const sum = (rows ?? []).reduce((acc: number, r: any) => {
+        const ref = r.paid_at || r.created_at;
+        if (!ref) return acc;
+        if (ref >= start && ref <= end) return acc + Number(r.amount_uzs || 0);
+        return acc;
+      }, 0);
+      setAutoAdvance(sum);
+      // If creating new (no editing), prefill the advance field
+      if (!editing) setAdvance(String(sum));
+    })();
+    return () => { cancelled = true; };
+  }, [open, employeeName, year, month, editing]);
+
   const total =
-    (parseFloat(fixed) || 0) + (parseFloat(kpi) || 0) - (parseFloat(penalty) || 0);
+    (parseFloat(fixed) || 0) + (parseFloat(kpi) || 0) - (parseFloat(penalty) || 0) - (parseFloat(advance) || 0);
 
   const onSubmit = async () => {
     if (!employeeName.trim()) { toast.error(t("sal.toast.nameRequired")); return; }
     setSaving(true);
-    const payload = {
+    const payload: any = {
       employee_name: employeeName.trim(),
       year,
       month,
       fixed_amount: parseFloat(fixed) || 0,
       kpi_amount: parseFloat(kpi) || 0,
       penalty_amount: parseFloat(penalty) || 0,
+      advance_amount: parseFloat(advance) || 0,
       note: note.trim() || null,
     };
     const res = editing
@@ -464,10 +502,11 @@ function SalaryFormDialog({
   };
 
   const monthNames = getMonthNames(lang);
+  const nf = (n: number) => new Intl.NumberFormat(localeOf(lang)).format(Math.round(n));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editing ? t("sal.form.editTitle") : t("sal.form.addTitle")}</DialogTitle>
         </DialogHeader>
@@ -514,14 +553,40 @@ function SalaryFormDialog({
             <Input type="number" inputMode="decimal" value={penalty} onChange={(e) => setPenalty(e.target.value)} />
           </div>
           <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs text-muted-foreground">Avans (ushlanmasi)</label>
+              {autoAdvance > 0 && (
+                <button
+                  type="button"
+                  className="text-[11px] text-primary hover:underline"
+                  onClick={() => setAdvance(String(autoAdvance))}
+                  title="Avtomatik aniqlangan avans summasini qo'llash"
+                >
+                  Avtomatik: {nf(autoAdvance)}
+                </button>
+              )}
+            </div>
+            <Input type="number" inputMode="decimal" value={advance} onChange={(e) => setAdvance(e.target.value)} />
+            <div className="text-[11px] text-muted-foreground mt-1">
+              {autoAdvance > 0
+                ? `Bu oyda tasdiqlangan avans: ${nf(autoAdvance)} so'm`
+                : "Bu oyda tasdiqlangan avans yo'q"}
+            </div>
+          </div>
+          <div>
             <label className="text-xs text-muted-foreground mb-1 block">{t("common.note")}</label>
             <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
           </div>
-          <div className="text-sm flex items-center justify-between rounded-md bg-secondary px-3 py-2">
-            <span className="text-muted-foreground">{t("sal.form.total")}</span>
-            <span className="font-semibold">
-              {new Intl.NumberFormat(localeOf(lang)).format(Math.round(total))} {t("sal.uzs")}
-            </span>
+          <div className="rounded-md bg-secondary px-3 py-2 space-y-1">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Hisob: oklad + bonus − jarima − avans</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Berilishi kerak</span>
+              <span className="text-base font-bold text-primary">
+                {nf(total)} {t("sal.uzs")}
+              </span>
+            </div>
           </div>
         </div>
         <DialogFooter>

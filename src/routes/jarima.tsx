@@ -1129,7 +1129,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
   const startWeekday = new Date(year, month - 1, 1).getDay(); // 0=Sun
 
   const dayMap = useMemo(() => {
-    const m = new Map<number, { att?: any; fine?: any }>();
+    const m = new Map<number, { att?: any; fine?: any; leave?: any }>();
     (data?.attendance || []).forEach((a: any) => {
       const d = Number(a.date.slice(8, 10));
       m.set(d, { ...(m.get(d) || {}), att: a });
@@ -1137,6 +1137,10 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
     (data?.fines || []).forEach((f: any) => {
       const d = Number(f.date.slice(8, 10));
       m.set(d, { ...(m.get(d) || {}), fine: f });
+    });
+    ((data as any)?.leaves || []).forEach((l: any) => {
+      const d = Number(l.date.slice(8, 10));
+      m.set(d, { ...(m.get(d) || {}), leave: l });
     });
     return m;
   }, [data]);
@@ -1284,8 +1288,9 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                 const isDayOff = sched && sched.is_working === false;
                 const fine = cell?.fine;
                 const att = cell?.att;
+                const leave = cell?.leave;
                 let bg = "bg-muted/30";
-                if (isDayOff) bg = "bg-slate-100 dark:bg-slate-800";
+                if (isDayOff || leave) bg = "bg-sky-100 dark:bg-sky-950/40";
                 else if (fine) bg = "bg-red-100 dark:bg-red-950/40";
                 else if (att) bg = "bg-emerald-100 dark:bg-emerald-950/40";
                 return (
@@ -1295,7 +1300,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                   )}>
                     <div className="flex items-center justify-between">
                       <div className="text-[11px] font-bold">{d}</div>
-                      {canEditAttendance && !isDayOff && (
+                      {canEditAttendance && !isDayOff && !leave && (
                         <button
                           type="button"
                           onClick={() => openEdit(
@@ -1310,7 +1315,9 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                         </button>
                       )}
                     </div>
-                    {isDayOff ? (
+                    {leave ? (
+                      <div className="text-[10px] text-sky-700 dark:text-sky-300 font-semibold" title={leave.reason || leave.note || ""}>Dam olish</div>
+                    ) : isDayOff ? (
                       <div className="text-[10px] text-muted-foreground">Dam</div>
                     ) : fine?.reason === "absent" ? (
                       <>
@@ -1338,7 +1345,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
             <div className="flex gap-3 mt-3 text-[11px] text-muted-foreground flex-wrap">
               <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-emerald-100 dark:bg-emerald-950/40 border" /> O'z vaqtida</span>
               <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-red-100 dark:bg-red-950/40 border" /> Jarima</span>
-              <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-slate-100 dark:bg-slate-800 border" /> Dam olish</span>
+              <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-sky-100 dark:bg-sky-950/40 border" /> Dam olish</span>
               <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-muted/30 border" /> Kelmadi</span>
             </div>
           </Card>
@@ -1371,7 +1378,8 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                         <TableCell className="tabular-nums">{dateStr}</TableCell>
                         <TableCell>{WEEKDAYS[wd]}</TableCell>
                         <TableCell>
-                          {isDayOff ? <Badge variant="outline">Dam</Badge>
+                          {cell?.leave ? <Badge className="bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30" variant="outline">Dam olish</Badge>
+                            : isDayOff ? <Badge variant="outline">Dam</Badge>
                             : cell?.fine?.reason === "absent" ? <Badge variant="destructive">Kelmadi</Badge>
                             : cell?.fine ? <Badge variant="destructive">Kech</Badge>
                             : cell?.att ? <Badge variant="secondary">Kelgan</Badge>
