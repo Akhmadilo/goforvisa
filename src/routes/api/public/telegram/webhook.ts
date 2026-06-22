@@ -464,6 +464,59 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
               });
             } else if (data === "face_yes") {
               await handleCheckIn(chatId, tgId);
+            } else if (data.startsWith("lv_")) {
+              // Director leave decisions: lv_ac_<id>, lv_an_<id>, lv_rj_<id>
+              const c = sb();
+              const { data: actor } = await c
+                .from("employee_telegram").select("bot_role").eq("telegram_id", tgId).maybeSingle();
+              if (actor?.bot_role !== "director") {
+                await tg("answerCallbackQuery", { callback_query_id: cq.id, text: "❌ Sizda ruxsat yo'q (faqat direktor).", show_alert: true });
+              } else {
+                const action = data.slice(3, 5);
+                const leaveId = data.slice(6);
+                const { data: lv } = await c
+                  .from("leave_requests")
+                  .select("id, employee_id, date, reason, status, telegram_id, notif_messages, employees(full_name)")
+                  .eq("id", leaveId).maybeSingle();
+                if (!lv) {
+                  await tg("answerCallbackQuery", { callback_query_id: cq.id, text: "So'rov topilmadi", show_alert: true });
+                } else if (lv.status !== "pending") {
+                  await tg("answerCallbackQuery", { callback_query_id: cq.id, text: `Allaqachon ${lv.status}`, show_alert: true });
+                } else {
+                  let newStatus: "approved" | "rejected" = "approved";
+                  let salaryCounts: boolean | null = null;
+                  let resultText = "";
+                  if (action === "ac") { newStatus = "approved"; salaryCounts = true; resultText = "✅ Tasdiqlandi — oylik hisoblanadi"; }
+                  else if (action === "an") { newStatus = "approved"; salaryCounts = false; resultText = "✅ Tasdiqlandi — oylik hisoblanmaydi"; }
+                  else if (action === "rj") { newStatus = "rejected"; salaryCounts = null; resultText = "❌ Rad etildi"; }
+
+                  await c.from("leave_requests").update({
+                    status: newStatus,
+                    salary_counts: salaryCounts,
+                    decided_at: new Date().toISOString(),
+                  }).eq("id", leaveId);
+
+                  const empName = (lv as any).employees?.full_name || "—";
+                  // Update notification messages in all directors' chats
+                  const msgs: Array<{ chat_id: number; message_id: number }> = (lv.notif_messages as any) || [];
+                  const finalText = `📅 *Dam olish so'rovi*\n\n👤 Ishchi: ${empName}\n📆 Sana: ${lv.date}\n📝 Sabab: ${lv.reason || "—"}\n\n${resultText}`;
+                  for (const m of msgs) {
+                    await tg("editMessageText", {
+                      chat_id: m.chat_id, message_id: m.message_id,
+                      text: finalText, parse_mode: "Markdown",
+                    });
+                  }
+                  // Notify the requesting employee
+                  if (lv.telegram_id) {
+                    let userMsg = "";
+                    if (newStatus === "approved" && salaryCounts) userMsg = `✅ Dam olish so'rovingiz tasdiqlandi (${lv.date}).\n💰 Oylik hisoblanadi.`;
+                    else if (newStatus === "approved") userMsg = `✅ Dam olish so'rovingiz tasdiqlandi (${lv.date}).\n⚠️ Oylik hisoblanmaydi.`;
+                    else userMsg = `❌ Dam olish so'rovingiz rad etildi (${lv.date}).`;
+                    await tg("sendMessage", { chat_id: lv.telegram_id, text: userMsg });
+                  }
+                  await tg("answerCallbackQuery", { callback_query_id: cq.id, text: resultText });
+                }
+              }
             }
           }
         } catch (e) {
