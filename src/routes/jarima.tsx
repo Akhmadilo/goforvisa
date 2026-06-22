@@ -778,7 +778,7 @@ function ScheduleEditor({
     <Card className="p-4">
       <div className="font-medium mb-3">Haftalik ish jadvali</div>
       <Select value={empId} onValueChange={setEmpId}>
-        <SelectTrigger className="w-[300px] mb-3"><SelectValue placeholder="Ishchini tanlang" /></SelectTrigger>
+        <SelectTrigger className="w-full md:w-[300px] mb-3"><SelectValue placeholder="Ishchini tanlang" /></SelectTrigger>
         <SelectContent>
           {employees.map(e => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}
         </SelectContent>
