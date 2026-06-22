@@ -1470,12 +1470,11 @@ function statusBadge(s: AdvanceStatus) {
 }
 
 function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<string, string> }) {
-  const { isCeo, isFinance, isAdmin: isAdm, canApproveAdvances } = useRoles();
+  const { isCeo, isAdmin: isAdm, canApproveAdvances } = useRoles();
   const qc = useQueryClient();
   const listFn = useServerFn(listAdvances);
   const ceoFn = useServerFn(ceoDecideAdvance);
-  const finFn = useServerFn(financeDecideAdvance);
-  const payFn = useServerFn(markAdvancePaid);
+  const adminFn = useServerFn(adminFinalizeAdvance);
   const createFn = useServerFn(createAdvanceManual);
 
   const { data: list = [], isLoading } = useQuery({
@@ -1485,7 +1484,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["advance-requests"] });
 
-  const [decision, setDecision] = useState<{ id: string; approve: boolean; role: "ceo" | "fin" } | null>(null);
+  const [decision, setDecision] = useState<{ id: string; approve: boolean; role: "ceo" | "admin" } | null>(null);
   const [note, setNote] = useState("");
 
   const submitDecision = async () => {
@@ -1494,22 +1493,11 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
       if (decision.role === "ceo") {
         await ceoFn({ data: { id: decision.id, approve: decision.approve, note: note || undefined } });
       } else {
-        await finFn({ data: { id: decision.id, approve: decision.approve, note: note || undefined } });
+        await adminFn({ data: { id: decision.id, approve: decision.approve, note: note || undefined } });
       }
       toast.success(decision.approve ? "Tasdiqlandi" : "Rad etildi");
       setDecision(null);
       setNote("");
-      invalidate();
-    } catch (e: any) {
-      toast.error(e?.message || "Xatolik");
-    }
-  };
-
-  const pay = async (id: string) => {
-    if (!confirm("To'lov amalga oshirildi va keyingi oylikdan ushlanadi. Davom etamizmi?")) return;
-    try {
-      await payFn({ data: { id } });
-      toast.success("To'lov belgilandi va oylikka qo'shildi");
       invalidate();
     } catch (e: any) {
       toast.error(e?.message || "Xatolik");
@@ -1539,9 +1527,8 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
   };
 
   const pending = list.filter(r => r.status === "pending");
-  const awaitingFinance = list.filter(r => r.status === "ceo_approved");
-  const awaitingPayment = list.filter(r => r.status === "approved");
-  const done = list.filter(r => r.status === "paid" || r.status === "rejected");
+  const awaitingAdmin = list.filter(r => r.status === "ceo_approved");
+  const done = list.filter(r => r.status === "paid" || r.status === "approved" || r.status === "rejected");
 
   const renderRow = (r: AdvanceRequest, actions?: React.ReactNode) => (
     <TableRow key={r.id}>
