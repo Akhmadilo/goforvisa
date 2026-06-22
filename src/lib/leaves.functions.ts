@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
-const CEO_ROLES = ["owner", "ceo", "director"];
+const CEO_ROLES = ["owner", "ceo", "director"] as const;
 
 function leaveDecisionKb(id: string) {
   return {
