@@ -885,7 +885,13 @@ export type Database = {
     Enums: {
       app_role: "admin" | "user" | "owner_ceo" | "financier"
       leave_status: "pending" | "approved" | "rejected"
-      telegram_bot_role: "none" | "director" | "finance"
+      telegram_bot_role:
+        | "none"
+        | "director"
+        | "finance"
+        | "owner"
+        | "ceo"
+        | "financier"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1015,7 +1021,14 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "user", "owner_ceo", "financier"],
       leave_status: ["pending", "approved", "rejected"],
-      telegram_bot_role: ["none", "director", "finance"],
+      telegram_bot_role: [
+        "none",
+        "director",
+        "finance",
+        "owner",
+        "ceo",
+        "financier",
+      ],
     },
   },
 } as const
