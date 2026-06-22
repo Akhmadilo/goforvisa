@@ -1584,7 +1584,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
           <div>
             <div className="font-medium">Avans so'rovlari</div>
             <div className="text-xs text-muted-foreground mt-1">
-              Ishchi botda <b>💰 Avans so'rash</b> tugmasini bossa, so'rov shu yerga keladi. Direktor → Moliyachi tasdiqlasa, "To'landi" tugmasi bilan oylikdan ushlanadi.
+              Ishchi botda <b>💰 Avans so'rash</b> tugmasini bossa, direktorga Telegram orqali xabar boradi. Direktor tasdiqlasa, admin shu yerda yakuniylashtiradi va summa keyingi oylikdan ushlanadi.
             </div>
           </div>
           {canApproveAdvances && (
@@ -1596,33 +1596,25 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
       </Card>
 
       {section(
-        "1️⃣ Direktor tasdig'i kutilmoqda",
+        "1️⃣ Direktor tasdig'i kutilmoqda (Telegram)",
         pending,
-        (r) => (isCeo || isAdm) ? (
+        (r) => isAdm ? (
           <div className="flex gap-2 justify-end">
-            <Button size="sm" variant="default" onClick={() => { setNote(""); setDecision({ id: r.id, approve: true, role: "ceo" }); }}>Tasdiq</Button>
-            <Button size="sm" variant="outline" onClick={() => { setNote(""); setDecision({ id: r.id, approve: false, role: "ceo" }); }}>Rad</Button>
+            <Button size="sm" variant="outline" onClick={() => { setNote(""); setDecision({ id: r.id, approve: true, role: "ceo" }); }}>Admin override: Tasdiq</Button>
+            <Button size="sm" variant="ghost" onClick={() => { setNote(""); setDecision({ id: r.id, approve: false, role: "ceo" }); }}>Rad</Button>
           </div>
-        ) : <span className="text-xs text-muted-foreground">Faqat direktor</span>,
+        ) : <span className="text-xs text-muted-foreground">Direktor Telegramdan tasdiqlaydi</span>,
       )}
 
       {section(
-        "2️⃣ Moliyachi tasdig'i kutilmoqda",
-        awaitingFinance,
-        (r) => (isFinance || isAdm) ? (
+        "2️⃣ Admin yakuniy tasdig'i kutilmoqda",
+        awaitingAdmin,
+        (r) => isAdm ? (
           <div className="flex gap-2 justify-end">
-            <Button size="sm" variant="default" onClick={() => { setNote(""); setDecision({ id: r.id, approve: true, role: "fin" }); }}>Tasdiq</Button>
-            <Button size="sm" variant="outline" onClick={() => { setNote(""); setDecision({ id: r.id, approve: false, role: "fin" }); }}>Rad</Button>
+            <Button size="sm" variant="default" onClick={() => { setNote(""); setDecision({ id: r.id, approve: true, role: "admin" }); }}>Tasdiq + Ber</Button>
+            <Button size="sm" variant="outline" onClick={() => { setNote(""); setDecision({ id: r.id, approve: false, role: "admin" }); }}>Rad</Button>
           </div>
-        ) : <span className="text-xs text-muted-foreground">Faqat moliyachi</span>,
-      )}
-
-      {section(
-        "3️⃣ To'lov kutilmoqda",
-        awaitingPayment,
-        (r) => (isFinance || isAdm) ? (
-          <Button size="sm" onClick={() => pay(r.id)}>To'landi</Button>
-        ) : <span className="text-xs text-muted-foreground">Faqat moliyachi</span>,
+        ) : <span className="text-xs text-muted-foreground">Faqat admin</span>,
       )}
 
       {section("📜 Tarix", done, () => null)}
