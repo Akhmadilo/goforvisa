@@ -354,20 +354,25 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                   reply_markup: MAIN_KB,
                 });
               } else {
-                await sb().from("advance_requests").insert({
+                const { data: emp } = await sb()
+                  .from("employees").select("full_name").eq("id", tgRow.employee_id).maybeSingle();
+                const { data: insAdv } = await sb().from("advance_requests").insert({
                   employee_id: tgRow.employee_id,
                   telegram_id: tgId,
                   amount_uzs: state.amount,
                   purpose,
                   status: "pending",
                   source: "telegram",
-                });
+                }).select("id").maybeSingle();
                 await resetState();
                 await tg("sendMessage", {
                   chat_id: chatId,
-                  text: `✅ Avans so'rovingiz yuborildi!\n\n💰 Summa: ${fmt(state.amount)} so'm\n📝 Maqsad: ${purpose}\n\nDirektor va moliyachi ko'rib chiqishadi. Yakuniy natija haqida xabar yuboramiz.`,
+                  text: `✅ Avans so'rovingiz yuborildi!\n\n💰 Summa: ${fmt(state.amount)} so'm\n📝 Maqsad: ${purpose}\n\nDirektor ko'rib chiqgach, admin yakuniy tasdiqlaydi.`,
                   reply_markup: MAIN_KB,
                 });
+                if (insAdv?.id) {
+                  await notifyDirectorsAboutAdvance(insAdv.id, emp?.full_name || "—", state.amount, purpose);
+                }
               }
             } else if (state?.step === "await_leave_date") {
               const d = parseLeaveDate(text);
