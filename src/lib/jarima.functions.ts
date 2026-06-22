@@ -91,7 +91,7 @@ export const setTelegramBotRole = createServerFn({ method: "POST" })
   .inputValidator((d: { telegramRowId: string; botRole: TelegramBotRole }) =>
     z.object({
       telegramRowId: z.string().uuid(),
-      botRole: z.enum(["none", "director", "finance"]),
+      botRole: z.enum(["none", "owner", "ceo", "financier", "director", "finance"]),
     }).parse(d)
   )
   .handler(async ({ data, context }) => {
