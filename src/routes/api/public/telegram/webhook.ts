@@ -95,12 +95,14 @@ function parseLeaveDate(input: string): string | null {
   return null;
 }
 
+const APPROVER_ROLES = ["owner", "ceo", "financier", "director"] as const;
+
 async function notifyDirectorsAboutLeave(leaveId: string, empName: string, date: string, reason: string | null) {
   const c = sb();
   const { data: dirs } = await c
     .from("employee_telegram")
     .select("telegram_id")
-    .eq("bot_role", "director");
+    .in("bot_role", APPROVER_ROLES as unknown as string[]);
   const text = `📅 *Yangi dam olish so'rovi*\n\n👤 Ishchi: ${empName}\n📆 Sana: ${date}\n📝 Sabab: ${reason || "—"}`;
   const messages: Array<{ chat_id: number; message_id: number }> = [];
   for (const d of dirs || []) {
