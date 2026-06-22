@@ -1378,7 +1378,8 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                         <TableCell className="tabular-nums">{dateStr}</TableCell>
                         <TableCell>{WEEKDAYS[wd]}</TableCell>
                         <TableCell>
-                          {isDayOff ? <Badge variant="outline">Dam</Badge>
+                          {cell?.leave ? <Badge className="bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30" variant="outline">Dam olish</Badge>
+                            : isDayOff ? <Badge variant="outline">Dam</Badge>
                             : cell?.fine?.reason === "absent" ? <Badge variant="destructive">Kelmadi</Badge>
                             : cell?.fine ? <Badge variant="destructive">Kech</Badge>
                             : cell?.att ? <Badge variant="secondary">Kelgan</Badge>
