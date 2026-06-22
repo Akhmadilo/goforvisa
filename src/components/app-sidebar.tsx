@@ -1,10 +1,28 @@
+import { useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Wallet, Receipt, Users, LineChart, FileText, Settings, Target, AlertTriangle, CalendarDays } from "lucide-react";
+import {
+  LayoutDashboard,
+  Wallet,
+  Receipt,
+  Users,
+  LineChart,
+  FileText,
+  Settings,
+  Target,
+  AlertTriangle,
+  CalendarDays,
+  Menu,
+} from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { useT, LANGUAGES, type Lang } from "@/lib/i18n";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
-export function AppSidebar() {
+function SidebarContent({ onClick }: { onClick?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { can, loading } = useWidgetPermissions();
   const { t, lang, setLang } = useT();
@@ -22,7 +40,7 @@ export function AppSidebar() {
   ] as const;
 
   return (
-    <aside className="hidden md:flex fixed inset-y-0 left-0 z-30 w-56 flex-col border-r border-border bg-card/60 backdrop-blur">
+    <>
       <div className="h-16 px-4 flex items-center gap-2 border-b border-border">
         <img src={logoUrl} alt="GoForVisa" className="h-8 w-8 rounded" />
         <div className="leading-tight">
@@ -30,7 +48,7 @@ export function AppSidebar() {
           <div className="text-[11px] text-muted-foreground">Platform</div>
         </div>
       </div>
-      <nav className="flex-1 p-3 space-y-1">
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {items.map(({ to, label, icon: Icon, widget }) => {
           if (widget && !loading && !can(widget)) return null;
           const active = pathname === to;
@@ -38,6 +56,7 @@ export function AppSidebar() {
             <Link
               key={to}
               to={to}
+              onClick={onClick}
               className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                 active
                   ? "bg-primary text-primary-foreground"
@@ -51,6 +70,7 @@ export function AppSidebar() {
         })}
         <Link
           to="/settings"
+          onClick={onClick}
           className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
             pathname === "/settings"
               ? "bg-primary text-primary-foreground"
@@ -82,6 +102,33 @@ export function AppSidebar() {
           ))}
         </div>
       </div>
-    </aside>
+    </>
+  );
+}
+
+export function AppSidebar() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <aside className="hidden md:flex fixed inset-y-0 left-0 z-30 w-56 flex-col border-r border-border bg-card/60 backdrop-blur">
+        <SidebarContent />
+      </aside>
+
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger asChild>
+          <button
+            type="button"
+            aria-label="Open menu"
+            className="md:hidden fixed top-3 left-3 z-40 h-10 w-10 rounded-md border border-border bg-card/90 backdrop-blur shadow-sm flex items-center justify-center"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-[260px] p-0 border-r border-border flex flex-col">
+          <SidebarContent onClick={() => setOpen(false)} />
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
