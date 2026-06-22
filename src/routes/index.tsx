@@ -603,42 +603,42 @@ function Dashboard() {
 
         {/* KPIs */}
         {can("kpi") && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
           <Kpi
-            icon={<DollarSign className="h-4 w-4" />}
+            icon={<DollarSign className="h-3 w-3 md:h-4 md:w-4" />}
             label={t("dash.kpi.totalContracts")}
             value={fmtUsd(kpis.totalUsd)}
             sub={`${kpis.clients} ${t("dash.kpi.clients")}`}
             tone="primary"
           />
           <Kpi
-            icon={<TrendingUp className="h-4 w-4" />}
+            icon={<TrendingUp className="h-3 w-3 md:h-4 md:w-4" />}
             label={t("dash.kpi.netRevenue")}
             value={fmtUsd(kpis.commission)}
             sub={`${kpis.marginPct.toFixed(1)}% · ${t("dash.kpi.netRevenueSub")}`}
             tone="primary"
           />
           <Kpi
-            icon={<DollarSign className="h-4 w-4" />}
+            icon={<DollarSign className="h-3 w-3 md:h-4 md:w-4" />}
             label={t("dash.kpi.docCost")}
             value={fmtUsd(kpis.docsTotal)}
             sub={`${t("dash.kpi.avgNet")} ${fmtUsd(kpis.avgComm)}`}
             tone="accent"
           />
           <Kpi
-            icon={<Users className="h-4 w-4" />}
+            icon={<Users className="h-3 w-3 md:h-4 md:w-4" />}
             label={t("dash.kpi.clientsLabel")}
             value={kpis.clients.toLocaleString()}
             sub={`${kpis.visaTaken} ${t("dash.kpi.visaTaken")}`}
           />
           <Kpi
-            icon={<CheckCircle2 className="h-4 w-4" />}
+            icon={<CheckCircle2 className="h-3 w-3 md:h-4 md:w-4" />}
             label={t("dash.kpi.visaSuccess")}
             value={kpis.successRate.toFixed(1) + "%"}
             sub={`${kpis.visaTaken} / ${kpis.clients} · ${kpis.visaRejected} ${t("dash.kpi.rejected")} · ${kpis.visaInProcess} ${t("dash.kpi.inProcess")}`}
           />
           <Kpi
-            icon={<AlertTriangle className="h-4 w-4" />}
+            icon={<AlertTriangle className="h-3 w-3 md:h-4 md:w-4" />}
             label={t("dash.kpi.debtors")}
             value={debtors.length.toString()}
             sub={`${t("dash.kpi.totalDebt")} ${fmtUsd(debtorsTotalUsd)}`}
@@ -651,72 +651,76 @@ function Dashboard() {
         {(can("monthly_revenue") || can("visa_results")) && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {can("monthly_revenue") && (
-          <Card className="p-5 lg:col-span-2 shadow-[var(--shadow-card)]">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">{t("dash.chart.monthly")}</h3>
+          <Card className="p-4 md:p-5 lg:col-span-2 shadow-[var(--shadow-card)]">
+            <div className="flex items-center justify-between mb-3 md:mb-4">
+              <h3 className="font-semibold text-sm md:text-base">{t("dash.chart.monthly")}</h3>
               <Badge variant="secondary">{monthlyData.length} {t("dash.chart.monthsCount")}</Badge>
             </div>
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={monthlyData}>
-                <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} />
-                <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--color-card)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="var(--color-chart-1)"
-                  strokeWidth={2.5}
-                  name={t("dash.chart.revenueUsd")}
-                  dot={{ r: 3 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="commission"
-                  stroke="var(--color-chart-3)"
-                  strokeWidth={2.5}
-                  name={t("dash.chart.netUsd")}
-                  dot={{ r: 3 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="h-[200px] md:h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={monthlyData}>
+                  <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+                  <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} />
+                  <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--color-card)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="var(--color-chart-1)"
+                    strokeWidth={2.5}
+                    name={t("dash.chart.revenueUsd")}
+                    dot={{ r: 3 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="commission"
+                    stroke="var(--color-chart-3)"
+                    strokeWidth={2.5}
+                    name={t("dash.chart.netUsd")}
+                    dot={{ r: 3 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </Card>
           )}
 
           {can("visa_results") && (
-          <Card className="p-5 shadow-[var(--shadow-card)]">
-            <h3 className="font-semibold mb-4">{t("dash.chart.visaResults")}</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
-                  data={visaData}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={55}
-                  outerRadius={95}
-                  paddingAngle={3}
-                >
-                  {visaData.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--color-card)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: "12px" }} />
-              </PieChart>
-            </ResponsiveContainer>
+          <Card className="p-4 md:p-5 shadow-[var(--shadow-card)]">
+            <h3 className="font-semibold text-sm md:text-base mb-3 md:mb-4">{t("dash.chart.visaResults")}</h3>
+            <div className="h-[200px] md:h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={visaData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={45}
+                    outerRadius={75}
+                    paddingAngle={3}
+                  >
+                    {visaData.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--color-card)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: "12px" }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </Card>
           )}
         </div>
