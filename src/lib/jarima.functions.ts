@@ -25,10 +25,11 @@ export type Schedule = {
 
 export type FineRule = {
   id: string;
-  min_minutes: number;
+  min_minutes: number | null;
   max_minutes: number | null;
   amount_uzs: number;
   label: string | null;
+  kind: "late" | "absence";
 };
 
 export type AttendanceRow = {
