@@ -676,66 +676,68 @@ function JarimaPage() {
                 <Card className="p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <Link2 className="h-4 w-4" />
-                    <span className="font-medium">Telegram akkauntlar</span>
+                    <span className="font-medium text-sm md:text-base">Telegram akkauntlar</span>
                   </div>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Telegram</TableHead>
-                        <TableHead>Ism</TableHead>
-                        <TableHead>Ishchi</TableHead>
-                        <TableHead>Bot lavozimi</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(data?.telegram || []).map(tg => (
-                        <TableRow key={tg.id}>
-                          <TableCell>
-                            {tg.telegram_username ? `@${tg.telegram_username}` : tg.telegram_id}
-                          </TableCell>
-                          <TableCell>{[tg.first_name, tg.last_name].filter(Boolean).join(" ") || "—"}</TableCell>
-                          <TableCell>
-                            <Select
-                              value={tg.employee_id ?? "none"}
-                              onValueChange={(v) => linkMut.mutate({
-                                telegramRowId: tg.id,
-                                employeeId: v === "none" ? null : v,
-                              })}
-                            >
-                              <SelectTrigger className="w-[260px]"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">— bog'lanmagan —</SelectItem>
-                                {employees.map(e => (
-                                  <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell>
-                            <Select
-                              value={tg.bot_role ?? "none"}
-                              onValueChange={(v) => botRoleMut.mutate({
-                                telegramRowId: tg.id,
-                                botRole: v as "none" | "director" | "finance",
-                              })}
-                            >
-                              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">— oddiy ishchi —</SelectItem>
-                                <SelectItem value="director">Direktor</SelectItem>
-                                <SelectItem value="finance">Moliyachi (CEO)</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
+                  <div className="overflow-x-auto -mx-4 px-4">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Telegram</TableHead>
+                          <TableHead>Ism</TableHead>
+                          <TableHead>Ishchi</TableHead>
+                          <TableHead>Bot lavozimi</TableHead>
                         </TableRow>
-                      ))}
-                      {(data?.telegram || []).length === 0 && (
-                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">
-                          Hali hech kim botga /start yubormagan
-                        </TableCell></TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {(data?.telegram || []).map(tg => (
+                          <TableRow key={tg.id}>
+                            <TableCell>
+                              {tg.telegram_username ? `@${tg.telegram_username}` : tg.telegram_id}
+                            </TableCell>
+                            <TableCell>{[tg.first_name, tg.last_name].filter(Boolean).join(" ") || "—"}</TableCell>
+                            <TableCell>
+                              <Select
+                                value={tg.employee_id ?? "none"}
+                                onValueChange={(v) => linkMut.mutate({
+                                  telegramRowId: tg.id,
+                                  employeeId: v === "none" ? null : v,
+                                })}
+                              >
+                                <SelectTrigger className="w-[200px] md:w-[260px]"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">— bog'lanmagan —</SelectItem>
+                                  {employees.map(e => (
+                                    <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                value={tg.bot_role ?? "none"}
+                                onValueChange={(v) => botRoleMut.mutate({
+                                  telegramRowId: tg.id,
+                                  botRole: v as "none" | "director" | "finance",
+                                })}
+                              >
+                                <SelectTrigger className="w-[160px] md:w-[180px]"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">— oddiy ishchi —</SelectItem>
+                                  <SelectItem value="director">Direktor</SelectItem>
+                                  <SelectItem value="finance">Moliyachi (CEO)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {(data?.telegram || []).length === 0 && (
+                          <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">
+                            Hali hech kim botga /start yubormagan
+                          </TableCell></TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </Card>
 
                 {/* Haftalik jadval */}
