@@ -1279,74 +1279,76 @@ function MonthlySeriesCard({
   const { t } = useT();
   const suffix = t("common.countSuffix");
   return (
-    <Card className="p-5 shadow-[var(--shadow-card)]">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold">{title}</h3>
+    <Card className="p-4 md:p-5 shadow-[var(--shadow-card)]">
+      <div className="flex items-center justify-between mb-3 md:mb-4">
+        <h3 className="font-semibold text-sm md:text-base">{title}</h3>
         <Badge variant="secondary">{data.keys.length}{suffix ? ` ${suffix}` : ""}</Badge>
       </div>
       {data.rows.length === 0 ? (
-        <div className="h-[320px] flex items-center justify-center text-sm text-muted-foreground">
+        <div className="h-[220px] md:h-[300px] flex items-center justify-center text-sm text-muted-foreground">
           {t("common.noData")}
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={320}>
-          <LineChart data={data.rows}>
-            <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-            <XAxis
-              dataKey="name"
-              stroke="var(--color-muted-foreground)"
-              fontSize={11}
-              angle={-15}
-              textAnchor="end"
-              height={60}
-              interval={0}
-            />
-            <YAxis stroke="var(--color-muted-foreground)" fontSize={11} allowDecimals={false} />
-            <Tooltip
-              contentStyle={{
-                background: "var(--color-card)",
-                border: "1px solid var(--color-border)",
-                borderRadius: "8px",
-              }}
-              filterNull
-              content={({ active, payload, label }) => {
-                if (!active || !payload) return null;
-                const items = payload.filter((p) => Number(p.value) > 0);
-                if (items.length === 0) return null;
-                return (
-                  <div
-                    style={{
-                      background: "var(--color-card)",
-                      border: "1px solid var(--color-border)",
-                      borderRadius: 8,
-                      padding: "8px 12px",
-                      fontSize: 12,
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
-                    {items.map((p) => (
-                      <div key={String(p.dataKey)} style={{ color: p.color }}>
-                        {p.name} : {p.value}
-                      </div>
-                    ))}
-                  </div>
-                );
-              }}
-            />
-            <Legend wrapperStyle={{ fontSize: "12px" }} />
-            {data.keys.map((k, i) => (
-              <Line
-                key={k}
-                type="monotone"
-                dataKey={k}
-                stroke={colors[i % colors.length]}
-                strokeWidth={2}
-                dot={{ r: 2 }}
-                name={k}
+        <div className="h-[220px] md:h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data.rows}>
+              <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+              <XAxis
+                dataKey="name"
+                stroke="var(--color-muted-foreground)"
+                fontSize={11}
+                angle={-15}
+                textAnchor="end"
+                height={60}
+                interval={0}
               />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
+              <YAxis stroke="var(--color-muted-foreground)" fontSize={11} allowDecimals={false} />
+              <Tooltip
+                contentStyle={{
+                  background: "var(--color-card)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "8px",
+                }}
+                filterNull
+                content={({ active, payload, label }) => {
+                  if (!active || !payload) return null;
+                  const items = payload.filter((p) => Number(p.value) > 0);
+                  if (items.length === 0) return null;
+                  return (
+                    <div
+                      style={{
+                        background: "var(--color-card)",
+                        border: "1px solid var(--color-border)",
+                        borderRadius: 8,
+                        padding: "8px 12px",
+                        fontSize: 12,
+                      }}
+                    >
+                      <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
+                      {items.map((p) => (
+                        <div key={String(p.dataKey)} style={{ color: p.color }}>
+                          {p.name} : {p.value}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: "12px" }} />
+              {data.keys.map((k, i) => (
+                <Line
+                  key={k}
+                  type="monotone"
+                  dataKey={k}
+                  stroke={colors[i % colors.length]}
+                  strokeWidth={2}
+                  dot={{ r: 2 }}
+                  name={k}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       )}
     </Card>
   );
