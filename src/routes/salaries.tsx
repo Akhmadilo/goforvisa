@@ -211,17 +211,17 @@ function SalariesPage() {
 
       <div className="relative z-10 md:pl-56">
         <header className="border-b border-border bg-card/40 backdrop-blur sticky top-0 z-20">
-          <div className="mx-auto max-w-[1500px] px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="mx-auto max-w-[1500px] px-4 sm:px-6 py-3 md:py-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 pl-10 md:pl-0">
               <div
-                className="h-10 w-10 rounded-lg flex items-center justify-center"
+                className="h-9 w-9 md:h-10 md:w-10 rounded-lg flex items-center justify-center shrink-0"
                 style={{ background: "var(--gradient-primary)" }}
               >
-                <Wallet className="h-5 w-5 text-primary-foreground" />
+                <Wallet className="h-4 w-4 md:h-5 md:w-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-xl font-bold tracking-tight">{t("sal.title")}</h1>
-                <p className="text-xs text-muted-foreground">{t("sal.subtitle")}</p>
+                <h1 className="text-base md:text-xl font-bold tracking-tight">{t("sal.title")}</h1>
+                <p className="text-[11px] md:text-xs text-muted-foreground">{t("sal.subtitle")}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -256,7 +256,7 @@ function SalariesPage() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1500px] px-6 py-6 space-y-6">
+        <main className="mx-auto max-w-[1500px] px-4 sm:px-6 py-4 md:py-6 space-y-4 md:space-y-6">
           {/* Filters */}
           <Card className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">

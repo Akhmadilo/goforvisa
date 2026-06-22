@@ -460,26 +460,24 @@ function Dashboard() {
       </div>
       <div className="relative z-10 md:pl-56">
       <header className="border-b border-border bg-card/40 backdrop-blur sticky top-0 z-20">
-        <div className="mx-auto max-w-[1500px] px-6 py-4 flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <div
-                className="h-10 w-10 rounded-lg flex items-center justify-center"
-                style={{ background: "var(--gradient-primary)" }}
-              >
-                <FileSignature className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold tracking-tight">
-                  {t("dash.title")}
-                </h1>
-                <p className="text-xs text-muted-foreground">
-                  {t("dash.subtitle")}
-                </p>
-              </div>
+        <div className="mx-auto max-w-[1500px] px-4 sm:px-6 py-3 md:py-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 pl-10 md:pl-0">
+            <div
+              className="h-9 w-9 md:h-10 md:w-10 rounded-lg flex items-center justify-center shrink-0"
+              style={{ background: "var(--gradient-primary)" }}
+            >
+              <FileSignature className="h-4 w-4 md:h-5 md:w-5 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-base md:text-xl font-bold tracking-tight">
+                {t("dash.title")}
+              </h1>
+              <p className="text-[11px] md:text-xs text-muted-foreground">
+                {t("dash.subtitle")}
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <div className="text-right hidden sm:block">
               <div className="flex items-center gap-2 text-xs text-muted-foreground justify-end">
                 <span className={`h-2 w-2 rounded-full ${isFetching ? "bg-accent animate-pulse" : "bg-primary"}`} />
@@ -539,7 +537,7 @@ function Dashboard() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1500px] px-6 py-6 space-y-6">
+      <main className="mx-auto max-w-[1500px] px-4 sm:px-6 py-4 md:py-6 space-y-4 md:space-y-6">
         {error && (
           <Card className="p-4 border-destructive/50 text-destructive">
             {t("common.error")}: {(error as Error).message}
@@ -547,8 +545,8 @@ function Dashboard() {
         )}
 
         {/* Filters */}
-        <Card className="p-4 shadow-[var(--shadow-card)]">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
+        <Card className="p-3 md:p-4 shadow-[var(--shadow-card)]">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2 md:gap-3">
             <FilterSelect
               label={t("dash.filter.year")}
               value={year}
@@ -605,42 +603,42 @@ function Dashboard() {
 
         {/* KPIs */}
         {can("kpi") && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
           <Kpi
-            icon={<DollarSign className="h-4 w-4" />}
+            icon={<DollarSign className="h-3 w-3 md:h-4 md:w-4" />}
             label={t("dash.kpi.totalContracts")}
             value={fmtUsd(kpis.totalUsd)}
             sub={`${kpis.clients} ${t("dash.kpi.clients")}`}
             tone="primary"
           />
           <Kpi
-            icon={<TrendingUp className="h-4 w-4" />}
+            icon={<TrendingUp className="h-3 w-3 md:h-4 md:w-4" />}
             label={t("dash.kpi.netRevenue")}
             value={fmtUsd(kpis.commission)}
             sub={`${kpis.marginPct.toFixed(1)}% · ${t("dash.kpi.netRevenueSub")}`}
             tone="primary"
           />
           <Kpi
-            icon={<DollarSign className="h-4 w-4" />}
+            icon={<DollarSign className="h-3 w-3 md:h-4 md:w-4" />}
             label={t("dash.kpi.docCost")}
             value={fmtUsd(kpis.docsTotal)}
             sub={`${t("dash.kpi.avgNet")} ${fmtUsd(kpis.avgComm)}`}
             tone="accent"
           />
           <Kpi
-            icon={<Users className="h-4 w-4" />}
+            icon={<Users className="h-3 w-3 md:h-4 md:w-4" />}
             label={t("dash.kpi.clientsLabel")}
             value={kpis.clients.toLocaleString()}
             sub={`${kpis.visaTaken} ${t("dash.kpi.visaTaken")}`}
           />
           <Kpi
-            icon={<CheckCircle2 className="h-4 w-4" />}
+            icon={<CheckCircle2 className="h-3 w-3 md:h-4 md:w-4" />}
             label={t("dash.kpi.visaSuccess")}
             value={kpis.successRate.toFixed(1) + "%"}
             sub={`${kpis.visaTaken} / ${kpis.clients} · ${kpis.visaRejected} ${t("dash.kpi.rejected")} · ${kpis.visaInProcess} ${t("dash.kpi.inProcess")}`}
           />
           <Kpi
-            icon={<AlertTriangle className="h-4 w-4" />}
+            icon={<AlertTriangle className="h-3 w-3 md:h-4 md:w-4" />}
             label={t("dash.kpi.debtors")}
             value={debtors.length.toString()}
             sub={`${t("dash.kpi.totalDebt")} ${fmtUsd(debtorsTotalUsd)}`}
@@ -653,72 +651,76 @@ function Dashboard() {
         {(can("monthly_revenue") || can("visa_results")) && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {can("monthly_revenue") && (
-          <Card className="p-5 lg:col-span-2 shadow-[var(--shadow-card)]">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">{t("dash.chart.monthly")}</h3>
+          <Card className="p-4 md:p-5 lg:col-span-2 shadow-[var(--shadow-card)]">
+            <div className="flex items-center justify-between mb-3 md:mb-4">
+              <h3 className="font-semibold text-sm md:text-base">{t("dash.chart.monthly")}</h3>
               <Badge variant="secondary">{monthlyData.length} {t("dash.chart.monthsCount")}</Badge>
             </div>
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={monthlyData}>
-                <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} />
-                <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--color-card)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Legend />
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  stroke="var(--color-chart-1)"
-                  strokeWidth={2.5}
-                  name={t("dash.chart.revenueUsd")}
-                  dot={{ r: 3 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="commission"
-                  stroke="var(--color-chart-3)"
-                  strokeWidth={2.5}
-                  name={t("dash.chart.netUsd")}
-                  dot={{ r: 3 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            <div className="h-[200px] md:h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={monthlyData}>
+                  <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+                  <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} />
+                  <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--color-card)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="var(--color-chart-1)"
+                    strokeWidth={2.5}
+                    name={t("dash.chart.revenueUsd")}
+                    dot={{ r: 3 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="commission"
+                    stroke="var(--color-chart-3)"
+                    strokeWidth={2.5}
+                    name={t("dash.chart.netUsd")}
+                    dot={{ r: 3 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </Card>
           )}
 
           {can("visa_results") && (
-          <Card className="p-5 shadow-[var(--shadow-card)]">
-            <h3 className="font-semibold mb-4">{t("dash.chart.visaResults")}</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie
-                  data={visaData}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={55}
-                  outerRadius={95}
-                  paddingAngle={3}
-                >
-                  {visaData.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--color-card)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: "12px" }} />
-              </PieChart>
-            </ResponsiveContainer>
+          <Card className="p-4 md:p-5 shadow-[var(--shadow-card)]">
+            <h3 className="font-semibold text-sm md:text-base mb-3 md:mb-4">{t("dash.chart.visaResults")}</h3>
+            <div className="h-[200px] md:h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={visaData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={45}
+                    outerRadius={75}
+                    paddingAngle={3}
+                  >
+                    {visaData.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--color-card)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: "12px" }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </Card>
           )}
         </div>
@@ -728,52 +730,56 @@ function Dashboard() {
         {(can("managers_revenue") || can("contract_types")) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {can("managers_revenue") && (
-          <Card className="p-5 shadow-[var(--shadow-card)]">
-            <h3 className="font-semibold mb-4">{t("dash.chart.salesManagersRevenue")}</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={managerData} layout="vertical">
-                <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                <XAxis type="number" stroke="var(--color-muted-foreground)" fontSize={11} />
-                <YAxis
-                  dataKey="name"
-                  type="category"
-                  stroke="var(--color-muted-foreground)"
-                  fontSize={11}
-                  width={110}
-                />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--color-card)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: "12px" }} />
-                <Bar dataKey="revenue" fill="var(--color-chart-1)" name={t("dash.chart.revenueUsd")} radius={[0, 4, 4, 0]} />
-                <Bar dataKey="commission" fill="var(--color-chart-3)" name={t("dash.chart.netUsd")} radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <Card className="p-4 md:p-5 shadow-[var(--shadow-card)]">
+            <h3 className="font-semibold text-sm md:text-base mb-3 md:mb-4">{t("dash.chart.salesManagersRevenue")}</h3>
+            <div className="h-[200px] md:h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={managerData} layout="vertical">
+                  <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+                  <XAxis type="number" stroke="var(--color-muted-foreground)" fontSize={11} />
+                  <YAxis
+                    dataKey="name"
+                    type="category"
+                    stroke="var(--color-muted-foreground)"
+                    fontSize={11}
+                    width={90}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--color-card)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: "12px" }} />
+                  <Bar dataKey="revenue" fill="var(--color-chart-1)" name={t("dash.chart.revenueUsd")} radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="commission" fill="var(--color-chart-3)" name={t("dash.chart.netUsd")} radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </Card>
           )}
 
           {can("contract_types") && (
-          <Card className="p-5 shadow-[var(--shadow-card)]">
-            <h3 className="font-semibold mb-4">{t("dash.chart.contractTypes")}</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={typeData}>
-                <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} />
-                <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--color-card)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Bar dataKey="value" fill="var(--color-chart-2)" name={t("dash.chart.count")} radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <Card className="p-4 md:p-5 shadow-[var(--shadow-card)]">
+            <h3 className="font-semibold text-sm md:text-base mb-3 md:mb-4">{t("dash.chart.contractTypes")}</h3>
+            <div className="h-[200px] md:h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={typeData}>
+                  <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+                  <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} />
+                  <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--color-card)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Bar dataKey="value" fill="var(--color-chart-2)" name={t("dash.chart.count")} radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </Card>
           )}
         </div>
@@ -783,51 +789,79 @@ function Dashboard() {
         {(can("managers_clients") || can("companies_sales_pie")) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {can("managers_clients") && (
-          <Card className="p-5 shadow-[var(--shadow-card)]">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">{t("dash.chart.managersClients")}</h3>
+          <Card className="p-4 md:p-5 shadow-[var(--shadow-card)]">
+            <div className="flex items-center justify-between mb-3 md:mb-4">
+              <h3 className="font-semibold text-sm md:text-base">{t("dash.chart.managersClients")}</h3>
               <Badge variant="secondary">{managerData.length}</Badge>
             </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={managerData}>
-                <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} angle={-20} textAnchor="end" height={60} interval={0} />
-                <YAxis stroke="var(--color-muted-foreground)" fontSize={11} allowDecimals={false} />
-                <Tooltip
-                  contentStyle={{
-                    background: "var(--color-card)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: "8px",
-                  }}
-                />
-                <Bar dataKey="clients" fill="var(--color-chart-2)" name={t("dash.kpi.clientsLabel")} radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div className="h-[200px] md:h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={managerData}>
+                  <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+                  <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} angle={-20} textAnchor="end" height={60} interval={0} />
+                  <YAxis stroke="var(--color-muted-foreground)" fontSize={11} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--color-card)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Bar dataKey="clients" fill="var(--color-chart-2)" name={t("dash.kpi.clientsLabel")} radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </Card>
           )}
 
           {can("companies_sales_pie") && (
-          <Card className="p-5 shadow-[var(--shadow-card)]">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">{t("dash.chart.companiesSales")}</h3>
+          <Card className="p-4 md:p-5 shadow-[var(--shadow-card)]">
+            <div className="flex items-center justify-between mb-3 md:mb-4">
+              <h3 className="font-semibold text-sm md:text-base">{t("dash.chart.companiesSales")}</h3>
               <Badge variant="secondary">{companyData.length}</Badge>
             </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={companyData}
-                  dataKey="clients"
-                  nameKey="name"
-                  innerRadius={50}
-                  outerRadius={100}
-                  paddingAngle={2}
-                  label={(e: { name: string; clients: number }) => `${e.name} (${e.clients})`}
-                  labelLine={false}
-                >
-                  {companyData.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
+            <div className="h-[200px] md:h-[260px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={companyData}
+                    dataKey="clients"
+                    nameKey="name"
+                    innerRadius={45}
+                    outerRadius={75}
+                    paddingAngle={2}
+                    label={(e: { name: string; clients: number }) => `${e.name} (${e.clients})`}
+                    labelLine={false}
+                  >
+                    {companyData.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--color-card)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: "12px" }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+          )}
+        </div>
+        )}
+
+        {can("companies_revenue") && (
+        <Card className="p-4 md:p-5 shadow-[var(--shadow-card)]">
+          <h3 className="font-semibold text-sm md:text-base mb-3 md:mb-4">{t("dash.chart.companiesRevenue")}</h3>
+          <div className="h-[220px] md:h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={companyData}>
+                <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+                <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} angle={-15} textAnchor="end" height={60} interval={0} />
+                <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
                 <Tooltip
                   contentStyle={{
                     background: "var(--color-card)",
@@ -836,33 +870,11 @@ function Dashboard() {
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: "12px" }} />
-              </PieChart>
+                <Bar dataKey="revenue" fill="var(--color-chart-1)" name={t("dash.chart.revenueUsd")} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="profit" fill="var(--color-chart-3)" name={t("dash.chart.netUsd")} radius={[4, 4, 0, 0]} />
+              </BarChart>
             </ResponsiveContainer>
-          </Card>
-          )}
-        </div>
-        )}
-
-        {can("companies_revenue") && (
-        <Card className="p-5 shadow-[var(--shadow-card)]">
-          <h3 className="font-semibold mb-4">{t("dash.chart.companiesRevenue")}</h3>
-          <ResponsiveContainer width="100%" height={320}>
-            <BarChart data={companyData}>
-              <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-              <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} angle={-15} textAnchor="end" height={60} interval={0} />
-              <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
-              <Tooltip
-                contentStyle={{
-                  background: "var(--color-card)",
-                  border: "1px solid var(--color-border)",
-                  borderRadius: "8px",
-                }}
-              />
-              <Legend wrapperStyle={{ fontSize: "12px" }} />
-              <Bar dataKey="revenue" fill="var(--color-chart-1)" name={t("dash.chart.revenueUsd")} radius={[4, 4, 0, 0]} />
-              <Bar dataKey="profit" fill="var(--color-chart-3)" name={t("dash.chart.netUsd")} radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          </div>
         </Card>
         )}
 
@@ -890,13 +902,13 @@ function Dashboard() {
 
         {can("debtors") && (
         <Card className="shadow-[var(--shadow-card)] overflow-hidden border-destructive/30">
-          <div className="p-5 border-b border-border flex items-center justify-between bg-destructive/5">
+          <div className="p-4 md:p-5 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-destructive/5">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-destructive/15 text-destructive flex items-center justify-center">
+              <div className="h-9 w-9 rounded-lg bg-destructive/15 text-destructive flex items-center justify-center shrink-0">
                 <AlertTriangle className="h-4 w-4" />
               </div>
               <div>
-                <h3 className="font-semibold">
+                <h3 className="font-semibold text-sm md:text-base">
                   {t("dash.debtors.title")}{" "}
                   <span className="text-muted-foreground font-normal">
                     ({debtors.length})
@@ -907,14 +919,14 @@ function Dashboard() {
                 </p>
               </div>
             </div>
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               <div className="text-xs text-muted-foreground">{t("dash.kpi.totalDebt")}</div>
               <div className="text-lg font-bold text-destructive">
                 {fmtUsd(debtorsTotalUsd)}
               </div>
             </div>
           </div>
-          <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
+          <div className="overflow-x-auto max-h-[420px] md:max-h-[500px] overflow-y-auto">
             {debtors.length === 0 ? (
               <div className="p-10 text-center text-sm text-muted-foreground">
                 {t("dash.debtors.none")}
@@ -992,8 +1004,8 @@ function Dashboard() {
         {/* Table */}
         {can("contracts_table") && (
         <Card className="shadow-[var(--shadow-card)] overflow-hidden">
-          <div className="p-5 border-b border-border flex items-center justify-between">
-            <h3 className="font-semibold">
+          <div className="p-4 md:p-5 border-b border-border flex items-center justify-between">
+            <h3 className="font-semibold text-sm md:text-base">
               {t("dash.table.contractsList")}{" "}
               <span className="text-muted-foreground font-normal">
                 ({filtered.length})
@@ -1005,7 +1017,7 @@ function Dashboard() {
               </span>
             )}
           </div>
-          <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+          <div className="overflow-x-auto max-h-[420px] md:max-h-[600px] overflow-y-auto">
             <Table>
               <TableHeader className="sticky top-0 bg-card z-10">
                 <TableRow>
@@ -1130,19 +1142,19 @@ function Kpi({
           ? "var(--color-destructive)"
           : undefined;
   return (
-    <Card className="p-5 shadow-[var(--shadow-card)] relative overflow-hidden">
+    <Card className="p-3 md:p-5 shadow-[var(--shadow-card)] relative overflow-hidden">
       {tone && (
         <div
           className="absolute inset-x-0 top-0 h-1"
           style={{ background: toneBg }}
         />
       )}
-      <div className="flex items-center gap-2 text-muted-foreground text-xs uppercase tracking-wide">
+      <div className="flex items-center gap-1.5 md:gap-2 text-muted-foreground text-[10px] md:text-xs uppercase tracking-wide">
         {icon}
-        {label}
+        <span className="truncate">{label}</span>
       </div>
-      <div className="mt-2 text-2xl font-bold tracking-tight">{value}</div>
-      {sub && <div className="text-xs text-muted-foreground mt-1">{sub}</div>}
+      <div className="mt-1 md:mt-2 text-lg md:text-2xl font-bold tracking-tight">{value}</div>
+      {sub && <div className="text-[10px] md:text-xs text-muted-foreground mt-1 truncate">{sub}</div>}
     </Card>
   );
 }
@@ -1267,74 +1279,76 @@ function MonthlySeriesCard({
   const { t } = useT();
   const suffix = t("common.countSuffix");
   return (
-    <Card className="p-5 shadow-[var(--shadow-card)]">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold">{title}</h3>
+    <Card className="p-4 md:p-5 shadow-[var(--shadow-card)]">
+      <div className="flex items-center justify-between mb-3 md:mb-4">
+        <h3 className="font-semibold text-sm md:text-base">{title}</h3>
         <Badge variant="secondary">{data.keys.length}{suffix ? ` ${suffix}` : ""}</Badge>
       </div>
       {data.rows.length === 0 ? (
-        <div className="h-[320px] flex items-center justify-center text-sm text-muted-foreground">
+        <div className="h-[220px] md:h-[300px] flex items-center justify-center text-sm text-muted-foreground">
           {t("common.noData")}
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={320}>
-          <LineChart data={data.rows}>
-            <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-            <XAxis
-              dataKey="name"
-              stroke="var(--color-muted-foreground)"
-              fontSize={11}
-              angle={-15}
-              textAnchor="end"
-              height={60}
-              interval={0}
-            />
-            <YAxis stroke="var(--color-muted-foreground)" fontSize={11} allowDecimals={false} />
-            <Tooltip
-              contentStyle={{
-                background: "var(--color-card)",
-                border: "1px solid var(--color-border)",
-                borderRadius: "8px",
-              }}
-              filterNull
-              content={({ active, payload, label }) => {
-                if (!active || !payload) return null;
-                const items = payload.filter((p) => Number(p.value) > 0);
-                if (items.length === 0) return null;
-                return (
-                  <div
-                    style={{
-                      background: "var(--color-card)",
-                      border: "1px solid var(--color-border)",
-                      borderRadius: 8,
-                      padding: "8px 12px",
-                      fontSize: 12,
-                    }}
-                  >
-                    <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
-                    {items.map((p) => (
-                      <div key={String(p.dataKey)} style={{ color: p.color }}>
-                        {p.name} : {p.value}
-                      </div>
-                    ))}
-                  </div>
-                );
-              }}
-            />
-            <Legend wrapperStyle={{ fontSize: "12px" }} />
-            {data.keys.map((k, i) => (
-              <Line
-                key={k}
-                type="monotone"
-                dataKey={k}
-                stroke={colors[i % colors.length]}
-                strokeWidth={2}
-                dot={{ r: 2 }}
-                name={k}
+        <div className="h-[220px] md:h-[300px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data.rows}>
+              <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+              <XAxis
+                dataKey="name"
+                stroke="var(--color-muted-foreground)"
+                fontSize={11}
+                angle={-15}
+                textAnchor="end"
+                height={60}
+                interval={0}
               />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
+              <YAxis stroke="var(--color-muted-foreground)" fontSize={11} allowDecimals={false} />
+              <Tooltip
+                contentStyle={{
+                  background: "var(--color-card)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: "8px",
+                }}
+                filterNull
+                content={({ active, payload, label }) => {
+                  if (!active || !payload) return null;
+                  const items = payload.filter((p) => Number(p.value) > 0);
+                  if (items.length === 0) return null;
+                  return (
+                    <div
+                      style={{
+                        background: "var(--color-card)",
+                        border: "1px solid var(--color-border)",
+                        borderRadius: 8,
+                        padding: "8px 12px",
+                        fontSize: 12,
+                      }}
+                    >
+                      <div style={{ fontWeight: 600, marginBottom: 4 }}>{label}</div>
+                      {items.map((p) => (
+                        <div key={String(p.dataKey)} style={{ color: p.color }}>
+                          {p.name} : {p.value}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }}
+              />
+              <Legend wrapperStyle={{ fontSize: "12px" }} />
+              {data.keys.map((k, i) => (
+                <Line
+                  key={k}
+                  type="monotone"
+                  dataKey={k}
+                  stroke={colors[i % colors.length]}
+                  strokeWidth={2}
+                  dot={{ r: 2 }}
+                  name={k}
+                />
+              ))}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       )}
     </Card>
   );

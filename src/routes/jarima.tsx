@@ -520,10 +520,12 @@ function JarimaPage() {
   return (
     <div className="min-h-screen bg-background">
       <AppSidebar />
-      <main className="md:ml-56 p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <AlertTriangle className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">{t("nav.fines")}</h1>
+      <main className="md:ml-56 p-4 md:p-6">
+        <div className="flex items-center gap-3 mb-4 md:mb-6 pl-10 md:pl-0">
+          <div className="h-9 w-9 md:h-10 md:w-10 rounded-lg flex items-center justify-center shrink-0" style={{ background: "var(--gradient-primary)" }}>
+            <AlertTriangle className="h-4 w-4 md:h-5 md:w-5 text-primary-foreground" />
+          </div>
+          <h1 className="text-base md:text-xl font-bold">{t("nav.fines")}</h1>
         </div>
 
         {isLoading ? (
@@ -541,37 +543,39 @@ function JarimaPage() {
             {/* === BUGUN === */}
             <TabsContent value="today" className="space-y-4">
               <Card className="p-4">
-                <div className="font-medium mb-3">Bugun kelganlar ({todayAttendance.length})</div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Ishchi</TableHead>
-                      <TableHead>Kelish vaqti</TableHead>
-                      <TableHead>FACE ID</TableHead>
-                      <TableHead>Kechikish</TableHead>
-                      <TableHead className="text-right">Jarima</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {todayAttendance.map(a => {
-                      const fine = todayFines.find(f => f.employee_id === a.employee_id);
-                      return (
-                        <TableRow key={a.id}>
-                          <TableCell>{empMap.get(a.employee_id) || "—"}</TableCell>
-                          <TableCell>{timeFromIso(a.check_in_at)}</TableCell>
-                          <TableCell>{a.face_id_confirmed ? "✅" : "—"}</TableCell>
-                          <TableCell>{fine ? `${fine.minutes_late} daq` : "—"}</TableCell>
-                          <TableCell className="text-right">
-                            {fine ? <Badge variant="destructive">{fmt(fine.amount_uzs)} so'm</Badge> : <Badge variant="secondary">0</Badge>}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                    {todayAttendance.length === 0 && (
-                      <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Hech kim kelmadi</TableCell></TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                <div className="font-medium text-sm md:text-base mb-3">Bugun kelganlar ({todayAttendance.length})</div>
+                <div className="overflow-x-auto -mx-4 px-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Ishchi</TableHead>
+                        <TableHead>Kelish vaqti</TableHead>
+                        <TableHead>FACE ID</TableHead>
+                        <TableHead>Kechikish</TableHead>
+                        <TableHead className="text-right">Jarima</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {todayAttendance.map(a => {
+                        const fine = todayFines.find(f => f.employee_id === a.employee_id);
+                        return (
+                          <TableRow key={a.id}>
+                            <TableCell>{empMap.get(a.employee_id) || "—"}</TableCell>
+                            <TableCell>{timeFromIso(a.check_in_at)}</TableCell>
+                            <TableCell>{a.face_id_confirmed ? "✅" : "—"}</TableCell>
+                            <TableCell>{fine ? `${fine.minutes_late} daq` : "—"}</TableCell>
+                            <TableCell className="text-right">
+                              {fine ? <Badge variant="destructive">{fmt(fine.amount_uzs)} so'm</Badge> : <Badge variant="secondary">0</Badge>}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {todayAttendance.length === 0 && (
+                        <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Hech kim kelmadi</TableCell></TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </Card>
 
               <Card className="p-4">
@@ -596,59 +600,61 @@ function JarimaPage() {
                     approverName={approverName}
                   />
                 </div>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Sana</TableHead>
-                      <TableHead>Ishchi</TableHead>
-                      <TableHead>Kechikish</TableHead>
-                      <TableHead>Sabab</TableHead>
-                      <TableHead className="text-right">Summa</TableHead>
-                      <TableHead className="text-right">Dalolatnoma</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(data?.fines || []).map(f => {
-                      const name = empMap.get(f.employee_id) || "—";
-                      return (
-                        <TableRow key={f.id}>
-                          <TableCell>{f.date}</TableCell>
-                          <TableCell>{name}</TableCell>
-                          <TableCell>{f.minutes_late} daq</TableCell>
-                          <TableCell>{f.reason}</TableCell>
-                          <TableCell className="text-right">{fmt(f.amount_uzs)} so'm</TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={async () => {
-                                if (!confirm(`Jarimani tasdiqlaysizmi?\n\nXodim: ${name}\nSumma: ${fmt(f.amount_uzs)} so'm\n\nTasdiqlovchi: ${approverName}`)) return;
-                                try {
-                                  await generateFinePdf({
-                                    date: f.date,
-                                    employeeName: name,
-                                    minutes_late: f.minutes_late,
-                                    amount_uzs: f.amount_uzs,
-                                    reason: f.reason,
-                                  }, approverName);
-                                  toast.success("PDF tayyor");
-                                } catch (e: any) {
-                                  toast.error(e?.message || "Xatolik");
-                                }
-                              }}
-                            >
-                              <FileText className="h-4 w-4 mr-1" />
-                              Tasdiqlash & PDF
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                    {(data?.fines || []).length === 0 && (
-                      <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Jarimalar yo'q</TableCell></TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                <div className="overflow-x-auto -mx-4 px-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Sana</TableHead>
+                        <TableHead>Ishchi</TableHead>
+                        <TableHead>Kechikish</TableHead>
+                        <TableHead>Sabab</TableHead>
+                        <TableHead className="text-right">Summa</TableHead>
+                        <TableHead className="text-right">Dalolatnoma</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {(data?.fines || []).map(f => {
+                        const name = empMap.get(f.employee_id) || "—";
+                        return (
+                          <TableRow key={f.id}>
+                            <TableCell>{f.date}</TableCell>
+                            <TableCell>{name}</TableCell>
+                            <TableCell>{f.minutes_late} daq</TableCell>
+                            <TableCell>{f.reason}</TableCell>
+                            <TableCell className="text-right">{fmt(f.amount_uzs)} so'm</TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={async () => {
+                                  if (!confirm(`Jarimani tasdiqlaysizmi?\n\nXodim: ${name}\nSumma: ${fmt(f.amount_uzs)} so'm\n\nTasdiqlovchi: ${approverName}`)) return;
+                                  try {
+                                    await generateFinePdf({
+                                      date: f.date,
+                                      employeeName: name,
+                                      minutes_late: f.minutes_late,
+                                      amount_uzs: f.amount_uzs,
+                                      reason: f.reason,
+                                    }, approverName);
+                                    toast.success("PDF tayyor");
+                                  } catch (e: any) {
+                                    toast.error(e?.message || "Xatolik");
+                                  }
+                                }}
+                              >
+                                <FileText className="h-4 w-4 mr-1" />
+                                Tasdiqlash & PDF
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {(data?.fines || []).length === 0 && (
+                        <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Jarimalar yo'q</TableCell></TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
 
               </Card>
             </TabsContent>
@@ -670,66 +676,68 @@ function JarimaPage() {
                 <Card className="p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <Link2 className="h-4 w-4" />
-                    <span className="font-medium">Telegram akkauntlar</span>
+                    <span className="font-medium text-sm md:text-base">Telegram akkauntlar</span>
                   </div>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Telegram</TableHead>
-                        <TableHead>Ism</TableHead>
-                        <TableHead>Ishchi</TableHead>
-                        <TableHead>Bot lavozimi</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {(data?.telegram || []).map(tg => (
-                        <TableRow key={tg.id}>
-                          <TableCell>
-                            {tg.telegram_username ? `@${tg.telegram_username}` : tg.telegram_id}
-                          </TableCell>
-                          <TableCell>{[tg.first_name, tg.last_name].filter(Boolean).join(" ") || "—"}</TableCell>
-                          <TableCell>
-                            <Select
-                              value={tg.employee_id ?? "none"}
-                              onValueChange={(v) => linkMut.mutate({
-                                telegramRowId: tg.id,
-                                employeeId: v === "none" ? null : v,
-                              })}
-                            >
-                              <SelectTrigger className="w-[260px]"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">— bog'lanmagan —</SelectItem>
-                                {employees.map(e => (
-                                  <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell>
-                            <Select
-                              value={tg.bot_role ?? "none"}
-                              onValueChange={(v) => botRoleMut.mutate({
-                                telegramRowId: tg.id,
-                                botRole: v as "none" | "director" | "finance",
-                              })}
-                            >
-                              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">— oddiy ishchi —</SelectItem>
-                                <SelectItem value="director">Direktor</SelectItem>
-                                <SelectItem value="finance">Moliyachi (CEO)</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </TableCell>
+                  <div className="overflow-x-auto -mx-4 px-4">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Telegram</TableHead>
+                          <TableHead>Ism</TableHead>
+                          <TableHead>Ishchi</TableHead>
+                          <TableHead>Bot lavozimi</TableHead>
                         </TableRow>
-                      ))}
-                      {(data?.telegram || []).length === 0 && (
-                        <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">
-                          Hali hech kim botga /start yubormagan
-                        </TableCell></TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {(data?.telegram || []).map(tg => (
+                          <TableRow key={tg.id}>
+                            <TableCell>
+                              {tg.telegram_username ? `@${tg.telegram_username}` : tg.telegram_id}
+                            </TableCell>
+                            <TableCell>{[tg.first_name, tg.last_name].filter(Boolean).join(" ") || "—"}</TableCell>
+                            <TableCell>
+                              <Select
+                                value={tg.employee_id ?? "none"}
+                                onValueChange={(v) => linkMut.mutate({
+                                  telegramRowId: tg.id,
+                                  employeeId: v === "none" ? null : v,
+                                })}
+                              >
+                                <SelectTrigger className="w-[200px] md:w-[260px]"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">— bog'lanmagan —</SelectItem>
+                                  {employees.map(e => (
+                                    <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                            <TableCell>
+                              <Select
+                                value={tg.bot_role ?? "none"}
+                                onValueChange={(v) => botRoleMut.mutate({
+                                  telegramRowId: tg.id,
+                                  botRole: v as "none" | "director" | "finance",
+                                })}
+                              >
+                                <SelectTrigger className="w-[160px] md:w-[180px]"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="none">— oddiy ishchi —</SelectItem>
+                                  <SelectItem value="director">Direktor</SelectItem>
+                                  <SelectItem value="finance">Moliyachi (CEO)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                        {(data?.telegram || []).length === 0 && (
+                          <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">
+                            Hali hech kim botga /start yubormagan
+                          </TableCell></TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </Card>
 
                 {/* Haftalik jadval */}
@@ -770,7 +778,7 @@ function ScheduleEditor({
     <Card className="p-4">
       <div className="font-medium mb-3">Haftalik ish jadvali</div>
       <Select value={empId} onValueChange={setEmpId}>
-        <SelectTrigger className="w-[300px] mb-3"><SelectValue placeholder="Ishchini tanlang" /></SelectTrigger>
+        <SelectTrigger className="w-full md:w-[300px] mb-3"><SelectValue placeholder="Ishchini tanlang" /></SelectTrigger>
         <SelectContent>
           {employees.map(e => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}
         </SelectContent>
@@ -824,35 +832,37 @@ function FineRulesEditor({
 
   return (
     <Card className="p-4">
-      <div className="font-medium mb-3">Jarima qoidalari (kechikish daqiqasiga qarab)</div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Min (daq)</TableHead>
-            <TableHead>Max (daq)</TableHead>
-            <TableHead>Summa (so'm)</TableHead>
-            <TableHead>Yorliq</TableHead>
-            <TableHead></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rules.map(r => (
-            <RuleRow key={r.id} rule={r} onSave={onSave} onDelete={onDelete} />
-          ))}
-          <TableRow>
-            <TableCell><Input type="number" value={newMin} onChange={e => setNewMin(Number(e.target.value))} /></TableCell>
-            <TableCell><Input type="number" placeholder="cheksiz" value={newMax} onChange={e => setNewMax(e.target.value)} /></TableCell>
-            <TableCell><Input type="number" value={newAmt} onChange={e => setNewAmt(Number(e.target.value))} /></TableCell>
-            <TableCell><Input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="masalan: 10:00–10:30" /></TableCell>
-            <TableCell>
-              <Button size="sm" onClick={() => {
-                onSave({ min: newMin, max: newMax === "" ? null : Number(newMax), amount: newAmt, label: newLabel || null });
-                setNewMin(0); setNewMax(""); setNewAmt(0); setNewLabel("");
-              }}><Plus className="h-4 w-4" /></Button>
-            </TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
+      <div className="font-medium text-sm md:text-base mb-3">Jarima qoidalari (kechikish daqiqasiga qarab)</div>
+      <div className="overflow-x-auto -mx-4 px-4">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Min (daq)</TableHead>
+              <TableHead>Max (daq)</TableHead>
+              <TableHead>Summa (so'm)</TableHead>
+              <TableHead>Yorliq</TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rules.map(r => (
+              <RuleRow key={r.id} rule={r} onSave={onSave} onDelete={onDelete} />
+            ))}
+            <TableRow>
+              <TableCell><Input type="number" value={newMin} onChange={e => setNewMin(Number(e.target.value))} /></TableCell>
+              <TableCell><Input type="number" placeholder="cheksiz" value={newMax} onChange={e => setNewMax(e.target.value)} /></TableCell>
+              <TableCell><Input type="number" value={newAmt} onChange={e => setNewAmt(Number(e.target.value))} /></TableCell>
+              <TableCell><Input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="masalan: 10:00–10:30" /></TableCell>
+              <TableCell>
+                <Button size="sm" onClick={() => {
+                  onSave({ min: newMin, max: newMax === "" ? null : Number(newMax), amount: newAmt, label: newLabel || null });
+                  setNewMin(0); setNewMax(""); setNewAmt(0); setNewLabel("");
+                }}><Plus className="h-4 w-4" /></Button>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
     </Card>
   );
 }
@@ -1118,19 +1128,19 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Card className="p-3">
               <div className="text-xs text-muted-foreground">Kelgan kunlar</div>
-              <div className="text-xl font-bold">{presentDays}</div>
+              <div className="text-lg md:text-xl font-bold">{presentDays}</div>
             </Card>
             <Card className="p-3">
               <div className="text-xs text-muted-foreground">Jarima kunlar</div>
-              <div className="text-xl font-bold">{fineCount}</div>
+              <div className="text-lg md:text-xl font-bold">{fineCount}</div>
             </Card>
             <Card className="p-3">
               <div className="text-xs text-muted-foreground">Jami jarima</div>
-              <div className="text-xl font-bold text-red-600 dark:text-red-400">{fmt(totalFine)} so'm</div>
+              <div className="text-lg md:text-xl font-bold text-red-600 dark:text-red-400">{fmt(totalFine)} so'm</div>
             </Card>
             <Card className="p-3">
               <div className="text-xs text-muted-foreground">Oydagi kunlar</div>
-              <div className="text-xl font-bold">{days}</div>
+              <div className="text-lg md:text-xl font-bold">{days}</div>
             </Card>
           </div>
 
@@ -1159,7 +1169,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                 else if (att) bg = "bg-emerald-100 dark:bg-emerald-950/40";
                 return (
                   <div key={d} className={cn(
-                    "rounded border min-h-[68px] p-1.5 text-left relative group",
+                    "rounded border min-h-[52px] md:min-h-[68px] p-1 md:p-1.5 text-left relative group",
                     bg,
                   )}>
                     <div className="flex items-center justify-between">
@@ -1215,61 +1225,63 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
           {/* Table view */}
           <Card className="p-4">
             <div className="text-sm font-semibold mb-3">Kunlar ro'yxati</div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Sana</TableHead>
-                  <TableHead>Kun</TableHead>
-                  <TableHead>Holat</TableHead>
-                  <TableHead>Kelish</TableHead>
-                  <TableHead>Kechikish</TableHead>
-                  <TableHead className="text-right">Jarima</TableHead>
-                  {canEditAttendance && <TableHead className="w-12"></TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {Array.from({ length: days }, (_, i) => i + 1).map(d => {
-                  const cell = dayMap.get(d);
-                  const wd = new Date(year, month - 1, d).getDay();
-                  const sched = schedByWd.get(wd);
-                  const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-                  const isDayOff = sched?.is_working === false;
-                  return (
-                    <TableRow key={d}>
-                      <TableCell className="tabular-nums">{dateStr}</TableCell>
-                      <TableCell>{WEEKDAYS[wd]}</TableCell>
-                      <TableCell>
-                        {isDayOff ? <Badge variant="outline">Dam</Badge>
-                          : cell?.fine?.reason === "absent" ? <Badge variant="destructive">Kelmadi</Badge>
-                          : cell?.fine ? <Badge variant="destructive">Kech</Badge>
-                          : cell?.att ? <Badge variant="secondary">Kelgan</Badge>
-                          : <Badge variant="outline">—</Badge>}
-                      </TableCell>
-                      <TableCell className="tabular-nums">{cell?.att ? timeFromIso(cell.att.check_in_at) : "—"}</TableCell>
-                      <TableCell>{cell?.fine && cell.fine.reason !== "absent" ? `${cell.fine.minutes_late} daq` : "—"}</TableCell>
-                      <TableCell className="text-right tabular-nums">
-                        {cell?.fine ? <span className="text-red-600 dark:text-red-400 font-semibold">{fmt(cell.fine.amount_uzs)}</span> : "0"}
-                      </TableCell>
-                      {canEditAttendance && (
+            <div className="overflow-x-auto -mx-4 px-4">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Sana</TableHead>
+                    <TableHead>Kun</TableHead>
+                    <TableHead>Holat</TableHead>
+                    <TableHead>Kelish</TableHead>
+                    <TableHead>Kechikish</TableHead>
+                    <TableHead className="text-right">Jarima</TableHead>
+                    {canEditAttendance && <TableHead className="w-12"></TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Array.from({ length: days }, (_, i) => i + 1).map(d => {
+                    const cell = dayMap.get(d);
+                    const wd = new Date(year, month - 1, d).getDay();
+                    const sched = schedByWd.get(wd);
+                    const dateStr = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                    const isDayOff = sched?.is_working === false;
+                    return (
+                      <TableRow key={d}>
+                        <TableCell className="tabular-nums">{dateStr}</TableCell>
+                        <TableCell>{WEEKDAYS[wd]}</TableCell>
                         <TableCell>
-                          {!isDayOff && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 w-7 p-0"
-                              onClick={() => openEdit(dateStr, cell?.att, cell?.fine)}
-                              title="Kunni tahrirlash"
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                          )}
+                          {isDayOff ? <Badge variant="outline">Dam</Badge>
+                            : cell?.fine?.reason === "absent" ? <Badge variant="destructive">Kelmadi</Badge>
+                            : cell?.fine ? <Badge variant="destructive">Kech</Badge>
+                            : cell?.att ? <Badge variant="secondary">Kelgan</Badge>
+                            : <Badge variant="outline">—</Badge>}
                         </TableCell>
-                      )}
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                        <TableCell className="tabular-nums">{cell?.att ? timeFromIso(cell.att.check_in_at) : "—"}</TableCell>
+                        <TableCell>{cell?.fine && cell.fine.reason !== "absent" ? `${cell.fine.minutes_late} daq` : "—"}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {cell?.fine ? <span className="text-red-600 dark:text-red-400 font-semibold">{fmt(cell.fine.amount_uzs)}</span> : "0"}
+                        </TableCell>
+                        {canEditAttendance && (
+                          <TableCell>
+                            {!isDayOff && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 w-7 p-0"
+                                onClick={() => openEdit(dateStr, cell?.att, cell?.fine)}
+                                title="Kunni tahrirlash"
+                              >
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </Card>
         </>
       )}
@@ -1477,25 +1489,27 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
     actionFor: (r: AdvanceRequest) => React.ReactNode,
   ) => (
     <Card className="p-4">
-      <div className="font-medium mb-3">{title} ({rows.length})</div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Xodim</TableHead>
-            <TableHead className="text-right">Summa</TableHead>
-            <TableHead>Maqsad</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Sana</TableHead>
-            <TableHead className="text-right">Amal</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map(r => renderRow(r, actionFor(r)))}
-          {rows.length === 0 && (
-            <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">—</TableCell></TableRow>
-          )}
-        </TableBody>
-      </Table>
+      <div className="font-medium text-sm md:text-base mb-3">{title} ({rows.length})</div>
+      <div className="overflow-x-auto -mx-4 px-4">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Xodim</TableHead>
+              <TableHead className="text-right">Summa</TableHead>
+              <TableHead>Maqsad</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Sana</TableHead>
+              <TableHead className="text-right">Amal</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map(r => renderRow(r, actionFor(r)))}
+            {rows.length === 0 && (
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">—</TableCell></TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </Card>
   );
 
