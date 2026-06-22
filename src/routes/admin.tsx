@@ -178,13 +178,15 @@ function AdminPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <AppSidebar />
+      <div className="md:pl-56">
       <header className="border-b border-border bg-card/40 backdrop-blur sticky top-0 z-20">
-        <div className="mx-auto max-w-[1200px] px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Shield className="h-6 w-6 text-primary" />
+        <div className="mx-auto max-w-[1200px] px-4 sm:px-6 py-3 md:py-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 pl-10 md:pl-0">
+            <Shield className="h-5 w-5 md:h-6 md:w-6 text-primary shrink-0" />
             <div>
-              <h1 className="text-xl font-bold tracking-tight">{t("admin.title")}</h1>
-              <p className="text-xs text-muted-foreground">
+              <h1 className="text-base md:text-xl font-bold tracking-tight">{t("admin.title")}</h1>
+              <p className="text-[11px] md:text-xs text-muted-foreground">
                 {t("admin.subtitle")}
               </p>
             </div>
@@ -192,7 +194,7 @@ function AdminPage() {
           <div className="flex items-center gap-2">
             <Link to="/">
               <Button variant="outline" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-1" /> {t("admin.dashboard")}
+                <ArrowLeft className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">{t("admin.dashboard")}</span>
               </Button>
             </Link>
             <Button
@@ -203,13 +205,13 @@ function AdminPage() {
                 navigate({ to: "/auth" });
               }}
             >
-              <LogOut className="h-4 w-4 mr-1" /> {t("common.logout")}
+              <LogOut className="h-4 w-4 mr-1" /> <span className="hidden sm:inline">{t("common.logout")}</span>
             </Button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1200px] px-6 py-6 space-y-4">
+      <main className="mx-auto max-w-[1200px] px-4 sm:px-6 py-4 md:py-6 space-y-4">
         <div className="flex justify-end">
           <Button onClick={() => setCreateOpen(true)}>
             <UserPlus className="h-4 w-4 mr-1" /> {t("admin.newUser")}
