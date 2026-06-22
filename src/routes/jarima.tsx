@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import logoUrl from "@/assets/logo.png";
+import { LeavesSection } from "@/components/leaves-section";
 
 
 export const Route = createFileRoute("/jarima")({
