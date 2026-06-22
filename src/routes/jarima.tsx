@@ -702,6 +702,12 @@ function JarimaPage() {
               <AdvanceTab employees={employees} empMap={empMap} />
             </TabsContent>
 
+            {/* === DAM OLISH === */}
+            <TabsContent value="leave">
+              <LeavesSection />
+            </TabsContent>
+
+
             {/* === SOZLAMALAR === */}
             {isAdmin && (
               <TabsContent value="settings" className="space-y-4">
