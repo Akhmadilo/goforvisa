@@ -797,36 +797,39 @@ function ScheduleEditor({
   schedules: { employee_id: string; weekday: number; start_time: string; is_working: boolean }[];
   onSave: (v: { employeeId: string; weekday: number; startTime: string; isWorking: boolean }) => void;
 }) {
-  const [empId, setEmpId] = useState<string>("");
-  const sched = schedules.filter(s => s.employee_id === empId);
-  const getDay = (wd: number) =>
-    sched.find(s => s.weekday === wd) || { start_time: "10:00", is_working: wd !== 0 };
+  const getDay = (empId: string, wd: number) =>
+    schedules.find(s => s.employee_id === empId && s.weekday === wd)
+    || { start_time: "10:00", is_working: wd !== 0 };
 
   return (
     <Card className="p-4">
-      <div className="font-medium mb-3">Haftalik ish jadvali</div>
-      <Select value={empId} onValueChange={setEmpId}>
-        <SelectTrigger className="w-full md:w-[300px] mb-3"><SelectValue placeholder="Ishchini tanlang" /></SelectTrigger>
-        <SelectContent>
-          {employees.map(e => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}
-        </SelectContent>
-      </Select>
-      {empId && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-          {WEEKDAYS.map((d, wd) => {
-            const cur = getDay(wd);
-            return (
-              <DayRow
-                key={wd}
-                label={d}
-                startTime={cur.start_time.slice(0, 5)}
-                isWorking={cur.is_working}
-                onSave={(startTime, isWorking) => onSave({ employeeId: empId, weekday: wd, startTime, isWorking })}
-              />
-            );
-          })}
-        </div>
-      )}
+      <div className="font-medium mb-3">Haftalik ish jadvali (har xodim uchun alohida)</div>
+      <Accordion type="multiple" className="w-full">
+        {employees.map(emp => (
+          <AccordionItem key={emp.id} value={emp.id}>
+            <AccordionTrigger className="text-sm md:text-base">{emp.full_name}</AccordionTrigger>
+            <AccordionContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pt-2">
+                {WEEKDAYS.map((d, wd) => {
+                  const cur = getDay(emp.id, wd);
+                  return (
+                    <DayRow
+                      key={wd}
+                      label={d}
+                      startTime={cur.start_time.slice(0, 5)}
+                      isWorking={cur.is_working}
+                      onSave={(startTime, isWorking) => onSave({ employeeId: emp.id, weekday: wd, startTime, isWorking })}
+                    />
+                  );
+                })}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        ))}
+        {employees.length === 0 && (
+          <div className="text-sm text-muted-foreground">Xodimlar yo'q.</div>
+        )}
+      </Accordion>
     </Card>
   );
 }
