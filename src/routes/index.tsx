@@ -545,8 +545,8 @@ function Dashboard() {
         )}
 
         {/* Filters */}
-        <Card className="p-4 shadow-[var(--shadow-card)]">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
+        <Card className="p-3 md:p-4 shadow-[var(--shadow-card)]">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2 md:gap-3">
             <FilterSelect
               label={t("dash.filter.year")}
               value={year}
