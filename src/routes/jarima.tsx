@@ -1007,7 +1007,7 @@ function RuleRow({
       <TableCell><Input value={label} onChange={e => setLabel(e.target.value)} /></TableCell>
       <TableCell className="flex gap-1">
         <Button size="sm" variant="secondary" onClick={() =>
-          onSave({ id: rule.id, min, max: max === "" ? null : Number(max), amount: amt, label: label || null, kind: "late" })
+          onSave({ id: rule.id, employeeId, min, max: max === "" ? null : Number(max), amount: amt, label: label || null, kind: "late" })
         }>Saqlash</Button>
         <Button size="sm" variant="ghost" onClick={() => onDelete(rule.id)}><Trash2 className="h-4 w-4" /></Button>
       </TableCell>
