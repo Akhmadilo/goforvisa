@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import logoUrl from "@/assets/logo.png";
+import { LeavesSection } from "@/components/leaves-section";
 
 
 export const Route = createFileRoute("/jarima")({
@@ -568,6 +569,7 @@ function JarimaPage() {
               <TabsTrigger value="history">Tarix</TabsTrigger>
               <TabsTrigger value="byEmployee">Ishchi bo'yicha</TabsTrigger>
               <TabsTrigger value="advance">💰 Avans</TabsTrigger>
+              <TabsTrigger value="leave">🌴 Dam olish</TabsTrigger>
               {isAdmin && <TabsTrigger value="settings">Sozlamalar</TabsTrigger>}
             </TabsList>
 
@@ -699,6 +701,12 @@ function JarimaPage() {
             <TabsContent value="advance">
               <AdvanceTab employees={employees} empMap={empMap} />
             </TabsContent>
+
+            {/* === DAM OLISH === */}
+            <TabsContent value="leave">
+              <LeavesSection />
+            </TabsContent>
+
 
             {/* === SOZLAMALAR === */}
             {isAdmin && (
