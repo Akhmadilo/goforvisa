@@ -506,54 +506,109 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
             } else if (data === "face_yes") {
               await handleCheckIn(chatId, tgId);
             } else if (data.startsWith("lv_")) {
-              // Director leave decisions: lv_ac_<id>, lv_an_<id>, lv_rj_<id>
+              // Director CEO-stage leave decisions: lv_ac_<id>, lv_an_<id>, lv_rj_<id>
               const c = sb();
               const { data: actor } = await c
                 .from("employee_telegram").select("bot_role").eq("telegram_id", tgId).maybeSingle();
-              if (!actor || !APPROVER_ROLES.includes(actor.bot_role as any)) {
-                await tg("answerCallbackQuery", { callback_query_id: cq.id, text: "❌ Sizda ruxsat yo'q (faqat Owner/CEO/Moliyachi).", show_alert: true });
+              if (!actor || !CEO_ROLES.includes(actor.bot_role as any)) {
+                await tg("answerCallbackQuery", { callback_query_id: cq.id, text: "❌ Sizda ruxsat yo'q (faqat Owner/CEO).", show_alert: true });
               } else {
                 const action = data.slice(3, 5);
                 const leaveId = data.slice(6);
                 const { data: lv } = await c
                   .from("leave_requests")
-                  .select("id, employee_id, date, reason, status, telegram_id, notif_messages, employees(full_name)")
+                  .select("id, employee_id, date, reason, status, ceo_status, telegram_id, notif_messages, employees(full_name)")
                   .eq("id", leaveId).maybeSingle();
                 if (!lv) {
                   await tg("answerCallbackQuery", { callback_query_id: cq.id, text: "So'rov topilmadi", show_alert: true });
-                } else if (lv.status !== "pending") {
-                  await tg("answerCallbackQuery", { callback_query_id: cq.id, text: `Allaqachon ${lv.status}`, show_alert: true });
+                } else if ((lv as any).ceo_status !== "pending") {
+                  await tg("answerCallbackQuery", { callback_query_id: cq.id, text: `Allaqachon ${(lv as any).ceo_status}`, show_alert: true });
                 } else {
-                  let newStatus: "approved" | "rejected" = "approved";
-                  let salaryCounts: boolean | null = null;
+                  let proposed: boolean | null = null;
                   let resultText = "";
-                  if (action === "ac") { newStatus = "approved"; salaryCounts = true; resultText = "✅ Tasdiqlandi — oylik hisoblanadi"; }
-                  else if (action === "an") { newStatus = "approved"; salaryCounts = false; resultText = "✅ Tasdiqlandi — oylik hisoblanmaydi"; }
-                  else if (action === "rj") { newStatus = "rejected"; salaryCounts = null; resultText = "❌ Rad etildi"; }
+                  let ceoStatus: "approved" | "rejected" = "approved";
+                  if (action === "ac") { proposed = true; resultText = "✅ Direktor tasdig'i: oylik hisoblansin"; }
+                  else if (action === "an") { proposed = false; resultText = "✅ Direktor tasdig'i: oylik hisoblanmasin"; }
+                  else if (action === "rj") { ceoStatus = "rejected"; resultText = "❌ Direktor rad etdi"; }
 
-                  await c.from("leave_requests").update({
-                    status: newStatus,
-                    salary_counts: salaryCounts,
-                    decided_at: new Date().toISOString(),
-                  }).eq("id", leaveId);
+                  const patch: Record<string, unknown> = {
+                    ceo_status: ceoStatus,
+                    ceo_decided_at: new Date().toISOString(),
+                    ceo_decided_by_tg: tgId,
+                    proposed_salary_counts: proposed,
+                  };
+                  // If CEO rejected, finalize whole request as rejected.
+                  if (ceoStatus === "rejected") {
+                    patch.status = "rejected";
+                    patch.decided_at = new Date().toISOString();
+                  }
+                  await c.from("leave_requests").update(patch).eq("id", leaveId);
 
                   const empName = (lv as any).employees?.full_name || "—";
-                  // Update notification messages in all directors' chats
                   const msgs: Array<{ chat_id: number; message_id: number }> = (lv.notif_messages as any) || [];
-                  const finalText = `📅 *Dam olish so'rovi*\n\n👤 Ishchi: ${empName}\n📆 Sana: ${lv.date}\n📝 Sabab: ${lv.reason || "—"}\n\n${resultText}`;
+                  const finalText = `📅 *Dam olish so'rovi*\n\n👤 Ishchi: ${empName}\n📆 Sana: ${lv.date}\n📝 Sabab: ${lv.reason || "—"}\n\n${resultText}${ceoStatus === "approved" ? "\n\n⏳ Admin yakuniy tasdig'i kutilmoqda" : ""}`;
                   for (const m of msgs) {
                     await tg("editMessageText", {
                       chat_id: m.chat_id, message_id: m.message_id,
                       text: finalText, parse_mode: "Markdown",
                     });
                   }
-                  // Notify the requesting employee
                   if (lv.telegram_id) {
                     let userMsg = "";
-                    if (newStatus === "approved" && salaryCounts) userMsg = `✅ Dam olish so'rovingiz tasdiqlandi (${lv.date}).\n💰 Oylik hisoblanadi.`;
-                    else if (newStatus === "approved") userMsg = `✅ Dam olish so'rovingiz tasdiqlandi (${lv.date}).\n⚠️ Oylik hisoblanmaydi.`;
+                    if (ceoStatus === "approved") userMsg = `📩 Dam olish so'rovingiz (${lv.date}) direktor tomonidan tasdiqlandi.\n${proposed ? "💰 Oylik hisoblanadi" : "⚠️ Oylik hisoblanmaydi"} (taklif).\n\n⏳ Admin yakuniy javobni beradi.`;
                     else userMsg = `❌ Dam olish so'rovingiz rad etildi (${lv.date}).`;
                     await tg("sendMessage", { chat_id: lv.telegram_id, text: userMsg });
+                  }
+                  await tg("answerCallbackQuery", { callback_query_id: cq.id, text: resultText });
+                }
+              }
+            } else if (data.startsWith("adv_")) {
+              // Director CEO-stage advance decisions: adv_ac_<id>, adv_rj_<id>
+              const c = sb();
+              const { data: actor } = await c
+                .from("employee_telegram").select("bot_role").eq("telegram_id", tgId).maybeSingle();
+              if (!actor || !CEO_ROLES.includes(actor.bot_role as any)) {
+                await tg("answerCallbackQuery", { callback_query_id: cq.id, text: "❌ Sizda ruxsat yo'q (faqat Owner/CEO).", show_alert: true });
+              } else {
+                const action = data.slice(4, 6);
+                const advId = data.slice(7);
+                const { data: adv } = await c
+                  .from("advance_requests")
+                  .select("id, employee_id, amount_uzs, purpose, status, telegram_id, notif_messages, employees(full_name)")
+                  .eq("id", advId).maybeSingle();
+                if (!adv) {
+                  await tg("answerCallbackQuery", { callback_query_id: cq.id, text: "So'rov topilmadi", show_alert: true });
+                } else if ((adv as any).status !== "pending") {
+                  await tg("answerCallbackQuery", { callback_query_id: cq.id, text: `Allaqachon ${(adv as any).status}`, show_alert: true });
+                } else {
+                  let resultText = "";
+                  const patch: Record<string, unknown> = {};
+                  if (action === "ac") {
+                    patch.status = "ceo_approved";
+                    patch.ceo_approved_at = new Date().toISOString();
+                    resultText = "✅ Direktor tasdiqladi — admin yakuniylashtiradi";
+                  } else if (action === "rj") {
+                    patch.status = "rejected";
+                    patch.rejected_at = new Date().toISOString();
+                    patch.rejected_reason = "Direktor rad etdi";
+                    resultText = "❌ Direktor rad etdi";
+                  }
+                  await c.from("advance_requests").update(patch).eq("id", advId);
+
+                  const empName = (adv as any).employees?.full_name || "—";
+                  const msgs: Array<{ chat_id: number; message_id: number }> = ((adv as any).notif_messages as any) || [];
+                  const finalText = `💰 *Avans so'rovi*\n\n👤 Ishchi: ${empName}\n💵 Summa: ${fmt(Number((adv as any).amount_uzs))} so'm\n📝 Maqsad: ${(adv as any).purpose}\n\n${resultText}`;
+                  for (const m of msgs) {
+                    await tg("editMessageText", {
+                      chat_id: m.chat_id, message_id: m.message_id,
+                      text: finalText, parse_mode: "Markdown",
+                    });
+                  }
+                  if ((adv as any).telegram_id) {
+                    const userMsg = action === "ac"
+                      ? `📩 Avans so'rovingiz direktor tomonidan tasdiqlandi.\n💵 Summa: ${fmt(Number((adv as any).amount_uzs))} so'm\n\n⏳ Admin yakuniy javobni beradi.`
+                      : `❌ Avans so'rovingiz rad etildi.\n💵 Summa: ${fmt(Number((adv as any).amount_uzs))} so'm`;
+                    await tg("sendMessage", { chat_id: (adv as any).telegram_id, text: userMsg });
                   }
                   await tg("answerCallbackQuery", { callback_query_id: cq.id, text: resultText });
                 }
