@@ -96,13 +96,23 @@ function parseLeaveDate(input: string): string | null {
 }
 
 const APPROVER_ROLES = ["owner", "ceo", "financier", "director"] as const;
+const CEO_ROLES = ["owner", "ceo", "director"] as const;
+
+function advanceDecisionKb(id: string) {
+  return {
+    inline_keyboard: [
+      [{ text: "✅ Tasdiqlash", callback_data: `adv_ac_${id}` }],
+      [{ text: "❌ Rad etish", callback_data: `adv_rj_${id}` }],
+    ],
+  };
+}
 
 async function notifyDirectorsAboutLeave(leaveId: string, empName: string, date: string, reason: string | null) {
   const c = sb();
   const { data: dirs } = await c
     .from("employee_telegram")
     .select("telegram_id")
-    .in("bot_role", APPROVER_ROLES as unknown as string[]);
+    .in("bot_role", CEO_ROLES as unknown as string[]);
   const text = `📅 *Yangi dam olish so'rovi*\n\n👤 Ishchi: ${empName}\n📆 Sana: ${date}\n📝 Sabab: ${reason || "—"}`;
   const messages: Array<{ chat_id: number; message_id: number }> = [];
   for (const d of dirs || []) {
@@ -118,6 +128,30 @@ async function notifyDirectorsAboutLeave(leaveId: string, empName: string, date:
   }
   if (messages.length) {
     await c.from("leave_requests").update({ notif_messages: messages }).eq("id", leaveId);
+  }
+}
+
+async function notifyDirectorsAboutAdvance(advId: string, empName: string, amount: number, purpose: string) {
+  const c = sb();
+  const { data: dirs } = await c
+    .from("employee_telegram")
+    .select("telegram_id")
+    .in("bot_role", CEO_ROLES as unknown as string[]);
+  const text = `💰 *Yangi avans so'rovi*\n\n👤 Ishchi: ${empName}\n💵 Summa: ${fmt(amount)} so'm\n📝 Maqsad: ${purpose}`;
+  const messages: Array<{ chat_id: number; message_id: number }> = [];
+  for (const d of dirs || []) {
+    const r: any = await tg("sendMessage", {
+      chat_id: d.telegram_id,
+      text,
+      parse_mode: "Markdown",
+      reply_markup: advanceDecisionKb(advId),
+    });
+    if (r?.ok && r.result?.message_id) {
+      messages.push({ chat_id: d.telegram_id, message_id: r.result.message_id });
+    }
+  }
+  if (messages.length) {
+    await c.from("advance_requests").update({ notif_messages: messages }).eq("id", advId);
   }
 }
 
