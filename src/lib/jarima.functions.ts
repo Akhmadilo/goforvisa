@@ -25,6 +25,7 @@ export type Schedule = {
 
 export type FineRule = {
   id: string;
+  employee_id: string | null;
   min_minutes: number | null;
   max_minutes: number | null;
   amount_uzs: number;
