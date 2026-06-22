@@ -460,26 +460,24 @@ function Dashboard() {
       </div>
       <div className="relative z-10 md:pl-56">
       <header className="border-b border-border bg-card/40 backdrop-blur sticky top-0 z-20">
-        <div className="mx-auto max-w-[1500px] px-6 py-4 flex items-center justify-between">
-          <div>
-            <div className="flex items-center gap-3">
-              <div
-                className="h-10 w-10 rounded-lg flex items-center justify-center"
-                style={{ background: "var(--gradient-primary)" }}
-              >
-                <FileSignature className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold tracking-tight">
-                  {t("dash.title")}
-                </h1>
-                <p className="text-xs text-muted-foreground">
-                  {t("dash.subtitle")}
-                </p>
-              </div>
+        <div className="mx-auto max-w-[1500px] px-4 sm:px-6 py-3 md:py-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 pl-10 md:pl-0">
+            <div
+              className="h-9 w-9 md:h-10 md:w-10 rounded-lg flex items-center justify-center shrink-0"
+              style={{ background: "var(--gradient-primary)" }}
+            >
+              <FileSignature className="h-4 w-4 md:h-5 md:w-5 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-base md:text-xl font-bold tracking-tight">
+                {t("dash.title")}
+              </h1>
+              <p className="text-[11px] md:text-xs text-muted-foreground">
+                {t("dash.subtitle")}
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <div className="text-right hidden sm:block">
               <div className="flex items-center gap-2 text-xs text-muted-foreground justify-end">
                 <span className={`h-2 w-2 rounded-full ${isFetching ? "bg-accent animate-pulse" : "bg-primary"}`} />
@@ -539,7 +537,7 @@ function Dashboard() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1500px] px-6 py-6 space-y-6">
+      <main className="mx-auto max-w-[1500px] px-4 sm:px-6 py-4 md:py-6 space-y-4 md:space-y-6">
         {error && (
           <Card className="p-4 border-destructive/50 text-destructive">
             {t("common.error")}: {(error as Error).message}
