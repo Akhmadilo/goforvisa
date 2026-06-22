@@ -547,6 +547,7 @@ export type Database = {
         Row: {
           amount_uzs: number
           created_at: string
+          employee_id: string | null
           id: string
           kind: string
           label: string | null
@@ -557,6 +558,7 @@ export type Database = {
         Insert: {
           amount_uzs: number
           created_at?: string
+          employee_id?: string | null
           id?: string
           kind?: string
           label?: string | null
@@ -567,6 +569,7 @@ export type Database = {
         Update: {
           amount_uzs?: number
           created_at?: string
+          employee_id?: string | null
           id?: string
           kind?: string
           label?: string | null
@@ -574,7 +577,15 @@ export type Database = {
           min_minutes?: number | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fine_rules_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fines: {
         Row: {
