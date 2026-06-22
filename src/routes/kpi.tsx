@@ -19,12 +19,12 @@ function KpiPage() {
   return (
     <div className="min-h-screen bg-background">
       <AppSidebar />
-      <main className="md:ml-56 p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <Target className="h-6 w-6 text-primary" />
-          <h1 className="text-2xl font-bold">{t("nav.kpi")}</h1>
+      <main className="md:ml-56 p-4 md:p-6">
+        <div className="flex items-center gap-3 mb-4 md:mb-6 pl-10 md:pl-0">
+          <Target className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+          <h1 className="text-base md:text-xl font-bold">{t("nav.kpi")}</h1>
         </div>
-        <Card className="p-12 text-center text-muted-foreground">
+        <Card className="p-8 md:p-12 text-center text-muted-foreground">
           {t("kpi.empty")}
         </Card>
       </main>
