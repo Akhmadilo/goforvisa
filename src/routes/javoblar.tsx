@@ -33,6 +33,7 @@ export const Route = createFileRoute("/javoblar")({
 });
 
 type LeaveStatus = "pending" | "approved" | "rejected";
+type CeoStatus = "pending" | "approved" | "rejected";
 type Leave = {
   id: string;
   employee_id: string;
@@ -46,6 +47,9 @@ type Leave = {
   decided_by: string | null;
   decided_at: string | null;
   created_at: string;
+  ceo_status: CeoStatus;
+  proposed_salary_counts: boolean | null;
+  ceo_note: string | null;
 };
 type Employee = { id: string; full_name: string; terminated_at: string | null };
 
