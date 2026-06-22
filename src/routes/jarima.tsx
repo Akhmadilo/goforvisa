@@ -1345,7 +1345,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
             <div className="flex gap-3 mt-3 text-[11px] text-muted-foreground flex-wrap">
               <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-emerald-100 dark:bg-emerald-950/40 border" /> O'z vaqtida</span>
               <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-red-100 dark:bg-red-950/40 border" /> Jarima</span>
-              <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-slate-100 dark:bg-slate-800 border" /> Dam olish</span>
+              <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-sky-100 dark:bg-sky-950/40 border" /> Dam olish</span>
               <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-muted/30 border" /> Kelmadi</span>
             </div>
           </Card>
