@@ -27,7 +27,7 @@ import {
 } from "@/lib/jarima.functions";
 import { Pencil } from "lucide-react";
 import {
-  listAdvances, ceoDecideAdvance, financeDecideAdvance, markAdvancePaid,
+  listAdvances, ceoDecideAdvance, financeDecideAdvance, markAdvancePaid, adminFinalizeAdvance,
   createAdvanceManual, getEmployeeMonth, type AdvanceRequest, type AdvanceStatus,
 } from "@/lib/advances.functions";
 import { useRoles } from "@/hooks/use-roles";
