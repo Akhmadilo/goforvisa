@@ -17,6 +17,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { supabase } from "@/integrations/supabase/client";
+import { useServerFn } from "@tanstack/react-start";
+import { createLeaveRequest } from "@/lib/leaves.functions";
 
 type LeaveStatus = "pending" | "approved" | "rejected";
 type CeoStatus = "pending" | "approved" | "rejected";
