@@ -1288,8 +1288,9 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                 const isDayOff = sched && sched.is_working === false;
                 const fine = cell?.fine;
                 const att = cell?.att;
+                const leave = cell?.leave;
                 let bg = "bg-muted/30";
-                if (isDayOff) bg = "bg-slate-100 dark:bg-slate-800";
+                if (isDayOff || leave) bg = "bg-sky-100 dark:bg-sky-950/40";
                 else if (fine) bg = "bg-red-100 dark:bg-red-950/40";
                 else if (att) bg = "bg-emerald-100 dark:bg-emerald-950/40";
                 return (
@@ -1299,7 +1300,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                   )}>
                     <div className="flex items-center justify-between">
                       <div className="text-[11px] font-bold">{d}</div>
-                      {canEditAttendance && !isDayOff && (
+                      {canEditAttendance && !isDayOff && !leave && (
                         <button
                           type="button"
                           onClick={() => openEdit(
@@ -1314,7 +1315,9 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                         </button>
                       )}
                     </div>
-                    {isDayOff ? (
+                    {leave ? (
+                      <div className="text-[10px] text-sky-700 dark:text-sky-300 font-semibold" title={leave.reason || leave.note || ""}>Dam olish</div>
+                    ) : isDayOff ? (
                       <div className="text-[10px] text-muted-foreground">Dam</div>
                     ) : fine?.reason === "absent" ? (
                       <>
