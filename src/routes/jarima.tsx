@@ -768,7 +768,7 @@ function JarimaPage() {
                   </div>
                 </Card>
 
-                {/* Haftalik jadval */}
+                {/* Haftalik jadval — har xodim uchun alohida */}
                 <ScheduleEditor
                   employees={employees}
                   schedules={data?.schedules || []}
@@ -777,7 +777,7 @@ function JarimaPage() {
 
                 {/* Jarima qoidalari */}
                 <FineRulesEditor
-                  rules={data?.rules || []}
+                  rules={(data?.rules || []) as any}
                   onSave={(v) => ruleMut.mutate(v)}
                   onDelete={(id) => delRuleMut.mutate(id)}
                 />
