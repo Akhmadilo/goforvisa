@@ -430,6 +430,8 @@ function JarimaPage() {
   const { t } = useT();
   const { user } = useAuth();
   const isAdmin = useIsAdmin();
+  const { isCeo, isFinance } = useRoles();
+  const canSeeAll = isAdmin || isCeo || isFinance;
 
   const fetchData = useServerFn(getJarimaData);
   const linkFn = useServerFn(linkTelegramToEmployee);
@@ -440,22 +442,46 @@ function JarimaPage() {
 
   const qc = useQueryClient();
 
-  const { data: employees = [] } = useQuery({
+  const { data: allEmployees = [] } = useQuery({
     queryKey: ["employees-min"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("employees").select("id, full_name").order("full_name");
+        .from("employees").select("id, full_name, user_id").order("full_name");
       if (error) throw error;
-      return (data ?? []) as Emp[];
+      return (data ?? []) as (Emp & { user_id: string | null })[];
     },
     enabled: !!user,
   });
 
-  const { data, isLoading } = useQuery({
+  // Find the employee linked to the current user (for non-admin filtering)
+  const myEmpId = useMemo(() => {
+    if (canSeeAll || !user) return null;
+    return allEmployees.find(e => e.user_id === user.id)?.id ?? null;
+  }, [allEmployees, user, canSeeAll]);
+
+  const employees = useMemo(
+    () => canSeeAll ? allEmployees : allEmployees.filter(e => e.id === myEmpId),
+    [allEmployees, canSeeAll, myEmpId]
+  );
+
+  const { data: rawData, isLoading } = useQuery({
     queryKey: ["jarima-data"],
     queryFn: () => fetchData(),
     enabled: !!user,
   });
+
+  // Filter attendance + fines for non-admins to their own employee row only
+  const data = useMemo(() => {
+    if (!rawData) return rawData;
+    if (canSeeAll) return rawData;
+    if (!myEmpId) return { ...rawData, attendance: [], fines: [], telegram: [] };
+    return {
+      ...rawData,
+      attendance: (rawData.attendance || []).filter((a: any) => a.employee_id === myEmpId),
+      fines: (rawData.fines || []).filter((f: any) => f.employee_id === myEmpId),
+      telegram: (rawData.telegram || []).filter((tg: any) => tg.employee_id === myEmpId),
+    };
+  }, [rawData, canSeeAll, myEmpId]);
 
   const { data: approverName = "" } = useQuery({
     queryKey: ["my-display-name", user?.id],
@@ -487,6 +513,7 @@ function JarimaPage() {
     (data?.telegram || []).filter(t => t.employee_id).map(t => t.employee_id as string)
   );
   const notArrived = employees.filter(e => linkedEmpIds.has(e.id) && !todayCheckedIds.has(e.id));
+
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["jarima-data"] });
 
