@@ -361,12 +361,22 @@ export const updateAttendanceCheckIn = createServerFn({ method: "POST" })
     }
 
     if (minutesLate > 0) {
-      const { data: rules } = await c
+      const { data: empRules } = await c
         .from("fine_rules")
-        .select("min_minutes, max_minutes, amount_uzs")
+        .select("min_minutes, max_minutes, amount_uzs, kind")
+        .eq("employee_id", data.employeeId)
         .order("min_minutes", { ascending: true });
+      let useRules = (empRules || []).filter((r: any) => (r.kind || "late") === "late");
+      if (useRules.length === 0) {
+        const { data: globalRules } = await c
+          .from("fine_rules")
+          .select("min_minutes, max_minutes, amount_uzs, kind")
+          .is("employee_id", null)
+          .order("min_minutes", { ascending: true });
+        useRules = (globalRules || []).filter((r: any) => (r.kind || "late") === "late");
+      }
       let amount = 0;
-      for (const r of rules || []) {
+      for (const r of useRules) {
         if (
           minutesLate >= Number(r.min_minutes) &&
           (r.max_minutes == null || minutesLate <= Number(r.max_minutes))
