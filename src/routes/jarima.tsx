@@ -523,7 +523,7 @@ function JarimaPage() {
     onError: (e: any) => toast.error(e.message),
   });
   const botRoleMut = useMutation({
-    mutationFn: (v: { telegramRowId: string; botRole: "none" | "director" | "finance" }) => botRoleFn({ data: v }),
+    mutationFn: (v: { telegramRowId: string; botRole: "none" | "owner" | "ceo" | "financier" | "director" | "finance" }) => botRoleFn({ data: v }),
     onSuccess: () => { invalidate(); toast.success("Lavozim saqlandi"); },
     onError: (e: any) => toast.error(e.message),
   });
