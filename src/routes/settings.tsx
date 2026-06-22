@@ -16,6 +16,7 @@ import { useT, LANGUAGES, type Lang } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useAuth } from "@/hooks/use-auth";
+import { AppSidebar } from "@/components/app-sidebar";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -46,15 +47,17 @@ function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
-        <div className="mb-2 flex items-center gap-2">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <h1 className="text-2xl font-bold">{t("settings.title")}</h1>
-        </div>
+      <AppSidebar />
+      <div className="md:pl-56">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 py-6 md:py-8 space-y-6">
+          <div className="mb-2 flex items-center gap-2 pl-10 md:pl-0">
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/">
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
+            </Button>
+            <h1 className="text-base md:text-xl font-bold">{t("settings.title")}</h1>
+          </div>
 
         <Card className="p-6">
           <h2 className="text-lg font-semibold">{t("settings.appearance")}</h2>
@@ -81,7 +84,8 @@ function SettingsPage() {
         {isAdmin && <OperatorsCard />}
         {isAdmin && <LookupCard tableName="contract_types" title="Shartnoma turlari" hint="Shartnoma yaratishda tanlanadigan turlar (Tourist, Student, Work…)." invalidateKey="contract_types" refTable="contracts" refColumn="contract_type" />}
         {isAdmin && <LookupCard tableName="companies" title="Kompaniyalar" hint="Shartnoma yaratishda tanlanadigan kompaniyalar (Dream, Go for Visa…)." invalidateKey="companies" refTable="contracts" refColumn="company" />}
-        {isAdmin && <LookupCard tableName="expense_categories" title="Xarajat kategoriyalari" hint="Xarajat yaratishda tanlanadigan kategoriyalar." invalidateKey="expense_categories" refTable="expenses" refColumn="category" />}
+          {isAdmin && <LookupCard tableName="expense_categories" title="Xarajat kategoriyalari" hint="Xarajat yaratishda tanlanadigan kategoriyalar." invalidateKey="expense_categories" refTable="expenses" refColumn="category" />}
+        </div>
       </div>
     </div>
   );
