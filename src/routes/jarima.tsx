@@ -779,8 +779,9 @@ function JarimaPage() {
                   onSave={(v) => schedMut.mutate(v)}
                 />
 
-                {/* Jarima qoidalari */}
+                {/* Jarima qoidalari — har xodim uchun alohida */}
                 <FineRulesEditor
+                  employees={employees}
                   rules={(data?.rules || []) as any}
                   onSave={(v) => ruleMut.mutate(v)}
                   onDelete={(id) => delRuleMut.mutate(id)}
