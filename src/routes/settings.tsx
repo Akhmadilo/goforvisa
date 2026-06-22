@@ -16,6 +16,7 @@ import { useT, LANGUAGES, type Lang } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useAuth } from "@/hooks/use-auth";
+import { AppSidebar } from "@/components/app-sidebar";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
