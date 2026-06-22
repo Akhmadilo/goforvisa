@@ -1485,25 +1485,27 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
     actionFor: (r: AdvanceRequest) => React.ReactNode,
   ) => (
     <Card className="p-4">
-      <div className="font-medium mb-3">{title} ({rows.length})</div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Xodim</TableHead>
-            <TableHead className="text-right">Summa</TableHead>
-            <TableHead>Maqsad</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Sana</TableHead>
-            <TableHead className="text-right">Amal</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map(r => renderRow(r, actionFor(r)))}
-          {rows.length === 0 && (
-            <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">—</TableCell></TableRow>
-          )}
-        </TableBody>
-      </Table>
+      <div className="font-medium text-sm md:text-base mb-3">{title} ({rows.length})</div>
+      <div className="overflow-x-auto -mx-4 px-4">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Xodim</TableHead>
+              <TableHead className="text-right">Summa</TableHead>
+              <TableHead>Maqsad</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Sana</TableHead>
+              <TableHead className="text-right">Amal</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.map(r => renderRow(r, actionFor(r)))}
+            {rows.length === 0 && (
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">—</TableCell></TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </Card>
   );
 
