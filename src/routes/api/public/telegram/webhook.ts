@@ -609,7 +609,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                   let resultText = "";
                   let ceoStatus: "approved" | "rejected" = "approved";
                   if (action === "ac") { proposed = true; resultText = "✅ Direktor tasdig'i: oylik hisoblansin"; }
-                  else if (action === "an") { proposed = false; resultText = "✅ Direktor tasdig'i: oylik hisoblanmasin"; }
+                  else if (action === "an") { proposed = false; resultText = `✅ Direktor tasdig'i: oylik hisoblanmasin (kelmagan kun uchun ${fmt(ABSENCE_FINE_UZS)} so'm jarima)`; }
                   else if (action === "rj") { ceoStatus = "rejected"; resultText = "❌ Direktor rad etdi"; }
 
                   const patch: Record<string, unknown> = {
@@ -618,6 +618,31 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                     ceo_decided_by_tg: tgId,
                     proposed_salary_counts: proposed,
                   };
+                  // If CEO chose "oylik hisoblanmasin" — auto-finalize and apply absence fine
+                  if (ceoStatus === "approved" && proposed === false) {
+                    patch.status = "approved";
+                    patch.salary_counts = false;
+                    patch.fine_amount_uzs = ABSENCE_FINE_UZS;
+                    patch.decided_at = new Date().toISOString();
+                    // Apply 120000 absence fine to fines table for that day
+                    await c.from("fines").upsert({
+                      employee_id: (lv as any).employee_id,
+                      date: (lv as any).date,
+                      minutes_late: 0,
+                      amount_uzs: ABSENCE_FINE_UZS,
+                      reason: "absent",
+                      note: "Javob so'rash: oylik hisoblanmasin",
+                    }, { onConflict: "employee_id,date,reason" });
+                    // Remove any 'late' fine for that day (employee didn't work)
+                    await c.from("fines").delete()
+                      .eq("employee_id", (lv as any).employee_id)
+                      .eq("date", (lv as any).date)
+                      .eq("reason", "late");
+                    // Remove attendance for that day if any
+                    await c.from("attendance").delete()
+                      .eq("employee_id", (lv as any).employee_id)
+                      .eq("date", (lv as any).date);
+                  }
                   // If CEO rejected, finalize whole request as rejected.
                   if (ceoStatus === "rejected") {
                     patch.status = "rejected";
@@ -627,7 +652,10 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
 
                   const empName = (lv as any).employees?.full_name || "—";
                   const msgs: Array<{ chat_id: number; message_id: number }> = (lv.notif_messages as any) || [];
-                  const finalText = `📅 *Dam olish so'rovi*\n\n👤 Ishchi: ${empName}\n📆 Sana: ${lv.date}\n📝 Sabab: ${lv.reason || "—"}\n\n${resultText}${ceoStatus === "approved" ? "\n\n⏳ Admin yakuniy tasdig'i kutilmoqda" : ""}`;
+                  const tailNote = ceoStatus === "approved"
+                    ? (proposed === false ? "\n\n✅ Yakuniylashdi (avtomat jarima qo'llandi)" : "\n\n⏳ Admin yakuniy tasdig'i kutilmoqda")
+                    : "";
+                  const finalText = `📅 *Javob so'rash*\n\n👤 Ishchi: ${empName}\n📆 Sana: ${lv.date}\n📝 Sabab: ${lv.reason || "—"}\n\n${resultText}${tailNote}`;
                   for (const m of msgs) {
                     await tg("editMessageText", {
                       chat_id: m.chat_id, message_id: m.message_id,
@@ -636,8 +664,15 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                   }
                   if (lv.telegram_id) {
                     let userMsg = "";
-                    if (ceoStatus === "approved") userMsg = `📩 Dam olish so'rovingiz (${lv.date}) direktor tomonidan tasdiqlandi.\n${proposed ? "💰 Oylik hisoblanadi" : "⚠️ Oylik hisoblanmaydi"} (taklif).\n\n⏳ Admin yakuniy javobni beradi.`;
-                    else userMsg = `❌ Dam olish so'rovingiz rad etildi (${lv.date}).`;
+                    if (ceoStatus === "approved") {
+                      if (proposed === false) {
+                        userMsg = `📩 Javob so'rashingiz (${lv.date}) direktor tomonidan tasdiqlandi.\n⚠️ Oylik hisoblanmaydi\n💸 Kelmagan kun uchun jarima: ${fmt(ABSENCE_FINE_UZS)} so'm`;
+                      } else {
+                        userMsg = `📩 Javob so'rashingiz (${lv.date}) direktor tomonidan tasdiqlandi.\n💰 Oylik hisoblanadi (taklif).\n\n⏳ Admin yakuniy javobni beradi.`;
+                      }
+                    } else {
+                      userMsg = `❌ Javob so'rashingiz rad etildi (${lv.date}).`;
+                    }
                     await tg("sendMessage", { chat_id: lv.telegram_id, text: userMsg });
                   }
                   await tg("answerCallbackQuery", { callback_query_id: cq.id, text: resultText });
