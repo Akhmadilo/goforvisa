@@ -74,7 +74,7 @@ function leaveDecisionKb(id: string) {
   return {
     inline_keyboard: [
       [{ text: "✅ Tasdiq + oylik hisoblansin", callback_data: `lv_ac_${id}` }],
-      [{ text: "✅ Tasdiq + oylik hisoblanmasin", callback_data: `lv_an_${id}` }],
+      [{ text: "⚠️ Tasdiq + oylik hisoblanmasin (120 000 jarima)", callback_data: `lv_an_${id}` }],
       [{ text: "❌ Rad etish", callback_data: `lv_rj_${id}` }],
     ],
   };
