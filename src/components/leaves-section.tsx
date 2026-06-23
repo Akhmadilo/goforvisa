@@ -283,7 +283,7 @@ function LeaveFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Yangi dam olish so'rovi</DialogTitle>
+          <DialogTitle>Yangi javob so'rash</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div>
@@ -305,10 +305,10 @@ function LeaveFormDialog({
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Sabab</label>
-            <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="Nima uchun dam olish kerak..." />
+            <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="Nima uchun kela olmayapsiz..." />
           </div>
           <div className="text-xs text-muted-foreground bg-muted/40 rounded p-2">
-            So'rov "Kutilmoqda" holatida saqlanadi. Direktor tasdiqlaganda oylik hisoblansin yoki yo'qligini va jarima miqdorini belgilaydi.
+            So'rov "Kutilmoqda" holatida saqlanadi. Direktor "oylik hisoblanmasin" desa avtomat 120 000 so'm jarima qo'llaniladi.
           </div>
         </div>
         <DialogFooter>
