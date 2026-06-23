@@ -116,7 +116,7 @@ async function notifyDirectorsAboutLeave(leaveId: string, empName: string, date:
     .from("employee_telegram")
     .select("telegram_id")
     .in("bot_role", CEO_ROLES as unknown as string[]);
-  const text = `📅 *Yangi dam olish so'rovi*\n\n👤 Ishchi: ${empName}\n📆 Sana: ${date}\n📝 Sabab: ${reason || "—"}`;
+  const text = `📅 *Yangi javob so'rash*\n\n👤 Ishchi: ${empName}\n📆 Sana: ${date}\n📝 Sabab: ${reason || "—"}`;
   const messages: Array<{ chat_id: number; message_id: number }> = [];
   for (const d of dirs || []) {
     const r: any = await tg("sendMessage", {
@@ -131,6 +131,29 @@ async function notifyDirectorsAboutLeave(leaveId: string, empName: string, date:
   }
   if (messages.length) {
     await c.from("leave_requests").update({ notif_messages: messages }).eq("id", leaveId);
+  }
+}
+
+async function notifyDirectorsAboutWorkReport(reportId: string, empName: string, date: string, content: string) {
+  const c = sb();
+  const { data: dirs } = await c
+    .from("employee_telegram")
+    .select("telegram_id")
+    .in("bot_role", CEO_ROLES as unknown as string[]);
+  const text = `📋 *Bajarilgan ishlar*\n\n👤 Ishchi: ${empName}\n📆 Sana: ${date}\n\n${content}`;
+  const messages: Array<{ chat_id: number; message_id: number }> = [];
+  for (const d of dirs || []) {
+    const r: any = await tg("sendMessage", {
+      chat_id: d.telegram_id,
+      text,
+      parse_mode: "Markdown",
+    });
+    if (r?.ok && r.result?.message_id) {
+      messages.push({ chat_id: d.telegram_id, message_id: r.result.message_id });
+    }
+  }
+  if (messages.length) {
+    await c.from("work_reports").update({ notif_messages: messages }).eq("id", reportId);
   }
 }
 
