@@ -459,13 +459,53 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                   await notifyDirectorsAboutLeave(ins.id, emp?.full_name || "—", state.date, reason);
                 }
               }
+            } else if (state?.step === "await_work_report") {
+              const content = text.slice(0, 4000).trim();
+              if (content.length < 3) {
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "❗️ Matn juda qisqa. Bajarilgan ishlaringizni batafsilroq yozing.",
+                  reply_markup: CANCEL_KB,
+                });
+              } else if (!tgRow?.employee_id) {
+                await resetState();
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "⚠️ Akkauntingiz ishchiga bog'lanmagan. Admin sizni tizimda ulashini kuting.",
+                  reply_markup: MAIN_KB,
+                });
+              } else {
+                const { data: emp } = await sb()
+                  .from("employees").select("full_name").eq("id", tgRow.employee_id).maybeSingle();
+                const date = todayDate();
+                const { data: ins, error: insErr } = await sb()
+                  .from("work_reports")
+                  .insert({
+                    employee_id: tgRow.employee_id,
+                    telegram_id: tgId,
+                    date,
+                    content,
+                  })
+                  .select("id").maybeSingle();
+                await resetState();
+                if (insErr || !ins) {
+                  await tg("sendMessage", { chat_id: chatId, text: `❗️ Xatolik: ${insErr?.message || "saqlanmadi"}`, reply_markup: MAIN_KB });
+                } else {
+                  await tg("sendMessage", {
+                    chat_id: chatId,
+                    text: `✅ Bajarilgan ishlar qabul qilindi!\n\n📆 Sana: ${date}\n\nDirektor va Ownerga yuborildi.`,
+                    reply_markup: MAIN_KB,
+                  });
+                  await notifyDirectorsAboutWorkReport(ins.id, emp?.full_name || "—", date, content);
+                }
+              }
             } else if (text.startsWith("/start")) {
               await tg("sendMessage", {
                 chat_id: chatId,
-                text: `Assalomu alaykum${from.first_name ? ", " + from.first_name : ""}! 👋\n\n🟢 Keldim — kelganingizni belgilang\n💰 Avans so'rash — avans uchun ariza\n📅 Dam olish — dam olish so'rovi`,
+                text: `Assalomu alaykum${from.first_name ? ", " + from.first_name : ""}! 👋\n\n🟢 Keldim — kelganingizni belgilang\n💰 Avans so'rash — avans uchun ariza\n📅 Javob so'rash — kela olmasangiz javob so'rash\n📋 Bajarilgan ishlar — bugungi ishlar hisoboti`,
                 reply_markup: MAIN_KB,
               });
-            } else if (text.startsWith("/dam_olish") || text === "📅 Dam olish" || text.toLowerCase() === "dam olish") {
+            } else if (text.startsWith("/dam_olish") || text.startsWith("/javob") || text === "📅 Javob so'rash" || text === "📅 Dam olish" || text.toLowerCase() === "javob so'rash" || text.toLowerCase() === "dam olish") {
               if (!tgRow?.employee_id) {
                 await tg("sendMessage", {
                   chat_id: chatId,
@@ -476,7 +516,22 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                 await setState({ step: "await_leave_date" });
                 await tg("sendMessage", {
                   chat_id: chatId,
-                  text: "📅 Qaysi kunga dam olmoqchisiz?\n\nSanani kiriting (masalan: 2026-06-25, 25.06.2026, 25.06, bugun, ertaga):",
+                  text: "📅 Qaysi kunga javob so'ramoqchisiz?\n\nSanani kiriting (masalan: 2026-06-25, 25.06.2026, 25.06, bugun, ertaga):",
+                  reply_markup: CANCEL_KB,
+                });
+              }
+            } else if (text === "📋 Bajarilgan ishlar" || text.toLowerCase() === "bajarilgan ishlar" || text.startsWith("/bajarilgan")) {
+              if (!tgRow?.employee_id) {
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "⚠️ Akkauntingiz hali ishchiga bog'lanmagan. Admin sizni tizimda ulashini kuting.",
+                  reply_markup: MAIN_KB,
+                });
+              } else {
+                await setState({ step: "await_work_report" });
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "📋 Bugun bajargan ishlaringizni batafsil yozing:",
                   reply_markup: CANCEL_KB,
                 });
               }
