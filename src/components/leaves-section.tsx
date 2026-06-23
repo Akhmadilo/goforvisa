@@ -347,20 +347,50 @@ function DecideDialog({
 
   const decide = async (status: "approved" | "rejected") => {
     setSaving(true);
+    const ABSENCE_FINE = 120000;
     const fine = Number((fineStr || "").replace(/[^0-9]/g, "")) || 0;
+    const finalFine = status === "approved"
+      ? (salaryCounts ? fine : ABSENCE_FINE)
+      : 0;
     const { error } = await supabase
       .from("leave_requests")
       .update({
         status,
         salary_counts: status === "approved" ? salaryCounts : null,
-        fine_amount_uzs: status === "approved" && salaryCounts ? fine : 0,
+        fine_amount_uzs: finalFine,
         note: note.trim() || null,
         decided_by: userId,
         decided_at: new Date().toISOString(),
       })
       .eq("id", leave.id);
+    if (error) { setSaving(false); toast.error(error.message); return; }
+
+    // When salary is not counted → apply 120000 absence fine into fines table
+    if (status === "approved" && !salaryCounts) {
+      await supabase.from("fines").upsert({
+        employee_id: leave.employee_id,
+        date: leave.date,
+        minutes_late: 0,
+        amount_uzs: ABSENCE_FINE,
+        reason: "absent",
+        note: "Javob so'rash: oylik hisoblanmasin",
+      }, { onConflict: "employee_id,date,reason" });
+      await supabase.from("fines").delete()
+        .eq("employee_id", leave.employee_id)
+        .eq("date", leave.date)
+        .eq("reason", "late");
+      await supabase.from("attendance").delete()
+        .eq("employee_id", leave.employee_id)
+        .eq("date", leave.date);
+    } else if (status === "approved" && salaryCounts) {
+      // Salary counts → ensure no absence fine remains for this day
+      await supabase.from("fines").delete()
+        .eq("employee_id", leave.employee_id)
+        .eq("date", leave.date)
+        .eq("reason", "absent");
+    }
+
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
     toast.success(status === "approved" ? "Tasdiqlandi" : "Rad etildi");
     onOpenChange(false);
   };
