@@ -703,10 +703,17 @@ function JarimaPage() {
               <AdvanceTab employees={employees} empMap={empMap} />
             </TabsContent>
 
-            {/* === DAM OLISH === */}
+            {/* === JAVOB SO'RASH === */}
             <TabsContent value="leave">
               <LeavesSection />
             </TabsContent>
+
+            {/* === BAJARILGAN ISHLAR === */}
+            <TabsContent value="work">
+              <WorkReportsSection />
+            </TabsContent>
+
+
 
 
             {/* === SOZLAMALAR === */}
