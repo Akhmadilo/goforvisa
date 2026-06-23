@@ -412,7 +412,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                 await setState({ step: "await_leave_reason", date: d });
                 await tg("sendMessage", {
                   chat_id: chatId,
-                  text: `Sana: ${d} ✅\n\nEndi dam olish sababini yozing:`,
+                  text: `Sana: ${d} ✅\n\nEndi sababni yozing (nima uchun kela olmayapsiz):`,
                   reply_markup: CANCEL_KB,
                 });
               }
