@@ -453,7 +453,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                 } else {
                   await tg("sendMessage", {
                     chat_id: chatId,
-                    text: `✅ Dam olish so'rovingiz yuborildi!\n\n📆 Sana: ${state.date}\n📝 Sabab: ${reason}\n\nDirektor ko'rib chiqgach xabar yuboramiz.`,
+                    text: `✅ Javob so'rashingiz yuborildi!\n\n📆 Sana: ${state.date}\n📝 Sabab: ${reason}\n\nDirektor ko'rib chiqgach xabar yuboramiz.`,
                     reply_markup: MAIN_KB,
                   });
                   await notifyDirectorsAboutLeave(ins.id, emp?.full_name || "—", state.date, reason);
