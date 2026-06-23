@@ -50,10 +50,13 @@ function nowInTashkent(): Date {
 const MAIN_KB = {
   keyboard: [
     [{ text: "🟢 Keldim" }],
-    [{ text: "💰 Avans so'rash" }, { text: "📅 Dam olish" }],
+    [{ text: "💰 Avans so'rash" }, { text: "📅 Javob so'rash" }],
+    [{ text: "📋 Bajarilgan ishlar" }],
   ],
   resize_keyboard: true,
 };
+
+const ABSENCE_FINE_UZS = 120000;
 
 const CANCEL_KB = {
   keyboard: [[{ text: "❌ Bekor qilish" }]],
