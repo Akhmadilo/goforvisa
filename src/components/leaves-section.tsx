@@ -418,7 +418,7 @@ function DecideDialog({
             <Switch checked={salaryCounts} onCheckedChange={setSalaryCounts} />
           </div>
 
-          {salaryCounts && (
+          {salaryCounts ? (
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Jarima summasi (so'mda, ixtiyoriy)</label>
               <Input
@@ -429,6 +429,10 @@ function DecideDialog({
                 placeholder="Masalan: 120 000"
               />
               <p className="text-[11px] text-muted-foreground mt-1">Bo'sh qoldirilsa jarima qo'llanilmaydi</p>
+            </div>
+          ) : (
+            <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-300">
+              ⚠️ Kelmagan kun uchun avtomat <strong>120 000 so'm</strong> jarima qo'llaniladi.
             </div>
           )}
 
