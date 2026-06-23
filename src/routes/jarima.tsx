@@ -39,6 +39,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import logoUrl from "@/assets/logo.png";
 import { LeavesSection } from "@/components/leaves-section";
+import { WorkReportsSection } from "@/components/work-reports-section";
 
 
 export const Route = createFileRoute("/jarima")({
