@@ -897,6 +897,47 @@ export type Database = {
         }
         Relationships: []
       }
+      work_reports: {
+        Row: {
+          content: string
+          created_at: string
+          date: string
+          employee_id: string
+          id: string
+          notif_messages: Json | null
+          telegram_id: number | null
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          date?: string
+          employee_id: string
+          id?: string
+          notif_messages?: Json | null
+          telegram_id?: number | null
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          date?: string
+          employee_id?: string
+          id?: string
+          notif_messages?: Json | null
+          telegram_id?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_reports_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
