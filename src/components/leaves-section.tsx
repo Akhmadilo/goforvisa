@@ -283,7 +283,7 @@ function LeaveFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Yangi dam olish so'rovi</DialogTitle>
+          <DialogTitle>Yangi javob so'rash</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div>
@@ -305,10 +305,10 @@ function LeaveFormDialog({
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Sabab</label>
-            <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="Nima uchun dam olish kerak..." />
+            <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="Nima uchun kela olmayapsiz..." />
           </div>
           <div className="text-xs text-muted-foreground bg-muted/40 rounded p-2">
-            So'rov "Kutilmoqda" holatida saqlanadi. Direktor tasdiqlaganda oylik hisoblansin yoki yo'qligini va jarima miqdorini belgilaydi.
+            So'rov "Kutilmoqda" holatida saqlanadi. Direktor "oylik hisoblanmasin" desa avtomat 120 000 so'm jarima qo'llaniladi.
           </div>
         </div>
         <DialogFooter>
@@ -347,20 +347,50 @@ function DecideDialog({
 
   const decide = async (status: "approved" | "rejected") => {
     setSaving(true);
+    const ABSENCE_FINE = 120000;
     const fine = Number((fineStr || "").replace(/[^0-9]/g, "")) || 0;
+    const finalFine = status === "approved"
+      ? (salaryCounts ? fine : ABSENCE_FINE)
+      : 0;
     const { error } = await supabase
       .from("leave_requests")
       .update({
         status,
         salary_counts: status === "approved" ? salaryCounts : null,
-        fine_amount_uzs: status === "approved" && salaryCounts ? fine : 0,
+        fine_amount_uzs: finalFine,
         note: note.trim() || null,
         decided_by: userId,
         decided_at: new Date().toISOString(),
       })
       .eq("id", leave.id);
+    if (error) { setSaving(false); toast.error(error.message); return; }
+
+    // When salary is not counted → apply 120000 absence fine into fines table
+    if (status === "approved" && !salaryCounts) {
+      await supabase.from("fines").upsert({
+        employee_id: leave.employee_id,
+        date: leave.date,
+        minutes_late: 0,
+        amount_uzs: ABSENCE_FINE,
+        reason: "absent",
+        note: "Javob so'rash: oylik hisoblanmasin",
+      }, { onConflict: "employee_id,date,reason" });
+      await supabase.from("fines").delete()
+        .eq("employee_id", leave.employee_id)
+        .eq("date", leave.date)
+        .eq("reason", "late");
+      await supabase.from("attendance").delete()
+        .eq("employee_id", leave.employee_id)
+        .eq("date", leave.date);
+    } else if (status === "approved" && salaryCounts) {
+      // Salary counts → ensure no absence fine remains for this day
+      await supabase.from("fines").delete()
+        .eq("employee_id", leave.employee_id)
+        .eq("date", leave.date)
+        .eq("reason", "absent");
+    }
+
     setSaving(false);
-    if (error) { toast.error(error.message); return; }
     toast.success(status === "approved" ? "Tasdiqlandi" : "Rad etildi");
     onOpenChange(false);
   };
@@ -388,7 +418,7 @@ function DecideDialog({
             <Switch checked={salaryCounts} onCheckedChange={setSalaryCounts} />
           </div>
 
-          {salaryCounts && (
+          {salaryCounts ? (
             <div>
               <label className="text-xs text-muted-foreground mb-1 block">Jarima summasi (so'mda, ixtiyoriy)</label>
               <Input
@@ -399,6 +429,10 @@ function DecideDialog({
                 placeholder="Masalan: 120 000"
               />
               <p className="text-[11px] text-muted-foreground mt-1">Bo'sh qoldirilsa jarima qo'llanilmaydi</p>
+            </div>
+          ) : (
+            <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-300">
+              ⚠️ Kelmagan kun uchun avtomat <strong>120 000 so'm</strong> jarima qo'llaniladi.
             </div>
           )}
 

@@ -8,7 +8,7 @@ function leaveDecisionKb(id: string) {
   return {
     inline_keyboard: [
       [{ text: "✅ Tasdiq + oylik hisoblansin", callback_data: `lv_ac_${id}` }],
-      [{ text: "✅ Tasdiq + oylik hisoblanmasin", callback_data: `lv_an_${id}` }],
+      [{ text: "⚠️ Tasdiq + oylik hisoblanmasin (120 000 jarima)", callback_data: `lv_an_${id}` }],
       [{ text: "❌ Rad etish", callback_data: `lv_rj_${id}` }],
     ],
   };
@@ -56,7 +56,7 @@ export const createLeaveRequest = createServerFn({ method: "POST" })
         .from("employees").select("full_name").eq("id", data.employeeId).maybeSingle();
       const { data: dirs } = await supabaseAdmin
         .from("employee_telegram").select("telegram_id").in("bot_role", CEO_ROLES);
-      const text = `📅 *Yangi dam olish so'rovi*\n\n👤 Ishchi: ${emp?.full_name || "—"}\n📆 Sana: ${data.date}\n📝 Sabab: ${data.reason?.trim() || "—"}`;
+      const text = `📅 *Yangi javob so'rash*\n\n👤 Ishchi: ${emp?.full_name || "—"}\n📆 Sana: ${data.date}\n📝 Sabab: ${data.reason?.trim() || "—"}`;
       const messages: Array<{ chat_id: number; message_id: number }> = [];
       for (const d of dirs || []) {
         const r: any = await tg("sendMessage", {
