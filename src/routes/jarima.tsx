@@ -569,7 +569,8 @@ function JarimaPage() {
               <TabsTrigger value="history">Tarix</TabsTrigger>
               <TabsTrigger value="byEmployee">Ishchi bo'yicha</TabsTrigger>
               <TabsTrigger value="advance">💰 Avans</TabsTrigger>
-              <TabsTrigger value="leave">🌴 Dam olish</TabsTrigger>
+              <TabsTrigger value="leave">📅 Javob so'rash</TabsTrigger>
+              <TabsTrigger value="work">📋 Bajarilgan ishlar</TabsTrigger>
               {isAdmin && <TabsTrigger value="settings">Sozlamalar</TabsTrigger>}
             </TabsList>
 
