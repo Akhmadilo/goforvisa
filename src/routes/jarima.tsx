@@ -1115,7 +1115,7 @@ const UZ_MONTHS_FULL = [
   "Iyul","Avgust","Sentyabr","Oktyabr","Noyabr","Dekabr",
 ];
 
-function EmployeeMonthView({ employees }: { employees: Emp[] }) {
+function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: Signers }) {
   const now = new Date();
   const [empId, setEmpId] = useState<string>("");
   const [year, setYear] = useState<number>(now.getFullYear());
