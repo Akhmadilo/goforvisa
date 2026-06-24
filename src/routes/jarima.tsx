@@ -1092,7 +1092,7 @@ function MonthlyExport({
         size="sm"
         onClick={async () => {
           try {
-            await generateMonthlyPdf(year, month, employees, fines, approverName);
+            await generateMonthlyPdf(year, month, employees, fines, signers);
             toast.success("Oylik PDF tayyor");
           } catch (e: any) {
             toast.error(e?.message || "Xatolik");
