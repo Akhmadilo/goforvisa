@@ -1062,11 +1062,11 @@ function RuleRow({
 }
 
 function MonthlyExport({
-  fines, employees, approverName,
+  fines, employees, signers,
 }: {
   fines: MonthlyFine[];
   employees: Emp[];
-  approverName: string;
+  signers: Signers;
 }) {
   const now = new Date();
   const [year, setYear] = useState<number>(now.getFullYear());
