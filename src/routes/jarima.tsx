@@ -1284,7 +1284,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
                 });
                 await generateEmployeeCalendarPdf(emp.full_name, year, month, pdfCells, {
                   presentDays, fineDays: fineCount, totalFine, daysInMonth: days,
-                });
+                }, signers);
                 toast.success("PDF tayyor");
               } catch (e: any) {
                 toast.error(e?.message || "Xatolik");
