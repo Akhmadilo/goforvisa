@@ -691,7 +691,7 @@ function JarimaPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={async () => {
-                                  if (!confirm(`Jarimani tasdiqlaysizmi?\n\nXodim: ${name}\nSumma: ${fmt(f.amount_uzs)} so'm\n\nTasdiqlovchi: ${approverName}`)) return;
+                                  if (!confirm(`Jarimani tasdiqlaysizmi?\n\nXodim: ${name}\nSumma: ${fmt(f.amount_uzs)} so'm\n\nTasdiqlovchi: ${signers.admin}`)) return;
                                   try {
                                     await generateFinePdf({
                                       date: f.date,
@@ -699,7 +699,7 @@ function JarimaPage() {
                                       minutes_late: f.minutes_late,
                                       amount_uzs: f.amount_uzs,
                                       reason: f.reason,
-                                    }, approverName);
+                                    }, signers);
                                     toast.success("PDF tayyor");
                                   } catch (e: any) {
                                     toast.error(e?.message || "Xatolik");
