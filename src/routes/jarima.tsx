@@ -91,36 +91,127 @@ type FineForPdf = {
   reason: string;
 };
 
-async function generateFinePdf(fine: FineForPdf, approverName: string) {
+export type Signers = {
+  owner: string;
+  ceo: string;
+  admin: string;
+};
+
+const STAMP_KEY = "company_stamp_v1";
+export function getStoredStamp(): string | null {
+  if (typeof window === "undefined") return null;
+  try { return localStorage.getItem(STAMP_KEY); } catch { return null; }
+}
+export function setStoredStamp(dataUrl: string | null) {
+  if (typeof window === "undefined") return;
+  try {
+    if (dataUrl) localStorage.setItem(STAMP_KEY, dataUrl);
+    else localStorage.removeItem(STAMP_KEY);
+  } catch {}
+}
+
+function drawHeader(doc: jsPDF, title: string, subtitle: string, logo: string | null, rightText?: string) {
+  const pageW = doc.internal.pageSize.getWidth();
+  // brand bar
+  doc.setFillColor(99, 102, 241);
+  doc.rect(0, 0, pageW, 6, "F");
+
+  if (logo) {
+    try { doc.addImage(logo, "PNG", 32, 18, 48, 48); } catch {}
+  }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(15);
+  doc.setTextColor(20, 22, 48);
+  doc.text("GOFORVISA", 92, 40);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.setTextColor(110, 116, 140);
+  doc.text(subtitle, 92, 56);
+
+  if (rightText) {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(20, 22, 48);
+    doc.text(rightText, pageW - 32, 40, { align: "right" });
+  }
+
+  doc.setDrawColor(228, 230, 240);
+  doc.setLineWidth(0.6);
+  doc.line(32, 78, pageW - 32, 78);
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.setTextColor(20, 22, 48);
+  doc.text(title, pageW / 2, 100, { align: "center" });
+  doc.setTextColor(0, 0, 0);
+}
+
+function drawSigners(doc: jsPDF, y: number, signers: Signers, stamp: string | null) {
+  const pageW = doc.internal.pageSize.getWidth();
+  const cols: { role: string; name: string }[] = [
+    { role: "Owner", name: signers.owner || "—" },
+    { role: "CEO", name: signers.ceo || "—" },
+    { role: "Tasdiqladi (Admin)", name: signers.admin || "—" },
+  ];
+  const margin = 32;
+  const totalW = pageW - margin * 2;
+  const colW = totalW / 3;
+
+  doc.setDrawColor(210, 214, 230);
+  doc.setLineWidth(0.5);
+
+  cols.forEach((c, i) => {
+    const x = margin + i * colW + 12;
+    const w = colW - 24;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(110, 116, 140);
+    doc.text(c.role.toUpperCase(), x, y);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(20, 22, 48);
+    doc.text(c.name, x, y + 18);
+
+    // signature line
+    doc.line(x, y + 56, x + w, y + 56);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(140, 144, 160);
+    doc.text("Imzo / Sana", x, y + 68);
+  });
+
+  // overlay stamp on the middle column (CEO) if available
+  if (stamp) {
+    try {
+      const sx = margin + colW + colW / 2 - 38;
+      const sy = y + 8;
+      doc.addImage(stamp, "PNG", sx, sy, 76, 76);
+    } catch {}
+  }
+  doc.setTextColor(0, 0, 0);
+}
+
+async function generateFinePdf(fine: FineForPdf, signers: Signers) {
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const logo = await getLogoDataUrl();
+  const stamp = getStoredStamp();
 
-  if (logo) {
-    try { doc.addImage(logo, "PNG", 40, 32, 56, 56); } catch {}
-  }
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text("GOFORVISA", 110, 56);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text("Rasmiy jarima dalolatnomasi", 110, 74);
-
-  doc.setDrawColor(180);
-  doc.line(40, 100, pageW - 40, 100);
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text("JARIMA DALOLATNOMASI", pageW / 2, 130, { align: "center" });
+  drawHeader(doc, "JARIMA DALOLATNOMASI", "Rasmiy jarima dalolatnomasi", logo);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
-  doc.text(`Sana: ${fine.date}`, 40, 160);
-  doc.text(`Hujjat raqami: JR-${fine.date.replace(/-/g, "")}-${Math.floor(Math.random() * 9000 + 1000)}`, pageW - 40, 160, { align: "right" });
+  doc.setTextColor(60);
+  doc.text(`Sana: ${fine.date}`, 32, 128);
+  doc.text(
+    `Hujjat raqami: JR-${fine.date.replace(/-/g, "")}-${Math.floor(Math.random() * 9000 + 1000)}`,
+    pageW - 32, 128, { align: "right" },
+  );
+  doc.setTextColor(0);
 
   autoTable(doc, {
-    startY: 180,
+    startY: 150,
     head: [["Ko'rsatkich", "Qiymat"]],
     body: [
       ["Xodim", fine.employeeName],
@@ -128,35 +219,23 @@ async function generateFinePdf(fine: FineForPdf, approverName: string) {
       ["Sabab", fine.reason || "—"],
       ["Jarima summasi", `${new Intl.NumberFormat("uz-UZ").format(Math.round(fine.amount_uzs))} so'm`],
     ],
-    styles: { fontSize: 11, cellPadding: 8 },
+    styles: { fontSize: 11, cellPadding: 10, lineColor: [228, 230, 240], lineWidth: 0.4 },
     headStyles: { fillColor: [99, 102, 241], textColor: 255 },
-    columnStyles: { 0: { cellWidth: 180, fontStyle: "bold" } },
+    alternateRowStyles: { fillColor: [248, 249, 253] },
+    columnStyles: { 0: { cellWidth: 200, fontStyle: "bold", textColor: [60, 64, 90] } },
   });
 
   const finalY = (doc as any).lastAutoTable.finalY || 300;
-
   doc.setFontSize(10);
+  doc.setTextColor(60);
   doc.text(
     "Ushbu dalolatnoma asosida xodimga belgilangan miqdorda jarima qo'llanildi va",
-    40, finalY + 30,
+    32, finalY + 28,
   );
-  doc.text("tegishli hisobotlarga kiritildi.", 40, finalY + 46);
-
-  const sigY = finalY + 110;
-  doc.setFont("helvetica", "bold");
-  doc.text("Tasdiqladi:", 40, sigY);
-  doc.setFont("helvetica", "normal");
-  doc.text(approverName || "—", 40, sigY + 20);
-  doc.setDrawColor(120);
-  doc.line(40, sigY + 26, 260, sigY + 26);
-  doc.setFontSize(9);
-  doc.setTextColor(120);
-  doc.text("(F.I.Sh. va imzo)", 40, sigY + 40);
-
+  doc.text("tegishli hisobotlarga kiritildi.", 32, finalY + 44);
   doc.setTextColor(0);
-  doc.setFontSize(10);
-  doc.text("M.O'.", pageW - 80, sigY + 20);
 
+  drawSigners(doc, finalY + 100, signers, stamp);
   doc.save(`jarima-${fine.employeeName.replace(/\s+/g, "_")}-${fine.date}.pdf`);
 }
 
@@ -169,31 +248,25 @@ type MonthlyFine = { date: string; employee_id: string; amount_uzs: number };
 
 async function generateMonthlyPdf(
   year: number,
-  month: number, // 1-12
+  month: number,
   employees: { id: string; full_name: string }[],
   fines: MonthlyFine[],
-  approverName: string,
+  signers: Signers,
 ) {
   const daysInMonth = new Date(year, month, 0).getDate();
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const logo = await getLogoDataUrl();
+  const stamp = getStoredStamp();
 
-  if (logo) {
-    try { doc.addImage(logo, "PNG", 30, 24, 44, 44); } catch {}
-  }
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text("GOFORVISA", 84, 44);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.text("Oylik jarimalar hisoboti", 84, 58);
+  drawHeader(
+    doc,
+    `${UZ_MONTHS[month - 1]} ${year} — Jarimalar hisoboti`,
+    "Oylik jarimalar hisoboti",
+    logo,
+    `${UZ_MONTHS[month - 1]} ${year}`,
+  );
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(13);
-  doc.text(`${UZ_MONTHS[month - 1]} ${year}`, pageW / 2, 50, { align: "center" });
-
-  // Build matrix: employeeId -> day -> amount
   const matrix = new Map<string, Map<number, number>>();
   const totalsByEmp = new Map<string, number>();
   const totalsByDay = new Map<number, number>();
@@ -227,18 +300,19 @@ async function generateMonthlyPdf(
   totalRow.push(fmt(grandTotal));
 
   autoTable(doc, {
-    startY: 85,
+    startY: 115,
     head,
     body,
     foot: [totalRow],
-    styles: { fontSize: 6.5, cellPadding: 2, halign: "center", overflow: "linebreak" },
+    styles: { fontSize: 6.5, cellPadding: 2.5, halign: "center", overflow: "linebreak", lineColor: [228, 230, 240], lineWidth: 0.3 },
     headStyles: { fillColor: [99, 102, 241], textColor: 255, fontSize: 7 },
-    footStyles: { fillColor: [241, 245, 249], textColor: 0, fontStyle: "bold" },
-    columnStyles: { 0: { halign: "left", cellWidth: 90, fontStyle: "bold" } },
+    footStyles: { fillColor: [238, 240, 250], textColor: [20, 22, 48], fontStyle: "bold" },
+    alternateRowStyles: { fillColor: [250, 251, 254] },
+    columnStyles: { 0: { halign: "left", cellWidth: 100, fontStyle: "bold", textColor: [40, 44, 70] } },
     didParseCell: (data) => {
       if (data.section === "body" && data.column.index > 0 && data.column.index <= daysInMonth) {
         if (data.cell.raw === "0") {
-          data.cell.styles.textColor = [180, 180, 180];
+          data.cell.styles.textColor = [200, 204, 214];
         } else {
           data.cell.styles.textColor = [185, 28, 28];
           data.cell.styles.fontStyle = "bold";
@@ -248,29 +322,19 @@ async function generateMonthlyPdf(
   });
 
   const finalY = (doc as any).lastAutoTable.finalY || 400;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text("Tasdiqladi:", 40, finalY + 40);
-  doc.setFont("helvetica", "normal");
-  doc.text(approverName || "—", 40, finalY + 56);
-  doc.setDrawColor(120);
-  doc.line(40, finalY + 62, 240, finalY + 62);
-  doc.setFontSize(8);
-  doc.setTextColor(120);
-  doc.text("(F.I.Sh. va imzo)   M.O'.", 40, finalY + 74);
-
+  drawSigners(doc, finalY + 40, signers, stamp);
   doc.save(`jarima-${year}-${String(month).padStart(2, "0")}.pdf`);
 }
 
 // Per-employee monthly calendar PDF
 type EmpCalendarDay = {
   day: number;
-  weekday: number; // 0=Sun
+  weekday: number;
   isDayOff: boolean;
-  checkIn: string | null;   // "HH:MM" Tashkent
+  checkIn: string | null;
   fineAmount: number;
   minutesLate: number;
-  fineReason: string | null; // "late" | "absent" | null
+  fineReason: string | null;
 };
 
 async function generateEmployeeCalendarPdf(
@@ -279,52 +343,46 @@ async function generateEmployeeCalendarPdf(
   month: number,
   cells: EmpCalendarDay[],
   totals: { presentDays: number; fineDays: number; totalFine: number; daysInMonth: number },
+  signers: Signers,
 ) {
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const logo = await getLogoDataUrl();
+  const stamp = getStoredStamp();
 
-  if (logo) {
-    try { doc.addImage(logo, "PNG", 30, 24, 44, 44); } catch {}
-  }
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(14);
-  doc.text("GOFORVISA", 84, 44);
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.text("Ishchi davomati va jarimalari", 84, 58);
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(12);
-  doc.text(`${UZ_MONTHS_FULL[month - 1]} ${year}`, pageW - 40, 44, { align: "right" });
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(10);
-  doc.text(employeeName, pageW - 40, 60, { align: "right" });
+  drawHeader(
+    doc,
+    `${UZ_MONTHS_FULL[month - 1]} ${year}`,
+    "Ishchi davomati va jarimalari",
+    logo,
+    employeeName,
+  );
 
   // Summary strip
-  doc.setFillColor(245, 245, 250);
-  doc.rect(40, 80, pageW - 80, 36, "F");
+  doc.setFillColor(245, 246, 252);
+  doc.roundedRect(32, 118, pageW - 64, 50, 6, 6, "F");
   doc.setFontSize(9);
-  doc.setTextColor(80);
   const stats = [
     { l: "Kelgan kunlar", v: String(totals.presentDays) },
     { l: "Jarima kunlar", v: String(totals.fineDays) },
     { l: "Oydagi kunlar", v: String(totals.daysInMonth) },
     { l: "Jami jarima", v: `${fmt(totals.totalFine)} so'm` },
   ];
-  const colW = (pageW - 80) / stats.length;
+  const colW = (pageW - 64) / stats.length;
   stats.forEach((s, i) => {
-    const x = 40 + i * colW + 10;
+    const x = 32 + i * colW + 14;
     doc.setFont("helvetica", "normal");
-    doc.text(s.l, x, 95);
+    doc.setTextColor(110, 116, 140);
+    doc.text(s.l, x, 138);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(20);
-    doc.text(s.v, x, 110);
-    doc.setTextColor(80);
+    doc.setFontSize(12);
+    doc.setTextColor(20, 22, 48);
+    doc.text(s.v, x, 156);
+    doc.setFontSize(9);
   });
   doc.setTextColor(0);
 
-  // Calendar grid: 7 columns Sun..Sat
+  // Calendar grid: 7 columns
   const firstWd = new Date(year, month - 1, 1).getDay();
   const map = new Map<number, EmpCalendarDay>();
   cells.forEach(c => map.set(c.day, c));
@@ -352,20 +410,20 @@ async function generateEmployeeCalendarPdf(
   }));
 
   autoTable(doc, {
-    startY: 128,
+    startY: 188,
     head,
     body,
     styles: {
-      fontSize: 8,
-      cellPadding: 4,
+      fontSize: 8.5,
+      cellPadding: 5,
       halign: "left",
       valign: "top",
-      minCellHeight: 48,
-      lineColor: [200, 200, 210],
+      minCellHeight: 56,
+      lineColor: [220, 224, 236],
       lineWidth: 0.5,
     },
-    headStyles: { fillColor: [99, 102, 241], textColor: 255, halign: "center", fontSize: 8.5 },
-    columnStyles: Object.fromEntries(Array.from({ length: 7 }, (_, i) => [i, { cellWidth: (pageW - 80) / 7 }])),
+    headStyles: { fillColor: [99, 102, 241], textColor: 255, halign: "center", fontSize: 9 },
+    columnStyles: Object.fromEntries(Array.from({ length: 7 }, (_, i) => [i, { cellWidth: (pageW - 64) / 7 }])),
     didParseCell: (data) => {
       if (data.section !== "body") return;
       const r = rows[data.row.index];
@@ -373,56 +431,15 @@ async function generateEmployeeCalendarPdf(
       if (!c) { data.cell.styles.fillColor = [250, 250, 252]; return; }
       if (c.isDayOff) data.cell.styles.fillColor = [241, 245, 249];
       else if (c.fineAmount > 0) {
-        data.cell.styles.fillColor = [254, 226, 226];
+        data.cell.styles.fillColor = [254, 232, 232];
         data.cell.styles.textColor = [127, 29, 29];
       }
-      else if (c.checkIn) data.cell.styles.fillColor = [220, 252, 231];
+      else if (c.checkIn) data.cell.styles.fillColor = [223, 250, 232];
     },
   });
 
-  // Detail table
-  let y = (doc as any).lastAutoTable.finalY + 18;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.text("Kunlar ro'yxati", 40, y);
-  y += 6;
-
-  const WD = ["Yak", "Du", "Se", "Cho", "Pa", "Ju", "Sha"];
-  const detailBody = Array.from({ length: totals.daysInMonth }, (_, i) => {
-    const d = i + 1;
-    const c = map.get(d);
-    const date = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-    const wd = new Date(year, month - 1, d).getDay();
-    let status = "—";
-    if (c?.isDayOff) status = "Dam";
-    else if (c?.fineReason === "absent") status = "Kelmadi";
-    else if (c?.fineAmount && c.fineAmount > 0) status = "Kech";
-    else if (c?.checkIn) status = "Kelgan";
-    return [
-      date,
-      WD[wd],
-      status,
-      c?.checkIn || "—",
-      c?.minutesLate ? `${c.minutesLate} daq` : "—",
-      c?.fineAmount ? fmt(c.fineAmount) : "0",
-    ];
-  });
-
-  autoTable(doc, {
-    startY: y,
-    head: [["Sana", "Kun", "Holat", "Kelish", "Kechikish", "Jarima"]],
-    body: detailBody,
-    styles: { fontSize: 8, cellPadding: 3 },
-    headStyles: { fillColor: [99, 102, 241], textColor: 255, fontSize: 8.5 },
-    columnStyles: { 5: { halign: "right" } },
-    didParseCell: (data) => {
-      if (data.section === "body" && data.column.index === 5 && data.cell.raw !== "0") {
-        data.cell.styles.textColor = [185, 28, 28];
-        data.cell.styles.fontStyle = "bold";
-      }
-    },
-  });
-
+  const finalY = (doc as any).lastAutoTable.finalY || 500;
+  drawSigners(doc, finalY + 40, signers, stamp);
   doc.save(`davomat-${employeeName.replace(/\s+/g, "_")}-${year}-${String(month).padStart(2, "0")}.pdf`);
 }
 
@@ -489,13 +506,25 @@ function JarimaPage() {
     };
   }, [rawData, canSeeAll, myEmpId]);
 
-  const { data: approverName = "" } = useQuery({
-    queryKey: ["my-display-name", user?.id],
+  const { data: signers = { owner: "", ceo: "", admin: "" } } = useQuery<Signers>({
+    queryKey: ["pdf-signers", user?.id],
     queryFn: async () => {
-      if (!user) return "";
-      const { data } = await supabase
-        .from("profiles").select("display_name").eq("id", user.id).maybeSingle();
-      return data?.display_name || user.email || "";
+      const adminName = user
+        ? (await supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle())
+            .data?.display_name || user.email || ""
+        : "";
+      const { data: tgRows } = await supabase
+        .from("employee_telegram")
+        .select("bot_role, first_name, last_name, employee_id, employees(full_name)")
+        .in("bot_role", ["owner", "ceo"]);
+      const pick = (role: string) => {
+        const row = (tgRows || []).find((r: any) => r.bot_role === role);
+        if (!row) return "";
+        const empName = (row as any).employees?.full_name;
+        if (empName) return empName;
+        return [row.first_name, row.last_name].filter(Boolean).join(" ");
+      };
+      return { owner: pick("owner"), ceo: pick("ceo"), admin: adminName };
     },
     enabled: !!user,
   });
@@ -632,7 +661,7 @@ function JarimaPage() {
                   <MonthlyExport
                     fines={(data?.fines || []) as MonthlyFine[]}
                     employees={employees}
-                    approverName={approverName}
+                    signers={signers}
                   />
                 </div>
                 <div className="overflow-x-auto -mx-4 px-4">
@@ -662,7 +691,7 @@ function JarimaPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={async () => {
-                                  if (!confirm(`Jarimani tasdiqlaysizmi?\n\nXodim: ${name}\nSumma: ${fmt(f.amount_uzs)} so'm\n\nTasdiqlovchi: ${approverName}`)) return;
+                                  if (!confirm(`Jarimani tasdiqlaysizmi?\n\nXodim: ${name}\nSumma: ${fmt(f.amount_uzs)} so'm\n\nTasdiqlovchi: ${signers.admin}`)) return;
                                   try {
                                     await generateFinePdf({
                                       date: f.date,
@@ -670,7 +699,7 @@ function JarimaPage() {
                                       minutes_late: f.minutes_late,
                                       amount_uzs: f.amount_uzs,
                                       reason: f.reason,
-                                    }, approverName);
+                                    }, signers);
                                     toast.success("PDF tayyor");
                                   } catch (e: any) {
                                     toast.error(e?.message || "Xatolik");
@@ -696,7 +725,7 @@ function JarimaPage() {
 
             {/* === ISHCHI BO'YICHA === */}
             <TabsContent value="byEmployee">
-              <EmployeeMonthView employees={employees} />
+              <EmployeeMonthView employees={employees} signers={signers} />
             </TabsContent>
 
             {/* === AVANS === */}
@@ -720,6 +749,7 @@ function JarimaPage() {
             {/* === SOZLAMALAR === */}
             {isAdmin && (
               <TabsContent value="settings" className="space-y-4">
+                <StampSettings />
                 {/* Telegram bog'lash */}
                 <Card className="p-4">
                   <div className="flex items-center gap-2 mb-3">
@@ -1033,11 +1063,11 @@ function RuleRow({
 }
 
 function MonthlyExport({
-  fines, employees, approverName,
+  fines, employees, signers,
 }: {
   fines: MonthlyFine[];
   employees: Emp[];
-  approverName: string;
+  signers: Signers;
 }) {
   const now = new Date();
   const [year, setYear] = useState<number>(now.getFullYear());
@@ -1063,7 +1093,7 @@ function MonthlyExport({
         size="sm"
         onClick={async () => {
           try {
-            await generateMonthlyPdf(year, month, employees, fines, approverName);
+            await generateMonthlyPdf(year, month, employees, fines, signers);
             toast.success("Oylik PDF tayyor");
           } catch (e: any) {
             toast.error(e?.message || "Xatolik");
@@ -1086,7 +1116,7 @@ const UZ_MONTHS_FULL = [
   "Iyul","Avgust","Sentyabr","Oktyabr","Noyabr","Dekabr",
 ];
 
-function EmployeeMonthView({ employees }: { employees: Emp[] }) {
+function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: Signers }) {
   const now = new Date();
   const [empId, setEmpId] = useState<string>("");
   const [year, setYear] = useState<number>(now.getFullYear());
@@ -1255,7 +1285,7 @@ function EmployeeMonthView({ employees }: { employees: Emp[] }) {
                 });
                 await generateEmployeeCalendarPdf(emp.full_name, year, month, pdfCells, {
                   presentDays, fineDays: fineCount, totalFine, daysInMonth: days,
-                });
+                }, signers);
                 toast.success("PDF tayyor");
               } catch (e: any) {
                 toast.error(e?.message || "Xatolik");
@@ -1765,5 +1795,60 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function StampSettings() {
+  const [stamp, setStamp] = useState<string | null>(() => getStoredStamp());
+
+  const onFile = (file: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Faqat rasm fayli (PNG/JPG)");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = reader.result as string;
+      setStoredStamp(url);
+      setStamp(url);
+      toast.success("Pechat saqlandi");
+    };
+    reader.readAsDataURL(file);
+  };
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center gap-2 mb-3">
+        <FileText className="h-4 w-4" />
+        <span className="font-medium text-sm md:text-base">Kompaniya pechati (PDF uchun)</span>
+      </div>
+      <p className="text-xs text-muted-foreground mb-3">
+        Yuklangan pechat rasmi barcha jarima va davomat PDF hisobotlarida imzo joyiga avtomat qo'shiladi.
+        Eng yaxshi natija uchun PNG (shaffof fon) tavsiya qilinadi.
+      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <Input
+          type="file"
+          accept="image/*"
+          onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+          className="max-w-xs"
+        />
+        {stamp && (
+          <>
+            <div className="border rounded-md p-2 bg-white">
+              <img src={stamp} alt="Pechat" className="h-20 w-20 object-contain" />
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => { setStoredStamp(null); setStamp(null); toast.success("Pechat o'chirildi"); }}
+            >
+              O'chirish
+            </Button>
+          </>
+        )}
+      </div>
+    </Card>
   );
 }
