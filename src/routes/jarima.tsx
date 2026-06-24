@@ -661,7 +661,7 @@ function JarimaPage() {
                   <MonthlyExport
                     fines={(data?.fines || []) as MonthlyFine[]}
                     employees={employees}
-                    approverName={approverName}
+                    signers={signers}
                   />
                 </div>
                 <div className="overflow-x-auto -mx-4 px-4">
