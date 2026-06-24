@@ -725,7 +725,7 @@ function JarimaPage() {
 
             {/* === ISHCHI BO'YICHA === */}
             <TabsContent value="byEmployee">
-              <EmployeeMonthView employees={employees} />
+              <EmployeeMonthView employees={employees} signers={signers} />
             </TabsContent>
 
             {/* === AVANS === */}
