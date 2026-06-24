@@ -749,6 +749,7 @@ function JarimaPage() {
             {/* === SOZLAMALAR === */}
             {isAdmin && (
               <TabsContent value="settings" className="space-y-4">
+                <StampSettings />
                 {/* Telegram bog'lash */}
                 <Card className="p-4">
                   <div className="flex items-center gap-2 mb-3">
