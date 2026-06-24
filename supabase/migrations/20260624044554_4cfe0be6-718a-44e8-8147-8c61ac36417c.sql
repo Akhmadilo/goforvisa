@@ -1,0 +1,2 @@
+DELETE FROM public.work_reports a USING public.work_reports b WHERE a.ctid < b.ctid AND a.employee_id = b.employee_id AND a.date = b.date;
+CREATE UNIQUE INDEX IF NOT EXISTS work_reports_employee_date_uniq ON public.work_reports (employee_id, date);

@@ -23,6 +23,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
+import { Route as ApiPublicHooksWorkReportReminderRouteImport } from './routes/api/public/hooks/work-report-reminder'
 
 const XarajatlarRoute = XarajatlarRouteImport.update({
   id: '/xarajatlar',
@@ -95,6 +96,12 @@ const ApiPublicTelegramWebhookRoute =
     path: '/api/public/telegram/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksWorkReportReminderRoute =
+  ApiPublicHooksWorkReportReminderRouteImport.update({
+    id: '/api/public/hooks/work-report-reminder',
+    path: '/api/public/hooks/work-report-reminder',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/shartnomalar': typeof ShartnomalarRoute
   '/trust': typeof TrustRoute
   '/xarajatlar': typeof XarajatlarRoute
+  '/api/public/hooks/work-report-reminder': typeof ApiPublicHooksWorkReportReminderRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRoutesByTo {
@@ -126,6 +134,7 @@ export interface FileRoutesByTo {
   '/shartnomalar': typeof ShartnomalarRoute
   '/trust': typeof TrustRoute
   '/xarajatlar': typeof XarajatlarRoute
+  '/api/public/hooks/work-report-reminder': typeof ApiPublicHooksWorkReportReminderRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRoutesById {
@@ -143,6 +152,7 @@ export interface FileRoutesById {
   '/shartnomalar': typeof ShartnomalarRoute
   '/trust': typeof TrustRoute
   '/xarajatlar': typeof XarajatlarRoute
+  '/api/public/hooks/work-report-reminder': typeof ApiPublicHooksWorkReportReminderRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
 export interface FileRouteTypes {
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/shartnomalar'
     | '/trust'
     | '/xarajatlar'
+    | '/api/public/hooks/work-report-reminder'
     | '/api/public/telegram/webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -177,6 +188,7 @@ export interface FileRouteTypes {
     | '/shartnomalar'
     | '/trust'
     | '/xarajatlar'
+    | '/api/public/hooks/work-report-reminder'
     | '/api/public/telegram/webhook'
   id:
     | '__root__'
@@ -193,6 +205,7 @@ export interface FileRouteTypes {
     | '/shartnomalar'
     | '/trust'
     | '/xarajatlar'
+    | '/api/public/hooks/work-report-reminder'
     | '/api/public/telegram/webhook'
   fileRoutesById: FileRoutesById
 }
@@ -210,6 +223,7 @@ export interface RootRouteChildren {
   ShartnomalarRoute: typeof ShartnomalarRoute
   TrustRoute: typeof TrustRoute
   XarajatlarRoute: typeof XarajatlarRoute
+  ApiPublicHooksWorkReportReminderRoute: typeof ApiPublicHooksWorkReportReminderRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
 }
 
@@ -313,6 +327,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicTelegramWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/work-report-reminder': {
+      id: '/api/public/hooks/work-report-reminder'
+      path: '/api/public/hooks/work-report-reminder'
+      fullPath: '/api/public/hooks/work-report-reminder'
+      preLoaderRoute: typeof ApiPublicHooksWorkReportReminderRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -330,6 +351,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShartnomalarRoute: ShartnomalarRoute,
   TrustRoute: TrustRoute,
   XarajatlarRoute: XarajatlarRoute,
+  ApiPublicHooksWorkReportReminderRoute: ApiPublicHooksWorkReportReminderRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
 }
 export const routeTree = rootRouteImport

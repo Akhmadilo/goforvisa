@@ -478,25 +478,37 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                 const { data: emp } = await sb()
                   .from("employees").select("full_name").eq("id", tgRow.employee_id).maybeSingle();
                 const date = todayDate();
-                const { data: ins, error: insErr } = await sb()
-                  .from("work_reports")
-                  .insert({
-                    employee_id: tgRow.employee_id,
-                    telegram_id: tgId,
-                    date,
-                    content,
-                  })
-                  .select("id").maybeSingle();
-                await resetState();
-                if (insErr || !ins) {
-                  await tg("sendMessage", { chat_id: chatId, text: `❗️ Xatolik: ${insErr?.message || "saqlanmadi"}`, reply_markup: MAIN_KB });
-                } else {
+                const { data: dup } = await sb()
+                  .from("work_reports").select("id")
+                  .eq("employee_id", tgRow.employee_id).eq("date", date).maybeSingle();
+                if (dup) {
+                  await resetState();
                   await tg("sendMessage", {
                     chat_id: chatId,
-                    text: `✅ Bajarilgan ishlar qabul qilindi!\n\n📆 Sana: ${date}\n\nDirektor va Ownerga yuborildi.`,
+                    text: "ℹ️ Bugungi hisobotingiz allaqachon qabul qilingan. Bir kunda faqat bir marta to'ldirish mumkin.",
                     reply_markup: MAIN_KB,
                   });
-                  await notifyDirectorsAboutWorkReport(ins.id, emp?.full_name || "—", date, content);
+                } else {
+                  const { data: ins, error: insErr } = await sb()
+                    .from("work_reports")
+                    .insert({
+                      employee_id: tgRow.employee_id,
+                      telegram_id: tgId,
+                      date,
+                      content,
+                    })
+                    .select("id").maybeSingle();
+                  await resetState();
+                  if (insErr || !ins) {
+                    await tg("sendMessage", { chat_id: chatId, text: `❗️ Xatolik: ${insErr?.message || "saqlanmadi"}`, reply_markup: MAIN_KB });
+                  } else {
+                    await tg("sendMessage", {
+                      chat_id: chatId,
+                      text: `✅ Bajarilgan ishlar qabul qilindi!\n\n📆 Sana: ${date}\n\nDirektor va Ownerga yuborildi.`,
+                      reply_markup: MAIN_KB,
+                    });
+                    await notifyDirectorsAboutWorkReport(ins.id, emp?.full_name || "—", date, content);
+                  }
                 }
               }
             } else if (text.startsWith("/start")) {
@@ -528,12 +540,23 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                   reply_markup: MAIN_KB,
                 });
               } else {
-                await setState({ step: "await_work_report" });
-                await tg("sendMessage", {
-                  chat_id: chatId,
-                  text: "📋 Bugun bajargan ishlaringizni batafsil yozing:",
-                  reply_markup: CANCEL_KB,
-                });
+                const { data: already } = await sb()
+                  .from("work_reports").select("id, content")
+                  .eq("employee_id", tgRow.employee_id).eq("date", todayDate()).maybeSingle();
+                if (already) {
+                  await tg("sendMessage", {
+                    chat_id: chatId,
+                    text: `ℹ️ Bugungi hisobotingiz allaqachon qabul qilingan. Bir kunda faqat bir marta to'ldirish mumkin.\n\n📝 Yuborilgan:\n${(already.content as string).slice(0, 1500)}`,
+                    reply_markup: MAIN_KB,
+                  });
+                } else {
+                  await setState({ step: "await_work_report" });
+                  await tg("sendMessage", {
+                    chat_id: chatId,
+                    text: "📋 Bugun bajargan ishlaringizni batafsil yozing:",
+                    reply_markup: CANCEL_KB,
+                  });
+                }
               }
             } else if (text.startsWith("/chatid") || text.startsWith("/id")) {
               await tg("sendMessage", {
