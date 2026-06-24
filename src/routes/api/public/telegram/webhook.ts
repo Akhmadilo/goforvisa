@@ -528,12 +528,23 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                   reply_markup: MAIN_KB,
                 });
               } else {
-                await setState({ step: "await_work_report" });
-                await tg("sendMessage", {
-                  chat_id: chatId,
-                  text: "📋 Bugun bajargan ishlaringizni batafsil yozing:",
-                  reply_markup: CANCEL_KB,
-                });
+                const { data: already } = await sb()
+                  .from("work_reports").select("id, content")
+                  .eq("employee_id", tgRow.employee_id).eq("date", todayDate()).maybeSingle();
+                if (already) {
+                  await tg("sendMessage", {
+                    chat_id: chatId,
+                    text: `ℹ️ Bugungi hisobotingiz allaqachon qabul qilingan. Bir kunda faqat bir marta to'ldirish mumkin.\n\n📝 Yuborilgan:\n${(already.content as string).slice(0, 1500)}`,
+                    reply_markup: MAIN_KB,
+                  });
+                } else {
+                  await setState({ step: "await_work_report" });
+                  await tg("sendMessage", {
+                    chat_id: chatId,
+                    text: "📋 Bugun bajargan ishlaringizni batafsil yozing:",
+                    reply_markup: CANCEL_KB,
+                  });
+                }
               }
             } else if (text.startsWith("/chatid") || text.startsWith("/id")) {
               await tg("sendMessage", {
