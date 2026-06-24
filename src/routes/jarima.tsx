@@ -506,13 +506,25 @@ function JarimaPage() {
     };
   }, [rawData, canSeeAll, myEmpId]);
 
-  const { data: approverName = "" } = useQuery({
-    queryKey: ["my-display-name", user?.id],
+  const { data: signers = { owner: "", ceo: "", admin: "" } } = useQuery<Signers>({
+    queryKey: ["pdf-signers", user?.id],
     queryFn: async () => {
-      if (!user) return "";
-      const { data } = await supabase
-        .from("profiles").select("display_name").eq("id", user.id).maybeSingle();
-      return data?.display_name || user.email || "";
+      const adminName = user
+        ? (await supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle())
+            .data?.display_name || user.email || ""
+        : "";
+      const { data: tgRows } = await supabase
+        .from("employee_telegram")
+        .select("bot_role, first_name, last_name, employee_id, employees(full_name)")
+        .in("bot_role", ["owner", "ceo"]);
+      const pick = (role: string) => {
+        const row = (tgRows || []).find((r: any) => r.bot_role === role);
+        if (!row) return "";
+        const empName = (row as any).employees?.full_name;
+        if (empName) return empName;
+        return [row.first_name, row.last_name].filter(Boolean).join(" ");
+      };
+      return { owner: pick("owner"), ceo: pick("ceo"), admin: adminName };
     },
     enabled: !!user,
   });
