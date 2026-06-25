@@ -403,6 +403,7 @@ function Dashboard() {
     const today = new Date();
     return filtered
       .filter((c) => c.payment === "Partially" || c.payment === "No payment")
+      .filter((c) => (c.visaResult ?? "").trim() !== "To'xtatildi")
       .map((c) => {
         const date = parseContractDate(c.contractDate);
         const days = date ? daysBetween(today, date) : 0;
