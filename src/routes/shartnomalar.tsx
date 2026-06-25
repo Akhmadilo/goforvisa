@@ -718,16 +718,17 @@ function ShartnomalarPage() {
                       })}
                     </TableBody>
                     {filtered.length > 0 && (() => {
-                      const totals = filtered.reduce(
-                        (a, c) => {
-                          const paid = paidUsdByContract.get(c.id) ?? 0;
-                          const price = Number(c.price_usd || 0);
-                          a.price += price;
-                          a.paid += paid;
-                          a.remaining += Math.max(0, price - paid);
-                          a.people += Number(c.people || 0);
-                          return a;
-                        },
+                       const totals = filtered.reduce(
+                         (a, c) => {
+                           const paid = paidUsdByContract.get(c.id) ?? 0;
+                           const price = Number(c.price_usd || 0);
+                           const isStopped = c.visa_result === "To'xtatildi";
+                           a.price += price;
+                           a.paid += paid;
+                           a.remaining += isStopped ? 0 : Math.max(0, price - paid);
+                           a.people += Number(c.people || 0);
+                           return a;
+                         },
                         { price: 0, paid: 0, remaining: 0, people: 0 },
                       );
                       return (
