@@ -449,6 +449,7 @@ const dict = {
     "visa.Topshirildi": "Topshirildi",
     "visa.Jarayonda": "Jarayonda",
     "visa.BekorQilindi": "Bekor qilindi",
+    "visa.Toxtatildi": "To'xtatildi",
     "contracts.toast.confirmDelete": "O'chirilsinmi: {name}?",
     "contracts.toast.nameRequired": "Ism familiya majburiy",
     "contracts.toast.priceRequired": "Shartnoma narxi majburiy (UZS yoki USD)",
