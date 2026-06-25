@@ -473,7 +473,7 @@ function ShartnomalarPage() {
     <div className="min-h-screen bg-background">
       <AppSidebar />
       <main className="md:pl-56">
-        <div className="container mx-auto px-4 sm:px-6 py-4 md:py-6 space-y-4">
+        <div className="w-full max-w-none px-2 sm:px-4 py-4 md:py-6 space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-2 md:gap-3">
             <div className="pl-10 md:pl-0">
               <h1 className="text-base md:text-xl font-bold">{t("nav.contracts")}</h1>
