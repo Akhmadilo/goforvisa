@@ -97,18 +97,6 @@ export type Signers = {
   admin: string;
 };
 
-const STAMP_KEY = "company_stamp_v1";
-export function getStoredStamp(): string | null {
-  if (typeof window === "undefined") return null;
-  try { return localStorage.getItem(STAMP_KEY); } catch { return null; }
-}
-export function setStoredStamp(dataUrl: string | null) {
-  if (typeof window === "undefined") return;
-  try {
-    if (dataUrl) localStorage.setItem(STAMP_KEY, dataUrl);
-    else localStorage.removeItem(STAMP_KEY);
-  } catch {}
-}
 
 function drawHeader(doc: jsPDF, title: string, subtitle: string, logo: string | null, rightText?: string) {
   const pageW = doc.internal.pageSize.getWidth();
@@ -146,7 +134,7 @@ function drawHeader(doc: jsPDF, title: string, subtitle: string, logo: string | 
   doc.setTextColor(0, 0, 0);
 }
 
-function drawSigners(doc: jsPDF, y: number, signers: Signers, stamp: string | null) {
+function drawSigners(doc: jsPDF, y: number, signers: Signers) {
   const pageW = doc.internal.pageSize.getWidth();
   const cols: { role: string; name: string }[] = [
     { role: "Owner", name: signers.owner || "—" },
@@ -173,22 +161,12 @@ function drawSigners(doc: jsPDF, y: number, signers: Signers, stamp: string | nu
     doc.setTextColor(20, 22, 48);
     doc.text(c.name, x, y + 18);
 
-    // signature line
     doc.line(x, y + 56, x + w, y + 56);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(140, 144, 160);
     doc.text("Imzo / Sana", x, y + 68);
   });
-
-  // overlay stamp on the middle column (CEO) if available
-  if (stamp) {
-    try {
-      const sx = margin + colW + colW / 2 - 38;
-      const sy = y + 8;
-      doc.addImage(stamp, "PNG", sx, sy, 76, 76);
-    } catch {}
-  }
   doc.setTextColor(0, 0, 0);
 }
 
@@ -1798,57 +1776,3 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
   );
 }
 
-function StampSettings() {
-  const [stamp, setStamp] = useState<string | null>(() => getStoredStamp());
-
-  const onFile = (file: File | null) => {
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      toast.error("Faqat rasm fayli (PNG/JPG)");
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const url = reader.result as string;
-      setStoredStamp(url);
-      setStamp(url);
-      toast.success("Pechat saqlandi");
-    };
-    reader.readAsDataURL(file);
-  };
-
-  return (
-    <Card className="p-4">
-      <div className="flex items-center gap-2 mb-3">
-        <FileText className="h-4 w-4" />
-        <span className="font-medium text-sm md:text-base">Kompaniya pechati (PDF uchun)</span>
-      </div>
-      <p className="text-xs text-muted-foreground mb-3">
-        Yuklangan pechat rasmi barcha jarima va davomat PDF hisobotlarida imzo joyiga avtomat qo'shiladi.
-        Eng yaxshi natija uchun PNG (shaffof fon) tavsiya qilinadi.
-      </p>
-      <div className="flex flex-wrap items-center gap-3">
-        <Input
-          type="file"
-          accept="image/*"
-          onChange={(e) => onFile(e.target.files?.[0] ?? null)}
-          className="max-w-xs"
-        />
-        {stamp && (
-          <>
-            <div className="border rounded-md p-2 bg-white">
-              <img src={stamp} alt="Pechat" className="h-20 w-20 object-contain" />
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => { setStoredStamp(null); setStamp(null); toast.success("Pechat o'chirildi"); }}
-            >
-              O'chirish
-            </Button>
-          </>
-        )}
-      </div>
-    </Card>
-  );
-}
