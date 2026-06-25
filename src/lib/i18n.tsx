@@ -891,6 +891,7 @@ const dict = {
     "visa.Topshirildi": "Submitted",
     "visa.Jarayonda": "In progress",
     "visa.BekorQilindi": "Cancelled",
+    "visa.Toxtatildi": "Stopped",
     "contracts.toast.confirmDelete": "Delete {name}?",
     "contracts.toast.nameRequired": "Full name is required",
     "contracts.toast.priceRequired": "Contract price is required (UZS or USD)",
