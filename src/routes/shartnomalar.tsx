@@ -961,6 +961,7 @@ function visaResultColor(result: string | null) {
     case "Topshirildi": return "bg-sky-500";
     case "Jarayonda": return "bg-amber-500";
     case "Bekor qilindi": return "bg-slate-400";
+    case "To'xtatildi": return "bg-zinc-500";
     default: return "bg-muted";
   }
 }
@@ -971,6 +972,7 @@ const VISA_I18N_KEY: Record<string, string> = {
   "Topshirildi": "visa.Topshirildi",
   "Jarayonda": "visa.Jarayonda",
   "Bekor qilindi": "visa.BekorQilindi",
+  "To'xtatildi": "visa.Toxtatildi",
 };
 function visaLabel(value: string | null, t: (k: any) => string) {
   if (!value) return "";
