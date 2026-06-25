@@ -174,7 +174,6 @@ async function generateFinePdf(fine: FineForPdf, signers: Signers) {
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const logo = await getLogoDataUrl();
-  const stamp = getStoredStamp();
 
   drawHeader(doc, "JARIMA DALOLATNOMASI", "Rasmiy jarima dalolatnomasi", logo);
 
@@ -213,7 +212,7 @@ async function generateFinePdf(fine: FineForPdf, signers: Signers) {
   doc.text("tegishli hisobotlarga kiritildi.", 32, finalY + 44);
   doc.setTextColor(0);
 
-  drawSigners(doc, finalY + 100, signers, stamp);
+  drawSigners(doc, finalY + 100, signers);
   doc.save(`jarima-${fine.employeeName.replace(/\s+/g, "_")}-${fine.date}.pdf`);
 }
 
@@ -235,7 +234,6 @@ async function generateMonthlyPdf(
   const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const logo = await getLogoDataUrl();
-  const stamp = getStoredStamp();
 
   drawHeader(
     doc,
@@ -300,7 +298,7 @@ async function generateMonthlyPdf(
   });
 
   const finalY = (doc as any).lastAutoTable.finalY || 400;
-  drawSigners(doc, finalY + 40, signers, stamp);
+  drawSigners(doc, finalY + 40, signers);
   doc.save(`jarima-${year}-${String(month).padStart(2, "0")}.pdf`);
 }
 
@@ -326,7 +324,6 @@ async function generateEmployeeCalendarPdf(
   const doc = new jsPDF({ orientation: "portrait", unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const logo = await getLogoDataUrl();
-  const stamp = getStoredStamp();
 
   drawHeader(
     doc,
@@ -417,7 +414,7 @@ async function generateEmployeeCalendarPdf(
   });
 
   const finalY = (doc as any).lastAutoTable.finalY || 500;
-  drawSigners(doc, finalY + 40, signers, stamp);
+  drawSigners(doc, finalY + 40, signers);
   doc.save(`davomat-${employeeName.replace(/\s+/g, "_")}-${year}-${String(month).padStart(2, "0")}.pdf`);
 }
 
@@ -727,7 +724,6 @@ function JarimaPage() {
             {/* === SOZLAMALAR === */}
             {isAdmin && (
               <TabsContent value="settings" className="space-y-4">
-                <StampSettings />
                 {/* Telegram bog'lash */}
                 <Card className="p-4">
                   <div className="flex items-center gap-2 mb-3">
