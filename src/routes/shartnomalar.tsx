@@ -41,7 +41,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUsdRates } from "@/lib/usd-rates";
 import { cn } from "@/lib/utils";
 
-const VISA_RESULTS = ["Topshirildi", "Olindi", "Rad etildi", "Jarayonda", "Bekor qilindi"] as const;
+const VISA_RESULTS = ["Topshirildi", "Olindi", "Rad etildi", "Jarayonda", "Bekor qilindi", "To'xtatildi"] as const;
 
 export const Route = createFileRoute("/shartnomalar")({
   component: ShartnomalarPage,
@@ -625,9 +625,11 @@ function ShartnomalarPage() {
                                 ? "bg-sky-100/60 hover:bg-sky-200/60 dark:bg-sky-950/30 dark:hover:bg-sky-950/50 border-l-4 border-l-sky-500"
                                 : c.visa_result === "Jarayonda"
                                   ? "bg-amber-100/60 hover:bg-amber-200/60 dark:bg-amber-950/30 dark:hover:bg-amber-950/50 border-l-4 border-l-amber-500"
-                                  : c.visa_result === "Bekor qilindi"
+                                : c.visa_result === "Bekor qilindi"
                                     ? "bg-slate-100/60 hover:bg-slate-200/60 dark:bg-slate-950/30 dark:hover:bg-slate-950/50 border-l-4 border-l-slate-400"
-                                    : "border-l-4 border-l-transparent";
+                                    : c.visa_result === "To'xtatildi"
+                                      ? "bg-zinc-100/60 hover:bg-zinc-200/60 dark:bg-zinc-900/40 dark:hover:bg-zinc-900/60 border-l-4 border-l-zinc-500"
+                                      : "border-l-4 border-l-transparent";
                         const stop = (e: React.MouseEvent) => e.stopPropagation();
                         return (
                           <TableRow
@@ -664,7 +666,7 @@ function ShartnomalarPage() {
                               ${fmt(paidUsd)}
                             </TableCell>
                             <TableCell className="text-right tabular-nums font-medium text-destructive">
-                              ${fmt(remainingUsd)}
+                              {c.visa_result === "To'xtatildi" ? <span className="text-muted-foreground">—</span> : `$${fmt(remainingUsd)}`}
                             </TableCell>
                             <TableCell>
                               <Badge variant={variant as "default" | "secondary" | "destructive" | "outline"}>{status}</Badge>
@@ -716,16 +718,17 @@ function ShartnomalarPage() {
                       })}
                     </TableBody>
                     {filtered.length > 0 && (() => {
-                      const totals = filtered.reduce(
-                        (a, c) => {
-                          const paid = paidUsdByContract.get(c.id) ?? 0;
-                          const price = Number(c.price_usd || 0);
-                          a.price += price;
-                          a.paid += paid;
-                          a.remaining += Math.max(0, price - paid);
-                          a.people += Number(c.people || 0);
-                          return a;
-                        },
+                       const totals = filtered.reduce(
+                         (a, c) => {
+                           const paid = paidUsdByContract.get(c.id) ?? 0;
+                           const price = Number(c.price_usd || 0);
+                           const isStopped = c.visa_result === "To'xtatildi";
+                           a.price += price;
+                           a.paid += paid;
+                           a.remaining += isStopped ? 0 : Math.max(0, price - paid);
+                           a.people += Number(c.people || 0);
+                           return a;
+                         },
                         { price: 0, paid: 0, remaining: 0, people: 0 },
                       );
                       return (
@@ -958,6 +961,7 @@ function visaResultColor(result: string | null) {
     case "Topshirildi": return "bg-sky-500";
     case "Jarayonda": return "bg-amber-500";
     case "Bekor qilindi": return "bg-slate-400";
+    case "To'xtatildi": return "bg-zinc-500";
     default: return "bg-muted";
   }
 }
@@ -968,6 +972,7 @@ const VISA_I18N_KEY: Record<string, string> = {
   "Topshirildi": "visa.Topshirildi",
   "Jarayonda": "visa.Jarayonda",
   "Bekor qilindi": "visa.BekorQilindi",
+  "To'xtatildi": "visa.Toxtatildi",
 };
 function visaLabel(value: string | null, t: (k: any) => string) {
   if (!value) return "";
