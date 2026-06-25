@@ -625,9 +625,11 @@ function ShartnomalarPage() {
                                 ? "bg-sky-100/60 hover:bg-sky-200/60 dark:bg-sky-950/30 dark:hover:bg-sky-950/50 border-l-4 border-l-sky-500"
                                 : c.visa_result === "Jarayonda"
                                   ? "bg-amber-100/60 hover:bg-amber-200/60 dark:bg-amber-950/30 dark:hover:bg-amber-950/50 border-l-4 border-l-amber-500"
-                                  : c.visa_result === "Bekor qilindi"
+                                : c.visa_result === "Bekor qilindi"
                                     ? "bg-slate-100/60 hover:bg-slate-200/60 dark:bg-slate-950/30 dark:hover:bg-slate-950/50 border-l-4 border-l-slate-400"
-                                    : "border-l-4 border-l-transparent";
+                                    : c.visa_result === "To'xtatildi"
+                                      ? "bg-zinc-100/60 hover:bg-zinc-200/60 dark:bg-zinc-900/40 dark:hover:bg-zinc-900/60 border-l-4 border-l-zinc-500"
+                                      : "border-l-4 border-l-transparent";
                         const stop = (e: React.MouseEvent) => e.stopPropagation();
                         return (
                           <TableRow
