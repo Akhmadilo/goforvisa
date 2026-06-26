@@ -23,7 +23,9 @@ function parseNum(v: unknown): number {
   return isNaN(n) ? 0 : n;
 }
 
-export const getWages = createServerFn({ method: "GET" }).handler(
+export const getWages = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(
   async (): Promise<WageRow[]> => {
     const lovableKey = process.env.LOVABLE_API_KEY;
     const sheetsKey = process.env.GOOGLE_SHEETS_API_KEY;
