@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const SHEET_ID = "1i8QxmY1pVni1Hq4tGz7YBcQOiYMAyfxWen9z92F4kpI";
 const RANGE = "Mijozlar bazasi!A1:W2000";
@@ -38,7 +39,9 @@ function parseNum(v: string | undefined): number {
   return isNaN(n) ? 0 : n;
 }
 
-export const getContracts = createServerFn({ method: "GET" }).handler(
+export const getContracts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(
   async (): Promise<Contract[]> => {
     const lovableKey = process.env.LOVABLE_API_KEY;
     const sheetsKey = process.env.GOOGLE_SHEETS_API_KEY;

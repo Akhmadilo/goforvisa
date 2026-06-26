@@ -107,6 +107,9 @@ export const ceoDecideAdvance = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const c = context.supabase;
+    const { data: isCeo } = await c.rpc("has_role", { _user_id: context.userId, _role: "owner_ceo" });
+    const { data: isAdminCeo } = await c.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isCeo && !isAdminCeo) throw new Error("Faqat direktor/CEO tasdiqlashi mumkin");
     const { data: row, error: e1 } = await c
       .from("advance_requests").select("*").eq("id", data.id).maybeSingle();
     if (e1 || !row) throw new Error(e1?.message || "So'rov topilmadi");
@@ -149,6 +152,9 @@ export const financeDecideAdvance = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const c = context.supabase;
+    const { data: isFin } = await c.rpc("has_role", { _user_id: context.userId, _role: "financier" });
+    const { data: isAdminFin } = await c.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isFin && !isAdminFin) throw new Error("Faqat moliyachi tasdiqlashi mumkin");
     const { data: row, error: e1 } = await c
       .from("advance_requests").select("*").eq("id", data.id).maybeSingle();
     if (e1 || !row) throw new Error(e1?.message || "So'rov topilmadi");
@@ -185,6 +191,9 @@ export const markAdvancePaid = createServerFn({ method: "POST" })
   .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const c = context.supabase;
+    const { data: isFin } = await c.rpc("has_role", { _user_id: context.userId, _role: "financier" });
+    const { data: isAdmin } = await c.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isFin && !isAdmin) throw new Error("Faqat moliyachi yoki admin to'lay oladi");
     const { data: row, error: e1 } = await c
       .from("advance_requests").select("*").eq("id", data.id).maybeSingle();
     if (e1 || !row) throw new Error(e1?.message || "So'rov topilmadi");
