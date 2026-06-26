@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const SHEET_ID = "1xRKmp5jkYN3hOdcSM6SEDZuG0a_2FaIPi-lQ2nL0IVc";
 const RANGE = "Wages!A1:G500";
