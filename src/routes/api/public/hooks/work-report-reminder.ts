@@ -21,7 +21,16 @@ const CEO_ROLES = ["owner", "ceo", "director", "financier"];
 export const Route = createFileRoute("/api/public/hooks/work-report-reminder")({
   server: {
     handlers: {
-      POST: async () => {
+      POST: async ({ request }) => {
+        // Require Supabase anon key as apikey header (cron job standard)
+        const expected = process.env.SUPABASE_PUBLISHABLE_KEY;
+        const provided =
+          request.headers.get("apikey") ||
+          request.headers.get("x-hook-secret") ||
+          "";
+        if (!expected || provided !== expected) {
+          return new Response("Unauthorized", { status: 401 });
+        }
         const sb = createClient(
           process.env.SUPABASE_URL!,
           process.env.SUPABASE_SERVICE_ROLE_KEY!,
