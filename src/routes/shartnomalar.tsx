@@ -568,6 +568,21 @@ function ShartnomalarPage() {
                   renderOption={(v) => visaLabel(v, t)}
                 />
 
+                <FilterSelect
+                  label={t("contracts.col.status")}
+                  value={fPayment}
+                  onChange={setFPayment}
+                  options={["paid", "partial", "unpaid"]}
+                  allLabel={t("common.all")}
+                  renderOption={(v) =>
+                    v === "paid"
+                      ? t("contracts.status.paid")
+                      : v === "partial"
+                        ? t("contracts.status.partial")
+                        : t("contracts.status.unpaid")
+                  }
+                />
+
                 {activeFilterCount > 0 && (
                   <Button variant="ghost" size="sm" onClick={clearFilters}>
                     {t("common.clear")} ({activeFilterCount})
