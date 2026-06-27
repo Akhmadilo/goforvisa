@@ -243,6 +243,7 @@ function ShartnomalarPage() {
   const [fCall, setFCall] = useState<string>("all");
   const [fCompany, setFCompany] = useState<string>("all");
   const [fVisa, setFVisa] = useState<string>("all");
+  const [fPayment, setFPayment] = useState<string>("all");
   const rows = data ?? [];
 
   const uniq = (vals: (string | null | undefined)[]) =>
@@ -268,7 +269,8 @@ function ShartnomalarPage() {
     (fBack !== "all" ? 1 : 0) +
     (fCall !== "all" ? 1 : 0) +
     (fCompany !== "all" ? 1 : 0) +
-    (fVisa !== "all" ? 1 : 0);
+    (fVisa !== "all" ? 1 : 0) +
+    (fPayment !== "all" ? 1 : 0);
 
   const clearFilters = () => {
     setFYear("all");
@@ -278,6 +280,7 @@ function ShartnomalarPage() {
     setFCall("all");
     setFCompany("all");
     setFVisa("all");
+    setFPayment("all");
   };
 
   const filtered = useMemo(() => {
@@ -290,6 +293,13 @@ function ShartnomalarPage() {
       if (fCall !== "all" && (c.call_centre ?? "") !== fCall) return false;
       if (fCompany !== "all" && (c.company ?? "") !== fCompany) return false;
       if (fVisa !== "all" && (c.visa_result ?? "") !== fVisa) return false;
+      if (fPayment !== "all") {
+        const total = Number(c.price_usd || 0);
+        const paid = paidUsdByContract.get(c.id) ?? 0;
+        const status =
+          total === 0 ? "none" : paid + 0.01 >= total ? "paid" : paid > 0 ? "partial" : "unpaid";
+        if (status !== fPayment) return false;
+      }
       if (!q) return true;
       return [
         c.client_name,
@@ -304,7 +314,7 @@ function ShartnomalarPage() {
         .filter(Boolean)
         .some((v) => v!.toLowerCase().includes(q));
     });
-  }, [rows, search, fYear, fMonth, fSales, fBack, fCall, fCompany, fVisa]);
+  }, [rows, search, fYear, fMonth, fSales, fBack, fCall, fCompany, fVisa, fPayment, paidUsdByContract]);
 
   const fmt = (n: number | null | undefined) =>
     n ? Number(n).toLocaleString(localeOf(lang), { maximumFractionDigits: 2 }) : "—";
@@ -556,6 +566,21 @@ function ShartnomalarPage() {
                   options={visaOpts}
                   allLabel={t("common.all")}
                   renderOption={(v) => visaLabel(v, t)}
+                />
+
+                <FilterSelect
+                  label={t("contracts.col.status")}
+                  value={fPayment}
+                  onChange={setFPayment}
+                  options={["paid", "partial", "unpaid"]}
+                  allLabel={t("common.all")}
+                  renderOption={(v) =>
+                    v === "paid"
+                      ? t("contracts.status.paid")
+                      : v === "partial"
+                        ? t("contracts.status.partial")
+                        : t("contracts.status.unpaid")
+                  }
                 />
 
                 {activeFilterCount > 0 && (
