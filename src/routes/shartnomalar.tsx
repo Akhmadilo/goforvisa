@@ -243,6 +243,7 @@ function ShartnomalarPage() {
   const [fCall, setFCall] = useState<string>("all");
   const [fCompany, setFCompany] = useState<string>("all");
   const [fVisa, setFVisa] = useState<string>("all");
+  const [fPayment, setFPayment] = useState<string>("all");
   const rows = data ?? [];
 
   const uniq = (vals: (string | null | undefined)[]) =>
