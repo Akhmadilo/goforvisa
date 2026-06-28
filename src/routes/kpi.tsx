@@ -56,8 +56,8 @@ function tierFor(count: number) {
   return KPI_TIERS.find((t) => count >= t.min && count <= t.max) ?? KPI_TIERS[0];
 }
 
-// Sales: 50,000 so'm per $100 of commission → 500 so'm per $1.
-const SALES_RATE_PER_USD = 500;
+// Sales rate is per-manager (sales_kpi_rates); default fallback handled inline.
+
 
 function SectionPlaceholder({ title, icon: Icon }: { title: string; icon: typeof PhoneCall }) {
   return (
