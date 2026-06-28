@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,10 +19,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Target, PhoneCall, TrendingUp, Briefcase } from "lucide-react";
+import { Target, PhoneCall, TrendingUp, Briefcase, CheckCircle2, ChevronDown, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useT, localeOf, getMonthNames } from "@/lib/i18n";
 import { useUsdRates } from "@/lib/usd-rates";
+import { useIsAdmin } from "@/hooks/use-is-admin";
+import { useAuth } from "@/hooks/use-auth";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/kpi")({
   component: KpiPage,
@@ -33,6 +39,7 @@ export const Route = createFileRoute("/kpi")({
     ],
   }),
 });
+
 
 // Call-centre tier ladder. Brackets by signed-contract count.
 const KPI_TIERS: { min: number; max: number; base: number; kpi: number }[] = [
@@ -49,8 +56,8 @@ function tierFor(count: number) {
   return KPI_TIERS.find((t) => count >= t.min && count <= t.max) ?? KPI_TIERS[0];
 }
 
-// Sales: 50,000 so'm per $100 of commission → 500 so'm per $1.
-const SALES_RATE_PER_USD = 500;
+// Sales rate is per-manager (sales_kpi_rates); default fallback handled inline.
+
 
 function SectionPlaceholder({ title, icon: Icon }: { title: string; icon: typeof PhoneCall }) {
   return (
@@ -203,14 +210,19 @@ function SalesKpi() {
   const now = new Date();
   const [year, setYear] = useState<string>(String(now.getFullYear()));
   const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const { getRate } = useUsdRates();
+  const isAdmin = useIsAdmin();
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const fmt = (n: number) => n.toLocaleString(localeOf(lang));
 
   const { data: contracts } = useQuery({
     queryKey: ["kpi-sales-contracts"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contracts")
-        .select("id, sales_manager, price_usd, commission, visa_result");
+        .select("id, client_name, contract_no, sales_manager, price_usd, commission, visa_result");
       if (error) throw error;
       return data ?? [];
     },
@@ -232,7 +244,79 @@ function SalesKpi() {
     },
   });
 
-  const rows = useMemo(() => {
+  const { data: rates } = useQuery({
+    queryKey: ["sales_kpi_rates"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("sales_kpi_rates").select("*");
+      if (error) throw error;
+      return (data ?? []) as { manager_name: string; rate_per_usd: number }[];
+    },
+  });
+
+  const { data: approvals } = useQuery({
+    queryKey: ["sales_kpi_approvals"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("sales_kpi_approvals").select("*");
+      if (error) throw error;
+      return (data ?? []) as { contract_id: string; approved_year: number; approved_month: number; bonus_uzs: number }[];
+    },
+  });
+
+  const rateFor = (name: string): number => {
+    const r = (rates ?? []).find((x) => x.manager_name === name);
+    return r ? Number(r.rate_per_usd) : 500;
+  };
+
+  const setRate = useMutation({
+    mutationFn: async ({ name, rate }: { name: string; rate: number }) => {
+      const { error } = await (supabase as any)
+        .from("sales_kpi_rates")
+        .upsert({ manager_name: name, rate_per_usd: rate }, { onConflict: "manager_name" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sales_kpi_rates"] });
+      toast.success("Saqlandi");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Xato"),
+  });
+
+  const approve = useMutation({
+    mutationFn: async (payload: { contract_id: string; manager_name: string; year: number; month: number; bonus: number }) => {
+      const { error } = await (supabase as any).from("sales_kpi_approvals").upsert(
+        {
+          contract_id: payload.contract_id,
+          manager_name: payload.manager_name,
+          approved_year: payload.year,
+          approved_month: payload.month,
+          bonus_uzs: payload.bonus,
+          approved_by: user?.id ?? null,
+          approved_at: new Date().toISOString(),
+        },
+        { onConflict: "contract_id" },
+      );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sales_kpi_approvals"] });
+      toast.success("KPI tasdiqlandi");
+    },
+    onError: (e: any) => toast.error(e.message ?? "Xato"),
+  });
+
+  const unapprove = useMutation({
+    mutationFn: async (contract_id: string) => {
+      const { error } = await (supabase as any).from("sales_kpi_approvals").delete().eq("contract_id", contract_id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sales_kpi_approvals"] });
+      toast.success("Bekor qilindi");
+    },
+  });
+
+  // Compute completed contracts in selected month and group by manager
+  const managerGroups = useMemo(() => {
     if (!contracts || !payments) return [];
     const yNum = Number(year);
     const mNum = Number(month);
@@ -243,7 +327,16 @@ function SalesKpi() {
       byContract.set(p.contract_id, arr);
     }
 
-    const byManager = new Map<string, { count: number; commissionUsd: number }>();
+    type Item = {
+      id: string;
+      client: string;
+      contractNo: string | null;
+      commissionUsd: number;
+      bonus: number;
+      completedAt: string;
+    };
+    const groups = new Map<string, Item[]>();
+
     for (const c of contracts as any[]) {
       const name = (c.sales_manager ?? "").trim();
       if (!name) continue;
@@ -267,23 +360,40 @@ function SalesKpi() {
       if (!completionDate) continue;
       const d = new Date(completionDate);
       if (d.getFullYear() !== yNum || d.getMonth() + 1 !== mNum) continue;
-      const cur = byManager.get(name) ?? { count: 0, commissionUsd: 0 };
-      cur.count += 1;
-      cur.commissionUsd += commissionUsd;
-      byManager.set(name, cur);
+      const rate = rateFor(name);
+      const bonus = Math.round(commissionUsd * rate);
+      const arr = groups.get(name) ?? [];
+      arr.push({
+        id: c.id,
+        client: c.client_name,
+        contractNo: c.contract_no,
+        commissionUsd,
+        bonus,
+        completedAt: completionDate,
+      });
+      groups.set(name, arr);
     }
 
-    return Array.from(byManager.entries())
-      .map(([name, v]) => ({
-        name,
-        count: v.count,
-        commissionUsd: v.commissionUsd,
-        bonus: Math.round(v.commissionUsd * SALES_RATE_PER_USD),
-      }))
-      .sort((a, b) => b.bonus - a.bonus);
-  }, [contracts, payments, year, month, getRate]);
+    const approvedSet = new Set((approvals ?? []).map((a) => a.contract_id));
+    return Array.from(groups.entries())
+      .map(([name, items]) => {
+        const approvedTotal = items.filter((i) => approvedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
+        const pendingTotal = items.filter((i) => !approvedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
+        return { name, items, approvedTotal, pendingTotal, total: approvedTotal + pendingTotal };
+      })
+      .sort((a, b) => b.total - a.total);
+  }, [contracts, payments, year, month, getRate, rates, approvals]);
 
-  const fmt = (n: number) => n.toLocaleString(localeOf(lang));
+  const approvedSet = useMemo(() => new Set((approvals ?? []).map((a) => a.contract_id)), [approvals]);
+
+  const toggle = (name: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -294,45 +404,157 @@ function SalesKpi() {
           <CardTitle className="text-base">Formula</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Har bir to'liq to'langan shartnoma uchun komissiyaning <b className="text-foreground">har $100</b> i = <b className="text-foreground">50 000 so'm</b> bonus.
-          Bonus shartnoma 100% to'lab bo'lingan oyda hisoblanadi.
+          Har sales menejer uchun komissiyaning <b className="text-foreground">har $1</b> i = <b className="text-foreground">belgilangan stavka</b> (default 500 so'm = 50 000/$100).
+          Bonus shartnoma 100% to'lab bo'lingan oyda hisoblanadi (masalan, apreldagi mijoz iyunda yopilsa, iyunga tushadi).
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base">Sales menejerlar bonusi</CardTitle></CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Sales manager</TableHead>
-                  <TableHead className="text-right">To'liq to'langan shartnoma</TableHead>
-                  <TableHead className="text-right">Komissiya ($)</TableHead>
-                  <TableHead className="text-right">Bonus (so'm)</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.length === 0 ? (
+      {isAdmin && (
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-base">Sales menejerlar stavkasi (so'm / $1)</CardTitle></CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">Bu oyda to'liq to'lov amalga oshmagan</TableCell>
+                    <TableHead>Manager</TableHead>
+                    <TableHead className="w-48">Stavka (so'm/$)</TableHead>
+                    <TableHead className="text-right">Ekvivalent</TableHead>
                   </TableRow>
-                ) : rows.map((r) => (
-                  <TableRow key={r.name}>
-                    <TableCell className="font-medium">{r.name}</TableCell>
-                    <TableCell className="text-right">{r.count}</TableCell>
-                    <TableCell className="text-right">${fmt(Math.round(r.commissionUsd))}</TableCell>
-                    <TableCell className="text-right font-semibold text-primary">{fmt(r.bonus)} so'm</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {managerGroups.length === 0 ? (
+                    <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-4">Bu oyda manejerlar yo'q</TableCell></TableRow>
+                  ) : managerGroups.map((g) => {
+                    const cur = rateFor(g.name);
+                    return (
+                      <TableRow key={g.name}>
+                        <TableCell className="font-medium">{g.name}</TableCell>
+                        <TableCell>
+                          <RateEditor
+                            initial={cur}
+                            onSave={(v) => setRate.mutate({ name: g.name, rate: v })}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right text-muted-foreground text-sm">{fmt(cur * 100)} so'm / $100</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {managerGroups.length === 0 ? (
+        <Card><CardContent className="py-8 text-center text-muted-foreground">Bu oyda to'liq to'lov amalga oshmagan</CardContent></Card>
+      ) : managerGroups.map((g) => {
+        const isOpen = expanded.has(g.name);
+        return (
+          <Card key={g.name}>
+            <CardHeader className="pb-3 cursor-pointer" onClick={() => toggle(g.name)}>
+              <div className="flex flex-wrap items-center gap-3">
+                {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                <CardTitle className="text-base">{g.name}</CardTitle>
+                <Badge variant="secondary">{g.items.length} shartnoma</Badge>
+                <div className="ml-auto flex flex-wrap gap-2 text-sm">
+                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Tasdiqlangan: {fmt(g.approvedTotal)} so'm</Badge>
+                  {g.pendingTotal > 0 && <Badge variant="outline">Kutilmoqda: {fmt(g.pendingTotal)} so'm</Badge>}
+                  <Badge className="bg-primary text-primary-foreground">Jami: {fmt(g.total)} so'm</Badge>
+                </div>
+              </div>
+            </CardHeader>
+            {isOpen && (
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Mijoz</TableHead>
+                        <TableHead>Shartnoma №</TableHead>
+                        <TableHead>Yopilgan sana</TableHead>
+                        <TableHead className="text-right">Komissiya ($)</TableHead>
+                        <TableHead className="text-right">Bonus (so'm)</TableHead>
+                        <TableHead className="text-right">Holat</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {g.items.map((it) => {
+                        const isApproved = approvedSet.has(it.id);
+                        return (
+                          <TableRow key={it.id}>
+                            <TableCell className="font-medium">{it.client}</TableCell>
+                            <TableCell>{it.contractNo ?? "—"}</TableCell>
+                            <TableCell>{it.completedAt}</TableCell>
+                            <TableCell className="text-right">${fmt(Math.round(it.commissionUsd))}</TableCell>
+                            <TableCell className="text-right font-semibold">{fmt(it.bonus)}</TableCell>
+                            <TableCell className="text-right">
+                              {isApproved ? (
+                                <div className="inline-flex items-center gap-2">
+                                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100 gap-1">
+                                    <CheckCircle2 className="h-3 w-3" /> Tasdiqlangan
+                                  </Badge>
+                                  {isAdmin && (
+                                    <Button size="sm" variant="ghost" onClick={() => unapprove.mutate(it.id)}>
+                                      Bekor
+                                    </Button>
+                                  )}
+                                </div>
+                              ) : isAdmin ? (
+                                <Button
+                                  size="sm"
+                                  onClick={() => approve.mutate({
+                                    contract_id: it.id,
+                                    manager_name: g.name,
+                                    year: Number(year),
+                                    month: Number(month),
+                                    bonus: it.bonus,
+                                  })}
+                                >
+                                  KPI tasdiqlash
+                                </Button>
+                              ) : (
+                                <Badge variant="outline">Kutilmoqda</Badge>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            )}
+          </Card>
+        );
+      })}
     </div>
   );
 }
+
+function RateEditor({ initial, onSave }: { initial: number; onSave: (v: number) => void }) {
+  const [val, setVal] = useState<string>(String(initial));
+  return (
+    <div className="flex gap-2">
+      <Input
+        type="number"
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        className="h-8 w-28"
+      />
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={Number(val) === initial || !val}
+        onClick={() => onSave(Number(val))}
+      >
+        Saqlash
+      </Button>
+    </div>
+  );
+}
+
 
 function KpiPage() {
   const { t } = useT();
