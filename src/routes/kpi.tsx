@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -19,10 +19,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Target, PhoneCall, TrendingUp, Briefcase } from "lucide-react";
+import { Target, PhoneCall, TrendingUp, Briefcase, CheckCircle2, ChevronDown, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useT, localeOf, getMonthNames } from "@/lib/i18n";
 import { useUsdRates } from "@/lib/usd-rates";
+import { useIsAdmin } from "@/hooks/use-is-admin";
+import { useAuth } from "@/hooks/use-auth";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/kpi")({
   component: KpiPage,
@@ -33,6 +39,7 @@ export const Route = createFileRoute("/kpi")({
     ],
   }),
 });
+
 
 // Call-centre tier ladder. Brackets by signed-contract count.
 const KPI_TIERS: { min: number; max: number; base: number; kpi: number }[] = [
