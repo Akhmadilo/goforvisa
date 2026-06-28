@@ -22,6 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Target, PhoneCall, TrendingUp, Briefcase } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useT, localeOf, getMonthNames } from "@/lib/i18n";
+import { useUsdRates } from "@/lib/usd-rates";
 
 export const Route = createFileRoute("/kpi")({
   component: KpiPage,
@@ -33,21 +34,23 @@ export const Route = createFileRoute("/kpi")({
   }),
 });
 
-// Tier ladder per the spec image.
-// Brackets are by number of contracts (sales count) in the period.
-// Below 10 contracts → no bonus, minimal base.
+// Call-centre tier ladder. Brackets by signed-contract count.
 const KPI_TIERS: { min: number; max: number; base: number; kpi: number }[] = [
-  { min: 0, max: 9, base: 2_000_000, kpi: 0 },
-  { min: 10, max: 14, base: 2_000_000, kpi: 5 },
-  { min: 15, max: 19, base: 2_500_000, kpi: 10 },
-  { min: 20, max: 24, base: 3_000_000, kpi: 15 },
-  { min: 25, max: 29, base: 3_500_000, kpi: 20 },
-  { min: 30, max: Infinity, base: 4_000_000, kpi: 25 },
+  { min: 1, max: 5, base: 1_000_000, kpi: 0 },
+  { min: 6, max: 10, base: 2_000_000, kpi: 5 },
+  { min: 11, max: 15, base: 2_500_000, kpi: 10 },
+  { min: 16, max: 20, base: 3_000_000, kpi: 15 },
+  { min: 21, max: 25, base: 3_500_000, kpi: 20 },
+  { min: 26, max: Infinity, base: 4_000_000, kpi: 25 },
 ];
 
 function tierFor(count: number) {
+  if (count <= 0) return { min: 0, max: 0, base: 0, kpi: 0 };
   return KPI_TIERS.find((t) => count >= t.min && count <= t.max) ?? KPI_TIERS[0];
 }
+
+// Sales: 50,000 so'm per $100 of commission → 500 so'm per $1.
+const SALES_RATE_PER_USD = 500;
 
 function SectionPlaceholder({ title, icon: Icon }: { title: string; icon: typeof PhoneCall }) {
   return (
@@ -63,6 +66,30 @@ function SectionPlaceholder({ title, icon: Icon }: { title: string; icon: typeof
   );
 }
 
+function PeriodPicker({
+  year, month, setYear, setMonth,
+}: { year: string; month: string; setYear: (v: string) => void; setMonth: (v: string) => void }) {
+  const { lang } = useT();
+  const now = new Date();
+  const years = Array.from({ length: 5 }, (_, i) => String(now.getFullYear() - 2 + i));
+  const months = getMonthNames(lang);
+  return (
+    <Card>
+      <CardHeader className="pb-3"><CardTitle className="text-base">Davr</CardTitle></CardHeader>
+      <CardContent className="flex flex-wrap gap-2">
+        <Select value={year} onValueChange={setYear}>
+          <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+          <SelectContent>{years.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+        </Select>
+        <Select value={month} onValueChange={setMonth}>
+          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>{months.map((m, i) => <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>)}</SelectContent>
+        </Select>
+      </CardContent>
+    </Card>
+  );
+}
+
 function CallCentreKpi() {
   const { lang } = useT();
   const now = new Date();
@@ -70,7 +97,7 @@ function CallCentreKpi() {
   const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
 
   const { data: contracts } = useQuery({
-    queryKey: ["kpi-contracts", year, month],
+    queryKey: ["kpi-cc-contracts", year, month],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contracts")
@@ -87,7 +114,6 @@ function CallCentreKpi() {
     (contracts ?? []).forEach((c: { call_centre: string | null; visa_result: string | null }) => {
       const name = (c.call_centre ?? "").trim();
       if (!name) return;
-      // Only count contracts that were actually signed (exclude cancelled/stopped).
       if (c.visa_result === "Bekor qilindi" || c.visa_result === "To'xtatildi") return;
       map.set(name, (map.get(name) ?? 0) + 1);
     });
@@ -102,47 +128,25 @@ function CallCentreKpi() {
   }, [contracts]);
 
   const fmt = (n: number) => n.toLocaleString(localeOf(lang));
-  const years = Array.from({ length: 5 }, (_, i) => String(now.getFullYear() - 2 + i));
-  const months = getMonthNames(lang);
 
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Davr</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Select value={year} onValueChange={setYear}>
-            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {years.map((y) => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={month} onValueChange={setMonth}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {months.map((m, i) => <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </CardContent>
-      </Card>
+      <PeriodPicker year={year} month={month} setYear={setYear} setMonth={setMonth} />
 
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">KPI Jadvali</CardTitle>
-        </CardHeader>
+        <CardHeader className="pb-3"><CardTitle className="text-base">KPI Jadvali</CardTitle></CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Sotuv (ta gacha)</TableHead>
+                  <TableHead>Sotuv soni</TableHead>
                   <TableHead>Asosiy oylik</TableHead>
                   <TableHead>KPI %</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {KPI_TIERS.filter((t) => t.kpi > 0).map((t) => (
+                {KPI_TIERS.map((t) => (
                   <TableRow key={t.min}>
                     <TableCell>{t.max === Infinity ? `${t.min}+` : `${t.min}–${t.max}`}</TableCell>
                     <TableCell>{fmt(t.base)} so'm</TableCell>
@@ -156,9 +160,7 @@ function CallCentreKpi() {
       </Card>
 
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Call-operatorlar oyligi</CardTitle>
-        </CardHeader>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Call-operatorlar oyligi</CardTitle></CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -175,24 +177,154 @@ function CallCentreKpi() {
               <TableBody>
                 {rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                      Bu davr uchun ma'lumot yo'q
-                    </TableCell>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">Bu davr uchun ma'lumot yo'q</TableCell>
                   </TableRow>
-                ) : (
-                  rows.map((r) => (
-                    <TableRow key={r.name}>
-                      <TableCell className="font-medium">{r.name}</TableCell>
-                      <TableCell className="text-right">{r.count}</TableCell>
-                      <TableCell className="text-right">{fmt(r.base)}</TableCell>
-                      <TableCell className="text-right">{r.kpi}%</TableCell>
-                      <TableCell className="text-right">{fmt(r.bonus)}</TableCell>
-                      <TableCell className="text-right font-semibold text-primary">
-                        {fmt(r.total)} so'm
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
+                ) : rows.map((r) => (
+                  <TableRow key={r.name}>
+                    <TableCell className="font-medium">{r.name}</TableCell>
+                    <TableCell className="text-right">{r.count}</TableCell>
+                    <TableCell className="text-right">{fmt(r.base)}</TableCell>
+                    <TableCell className="text-right">{r.kpi}%</TableCell>
+                    <TableCell className="text-right">{fmt(r.bonus)}</TableCell>
+                    <TableCell className="text-right font-semibold text-primary">{fmt(r.total)} so'm</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+function SalesKpi() {
+  const { lang } = useT();
+  const now = new Date();
+  const [year, setYear] = useState<string>(String(now.getFullYear()));
+  const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
+  const { getRate } = useUsdRates();
+
+  const { data: contracts } = useQuery({
+    queryKey: ["kpi-sales-contracts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contracts")
+        .select("id, sales_manager, price_usd, commission, visa_result");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const contractIds = useMemo(() => (contracts ?? []).map((c: any) => c.id), [contracts]);
+
+  const { data: payments } = useQuery({
+    queryKey: ["kpi-sales-payments", contractIds.length],
+    enabled: contractIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contract_payments")
+        .select("contract_id, amount, currency, paid_at")
+        .in("contract_id", contractIds)
+        .order("paid_at", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const rows = useMemo(() => {
+    if (!contracts || !payments) return [];
+    const yNum = Number(year);
+    const mNum = Number(month);
+    const byContract = new Map<string, any[]>();
+    for (const p of payments as any[]) {
+      const arr = byContract.get(p.contract_id) ?? [];
+      arr.push(p);
+      byContract.set(p.contract_id, arr);
+    }
+
+    const byManager = new Map<string, { count: number; commissionUsd: number }>();
+    for (const c of contracts as any[]) {
+      const name = (c.sales_manager ?? "").trim();
+      if (!name) continue;
+      if (c.visa_result === "Bekor qilindi" || c.visa_result === "To'xtatildi") continue;
+      const price = Number(c.price_usd ?? 0);
+      const commissionUsd = Number(c.commission ?? 0);
+      if (price <= 0 || commissionUsd <= 0) continue;
+      const ps = byContract.get(c.id) ?? [];
+      let running = 0;
+      let completionDate: string | null = null;
+      for (const p of ps) {
+        const amt = Number(p.amount ?? 0);
+        const ym = (p.paid_at as string).slice(0, 7);
+        const usd = (p.currency ?? "UZS") === "USD" ? amt : amt / getRate(ym);
+        running += usd;
+        if (running >= price - 0.01) {
+          completionDate = p.paid_at;
+          break;
+        }
+      }
+      if (!completionDate) continue;
+      const d = new Date(completionDate);
+      if (d.getFullYear() !== yNum || d.getMonth() + 1 !== mNum) continue;
+      const cur = byManager.get(name) ?? { count: 0, commissionUsd: 0 };
+      cur.count += 1;
+      cur.commissionUsd += commissionUsd;
+      byManager.set(name, cur);
+    }
+
+    return Array.from(byManager.entries())
+      .map(([name, v]) => ({
+        name,
+        count: v.count,
+        commissionUsd: v.commissionUsd,
+        bonus: Math.round(v.commissionUsd * SALES_RATE_PER_USD),
+      }))
+      .sort((a, b) => b.bonus - a.bonus);
+  }, [contracts, payments, year, month, getRate]);
+
+  const fmt = (n: number) => n.toLocaleString(localeOf(lang));
+
+  return (
+    <div className="space-y-4">
+      <PeriodPicker year={year} month={month} setYear={setYear} setMonth={setMonth} />
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Formula</CardTitle>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground">
+          Har bir to'liq to'langan shartnoma uchun komissiyaning <b className="text-foreground">har $100</b> i = <b className="text-foreground">50 000 so'm</b> bonus.
+          Bonus shartnoma 100% to'lab bo'lingan oyda hisoblanadi.
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Sales menejerlar bonusi</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Sales manager</TableHead>
+                  <TableHead className="text-right">To'liq to'langan shartnoma</TableHead>
+                  <TableHead className="text-right">Komissiya ($)</TableHead>
+                  <TableHead className="text-right">Bonus (so'm)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground py-8">Bu oyda to'liq to'lov amalga oshmagan</TableCell>
+                  </TableRow>
+                ) : rows.map((r) => (
+                  <TableRow key={r.name}>
+                    <TableCell className="font-medium">{r.name}</TableCell>
+                    <TableCell className="text-right">{r.count}</TableCell>
+                    <TableCell className="text-right">${fmt(Math.round(r.commissionUsd))}</TableCell>
+                    <TableCell className="text-right font-semibold text-primary">{fmt(r.bonus)} so'm</TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           </div>
@@ -231,12 +363,8 @@ function KpiPage() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="call-centre" className="mt-4">
-            <CallCentreKpi />
-          </TabsContent>
-          <TabsContent value="sales" className="mt-4">
-            <SectionPlaceholder title="Sales KPI" icon={TrendingUp} />
-          </TabsContent>
+          <TabsContent value="call-centre" className="mt-4"><CallCentreKpi /></TabsContent>
+          <TabsContent value="sales" className="mt-4"><SalesKpi /></TabsContent>
           <TabsContent value="back-office" className="mt-4">
             <SectionPlaceholder title="Back office KPI" icon={Briefcase} />
           </TabsContent>
