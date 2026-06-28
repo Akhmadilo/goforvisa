@@ -828,6 +828,71 @@ export type Database = {
         }
         Relationships: []
       }
+      sales_kpi_approvals: {
+        Row: {
+          approved_at: string
+          approved_by: string | null
+          approved_month: number
+          approved_year: number
+          bonus_uzs: number
+          contract_id: string
+          id: string
+          manager_name: string
+        }
+        Insert: {
+          approved_at?: string
+          approved_by?: string | null
+          approved_month: number
+          approved_year: number
+          bonus_uzs?: number
+          contract_id: string
+          id?: string
+          manager_name: string
+        }
+        Update: {
+          approved_at?: string
+          approved_by?: string | null
+          approved_month?: number
+          approved_year?: number
+          bonus_uzs?: number
+          contract_id?: string
+          id?: string
+          manager_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_kpi_approvals_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: true
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales_kpi_rates: {
+        Row: {
+          created_at: string
+          id: string
+          manager_name: string
+          rate_per_usd: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          manager_name: string
+          rate_per_usd?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          manager_name?: string
+          rate_per_usd?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       usd_rates: {
         Row: {
           created_at: string
