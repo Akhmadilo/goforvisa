@@ -433,7 +433,23 @@ function SalesKpi() {
   const rejectedSet = useMemo(() => new Set((approvals ?? []).filter((a) => a.status === "rejected").map((a) => a.contract_id)), [approvals]);
 
 
+  const [detail, setDetail] = useState<null | {
+    id: string;
+    client: string;
+    contractNo: string | null;
+    commissionUsd: number;
+    bonus: number;
+    completedAt: string;
+    manager: string;
+  }>(null);
+
+  const detailPayments = useMemo(() => {
+    if (!detail || !payments) return [] as any[];
+    return (payments as any[]).filter((p) => p.contract_id === detail.id);
+  }, [detail, payments]);
+
   const toggle = (name: string) => {
+
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(name)) next.delete(name);
