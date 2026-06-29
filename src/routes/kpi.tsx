@@ -524,6 +524,7 @@ function SalesKpi() {
                 <div className="ml-auto flex flex-wrap gap-2 text-sm">
                   <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Tasdiqlangan: {fmt(g.approvedTotal)} so'm</Badge>
                   {g.pendingTotal > 0 && <Badge variant="outline">Kutilmoqda: {fmt(g.pendingTotal)} so'm</Badge>}
+                  {g.rejectedTotal > 0 && <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Berilmaydi: {fmt(g.rejectedTotal)} so'm</Badge>}
                   <Badge className="bg-primary text-primary-foreground">Jami: {fmt(g.total)} so'm</Badge>
                 </div>
               </div>
@@ -545,38 +546,71 @@ function SalesKpi() {
                     <TableBody>
                       {g.items.map((it) => {
                         const isApproved = approvedSet.has(it.id);
+                        const isRejected = rejectedSet.has(it.id);
                         return (
-                          <TableRow key={it.id}>
-                            <TableCell className="font-medium">{it.client}</TableCell>
+                          <TableRow
+                            key={it.id}
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => setDetail({ ...it, manager: g.name })}
+                          >
+                            <TableCell className="font-medium text-primary underline-offset-2 hover:underline">{it.client}</TableCell>
                             <TableCell>{it.contractNo ?? "—"}</TableCell>
                             <TableCell>{it.completedAt}</TableCell>
                             <TableCell className="text-right">${fmt(Math.round(it.commissionUsd))}</TableCell>
                             <TableCell className="text-right font-semibold">{fmt(it.bonus)}</TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                               {isApproved ? (
                                 <div className="inline-flex items-center gap-2">
                                   <Badge className="bg-green-100 text-green-800 hover:bg-green-100 gap-1">
                                     <CheckCircle2 className="h-3 w-3" /> Tasdiqlangan
                                   </Badge>
                                   {isAdmin && (
-                                    <Button size="sm" variant="ghost" onClick={() => unapprove.mutate(it.id)}>
+                                    <Button size="sm" variant="ghost" onClick={() => clearStatus.mutate(it.id)}>
+                                      Bekor
+                                    </Button>
+                                  )}
+                                </div>
+                              ) : isRejected ? (
+                                <div className="inline-flex items-center gap-2">
+                                  <Badge className="bg-red-100 text-red-800 hover:bg-red-100 gap-1">
+                                    <XCircle className="h-3 w-3" /> Berilmaydi
+                                  </Badge>
+                                  {isAdmin && (
+                                    <Button size="sm" variant="ghost" onClick={() => clearStatus.mutate(it.id)}>
                                       Bekor
                                     </Button>
                                   )}
                                 </div>
                               ) : isAdmin ? (
-                                <Button
-                                  size="sm"
-                                  onClick={() => approve.mutate({
-                                    contract_id: it.id,
-                                    manager_name: g.name,
-                                    year: Number(year),
-                                    month: Number(month),
-                                    bonus: it.bonus,
-                                  })}
-                                >
-                                  KPI tasdiqlash
-                                </Button>
+                                <div className="inline-flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => setStatus.mutate({
+                                      contract_id: it.id,
+                                      manager_name: g.name,
+                                      year: Number(year),
+                                      month: Number(month),
+                                      bonus: it.bonus,
+                                      status: "approved",
+                                    })}
+                                  >
+                                    KPI tasdiqlash
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => setStatus.mutate({
+                                      contract_id: it.id,
+                                      manager_name: g.name,
+                                      year: Number(year),
+                                      month: Number(month),
+                                      bonus: it.bonus,
+                                      status: "rejected",
+                                    })}
+                                  >
+                                    Berilmasin
+                                  </Button>
+                                </div>
                               ) : (
                                 <Badge variant="outline">Kutilmoqda</Badge>
                               )}
@@ -592,7 +626,52 @@ function SalesKpi() {
           </Card>
         );
       })}
+
+      <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{detail?.client}</DialogTitle>
+          </DialogHeader>
+          {detail && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="text-muted-foreground">Shartnoma №</div><div>{detail.contractNo ?? "—"}</div>
+                <div className="text-muted-foreground">Sales menejer</div><div>{detail.manager}</div>
+                <div className="text-muted-foreground">Yopilgan sana</div><div>{detail.completedAt}</div>
+                <div className="text-muted-foreground">Komissiya</div><div>${fmt(Math.round(detail.commissionUsd))}</div>
+                <div className="text-muted-foreground">Bonus</div><div className="font-semibold">{fmt(detail.bonus)} so'm</div>
+              </div>
+              <div>
+                <div className="font-medium mb-2">To'lovlar</div>
+                <div className="border rounded-md overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Sana</TableHead>
+                        <TableHead className="text-right">Summa</TableHead>
+                        <TableHead>Valyuta</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {detailPayments.length === 0 ? (
+                        <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">To'lov yo'q</TableCell></TableRow>
+                      ) : detailPayments.map((p, i) => (
+                        <TableRow key={i}>
+                          <TableCell>{p.paid_at}</TableCell>
+                          <TableCell className="text-right">{fmt(Number(p.amount))}</TableCell>
+                          <TableCell>{p.currency ?? "UZS"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 }
 
