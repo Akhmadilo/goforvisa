@@ -137,11 +137,13 @@ function CallCentreKpi() {
       map.set(name, (map.get(name) ?? 0) + 1);
     });
     const list = Array.from(map.entries()).map(([name, count]) => {
-      const tier = tierFor(count);
-      const bonus = Math.round((tier.base * tier.kpi) / 100);
-      const total = tier.base + bonus;
-      return { name, count, base: tier.base, kpi: tier.kpi, bonus, total };
+      const base = baseFor(count);
+      const kpi = kpiPctFor(count);
+      const bonus = Math.round((base * kpi) / 100);
+      const total = base + bonus;
+      return { name, count, base, kpi, bonus, total };
     });
+
     list.sort((a, b) => b.count - a.count);
     return list;
   }, [contracts]);
