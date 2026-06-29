@@ -41,20 +41,32 @@ export const Route = createFileRoute("/kpi")({
 });
 
 
-// Call-centre tier ladder. Brackets by signed-contract count.
-const KPI_TIERS: { min: number; max: number; base: number; kpi: number }[] = [
-  { min: 1, max: 5, base: 1_000_000, kpi: 0 },
-  { min: 6, max: 10, base: 2_000_000, kpi: 5 },
-  { min: 11, max: 15, base: 2_500_000, kpi: 10 },
-  { min: 16, max: 20, base: 3_000_000, kpi: 15 },
-  { min: 21, max: 25, base: 3_500_000, kpi: 20 },
-  { min: 26, max: Infinity, base: 4_000_000, kpi: 25 },
+// Call-centre: base salary and KPI % are independent ladders.
+const BASE_TIERS: { min: number; max: number; base: number }[] = [
+  { min: 1, max: 5, base: 1_000_000 },
+  { min: 6, max: 10, base: 2_000_000 },
+  { min: 11, max: 15, base: 2_500_000 },
+  { min: 16, max: 20, base: 3_000_000 },
+  { min: 21, max: 25, base: 3_500_000 },
+  { min: 26, max: Infinity, base: 4_000_000 },
 ];
 
-function tierFor(count: number) {
-  if (count <= 0) return { min: 0, max: 0, base: 0, kpi: 0 };
-  return KPI_TIERS.find((t) => count >= t.min && count <= t.max) ?? KPI_TIERS[0];
+const KPI_PCT_TIERS: { min: number; max: number; kpi: number }[] = [
+  { min: 10, max: 14, kpi: 5 },
+  { min: 15, max: 19, kpi: 10 },
+  { min: 20, max: 24, kpi: 15 },
+  { min: 25, max: 29, kpi: 20 },
+  { min: 30, max: Infinity, kpi: 25 },
+];
+
+function baseFor(count: number) {
+  if (count <= 0) return 0;
+  return (BASE_TIERS.find((t) => count >= t.min && count <= t.max) ?? BASE_TIERS[0]).base;
 }
+function kpiPctFor(count: number) {
+  return (KPI_PCT_TIERS.find((t) => count >= t.min && count <= t.max)?.kpi) ?? 0;
+}
+
 
 // Sales rate is per-manager (sales_kpi_rates); default fallback handled inline.
 
