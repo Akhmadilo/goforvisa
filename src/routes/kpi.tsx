@@ -413,17 +413,23 @@ function SalesKpi() {
       groups.set(name, arr);
     }
 
-    const approvedSet = new Set((approvals ?? []).map((a) => a.contract_id));
+    const approvedSet = new Set((approvals ?? []).filter((a) => a.status === "approved").map((a) => a.contract_id));
+    const rejectedSet = new Set((approvals ?? []).filter((a) => a.status === "rejected").map((a) => a.contract_id));
     return Array.from(groups.entries())
       .map(([name, items]) => {
         const approvedTotal = items.filter((i) => approvedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
-        const pendingTotal = items.filter((i) => !approvedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
-        return { name, items, approvedTotal, pendingTotal, total: approvedTotal + pendingTotal };
+        const rejectedTotal = items.filter((i) => rejectedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
+        const pendingTotal = items
+          .filter((i) => !approvedSet.has(i.id) && !rejectedSet.has(i.id))
+          .reduce((s, i) => s + i.bonus, 0);
+        return { name, items, approvedTotal, pendingTotal, rejectedTotal, total: approvedTotal + pendingTotal };
       })
       .sort((a, b) => b.total - a.total);
   }, [contracts, payments, year, month, getRate, rates, approvals]);
 
-  const approvedSet = useMemo(() => new Set((approvals ?? []).map((a) => a.contract_id)), [approvals]);
+  const approvedSet = useMemo(() => new Set((approvals ?? []).filter((a) => a.status === "approved").map((a) => a.contract_id)), [approvals]);
+  const rejectedSet = useMemo(() => new Set((approvals ?? []).filter((a) => a.status === "rejected").map((a) => a.contract_id)), [approvals]);
+
 
   const toggle = (name: string) => {
     setExpanded((prev) => {
