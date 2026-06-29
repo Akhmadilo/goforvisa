@@ -295,7 +295,7 @@ function SalesKpi() {
     queryFn: async () => {
       const { data, error } = await (supabase as any).from("sales_kpi_approvals").select("*");
       if (error) throw error;
-      return (data ?? []) as { contract_id: string; approved_year: number; approved_month: number; bonus_uzs: number }[];
+      return (data ?? []) as { contract_id: string; approved_year: number; approved_month: number; bonus_uzs: number; status: "approved" | "rejected" }[];
     },
   });
 
@@ -318,8 +318,8 @@ function SalesKpi() {
     onError: (e: any) => toast.error(e.message ?? "Xato"),
   });
 
-  const approve = useMutation({
-    mutationFn: async (payload: { contract_id: string; manager_name: string; year: number; month: number; bonus: number }) => {
+  const setStatus = useMutation({
+    mutationFn: async (payload: { contract_id: string; manager_name: string; year: number; month: number; bonus: number; status: "approved" | "rejected" }) => {
       const { error } = await (supabase as any).from("sales_kpi_approvals").upsert(
         {
           contract_id: payload.contract_id,
@@ -327,6 +327,7 @@ function SalesKpi() {
           approved_year: payload.year,
           approved_month: payload.month,
           bonus_uzs: payload.bonus,
+          status: payload.status,
           approved_by: user?.id ?? null,
           approved_at: new Date().toISOString(),
         },
@@ -334,14 +335,14 @@ function SalesKpi() {
       );
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["sales_kpi_approvals"] });
-      toast.success("KPI tasdiqlandi");
+      toast.success(vars.status === "approved" ? "KPI tasdiqlandi" : "KPI berilmaydi");
     },
     onError: (e: any) => toast.error(e.message ?? "Xato"),
   });
 
-  const unapprove = useMutation({
+  const clearStatus = useMutation({
     mutationFn: async (contract_id: string) => {
       const { error } = await (supabase as any).from("sales_kpi_approvals").delete().eq("contract_id", contract_id);
       if (error) throw error;
@@ -351,6 +352,7 @@ function SalesKpi() {
       toast.success("Bekor qilindi");
     },
   });
+
 
   // Compute completed contracts in selected month and group by manager
   const managerGroups = useMemo(() => {
