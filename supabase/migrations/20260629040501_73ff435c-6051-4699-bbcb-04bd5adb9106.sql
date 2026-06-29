@@ -1,0 +1,1 @@
+ALTER TABLE public.sales_kpi_approvals ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'approved' CHECK (status IN ('approved','rejected'));

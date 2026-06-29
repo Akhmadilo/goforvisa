@@ -838,6 +838,7 @@ export type Database = {
           contract_id: string
           id: string
           manager_name: string
+          status: string
         }
         Insert: {
           approved_at?: string
@@ -848,6 +849,7 @@ export type Database = {
           contract_id: string
           id?: string
           manager_name: string
+          status?: string
         }
         Update: {
           approved_at?: string
@@ -858,6 +860,7 @@ export type Database = {
           contract_id?: string
           id?: string
           manager_name?: string
+          status?: string
         }
         Relationships: [
           {

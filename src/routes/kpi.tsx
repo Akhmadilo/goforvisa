@@ -19,7 +19,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Target, PhoneCall, TrendingUp, Briefcase, CheckCircle2, ChevronDown, ChevronRight } from "lucide-react";
+import { Target, PhoneCall, TrendingUp, Briefcase, CheckCircle2, XCircle, ChevronDown, ChevronRight } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -41,20 +43,32 @@ export const Route = createFileRoute("/kpi")({
 });
 
 
-// Call-centre tier ladder. Brackets by signed-contract count.
-const KPI_TIERS: { min: number; max: number; base: number; kpi: number }[] = [
-  { min: 1, max: 5, base: 1_000_000, kpi: 0 },
-  { min: 6, max: 10, base: 2_000_000, kpi: 5 },
-  { min: 11, max: 15, base: 2_500_000, kpi: 10 },
-  { min: 16, max: 20, base: 3_000_000, kpi: 15 },
-  { min: 21, max: 25, base: 3_500_000, kpi: 20 },
-  { min: 26, max: Infinity, base: 4_000_000, kpi: 25 },
+// Call-centre: base salary and KPI % are independent ladders.
+const BASE_TIERS: { min: number; max: number; base: number }[] = [
+  { min: 1, max: 5, base: 1_000_000 },
+  { min: 6, max: 10, base: 2_000_000 },
+  { min: 11, max: 15, base: 2_500_000 },
+  { min: 16, max: 20, base: 3_000_000 },
+  { min: 21, max: 25, base: 3_500_000 },
+  { min: 26, max: Infinity, base: 4_000_000 },
 ];
 
-function tierFor(count: number) {
-  if (count <= 0) return { min: 0, max: 0, base: 0, kpi: 0 };
-  return KPI_TIERS.find((t) => count >= t.min && count <= t.max) ?? KPI_TIERS[0];
+const KPI_PCT_TIERS: { min: number; max: number; kpi: number }[] = [
+  { min: 10, max: 14, kpi: 5 },
+  { min: 15, max: 19, kpi: 10 },
+  { min: 20, max: 24, kpi: 15 },
+  { min: 25, max: 29, kpi: 20 },
+  { min: 30, max: Infinity, kpi: 25 },
+];
+
+function baseFor(count: number) {
+  if (count <= 0) return 0;
+  return (BASE_TIERS.find((t) => count >= t.min && count <= t.max) ?? BASE_TIERS[0]).base;
 }
+function kpiPctFor(count: number) {
+  return (KPI_PCT_TIERS.find((t) => count >= t.min && count <= t.max)?.kpi) ?? 0;
+}
+
 
 // Sales rate is per-manager (sales_kpi_rates); default fallback handled inline.
 
@@ -125,11 +139,13 @@ function CallCentreKpi() {
       map.set(name, (map.get(name) ?? 0) + 1);
     });
     const list = Array.from(map.entries()).map(([name, count]) => {
-      const tier = tierFor(count);
-      const bonus = Math.round((tier.base * tier.kpi) / 100);
-      const total = tier.base + bonus;
-      return { name, count, base: tier.base, kpi: tier.kpi, bonus, total };
+      const base = baseFor(count);
+      const kpi = kpiPctFor(count);
+      const bonus = Math.round((base * kpi) / 100);
+      const total = base + bonus;
+      return { name, count, base, kpi, bonus, total };
     });
+
     list.sort((a, b) => b.count - a.count);
     return list;
   }, [contracts]);
@@ -141,7 +157,7 @@ function CallCentreKpi() {
       <PeriodPicker year={year} month={month} setYear={setYear} setMonth={setMonth} />
 
       <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base">KPI Jadvali</CardTitle></CardHeader>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Asosiy oylik (sotuv soni bo'yicha)</CardTitle></CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -149,14 +165,36 @@ function CallCentreKpi() {
                 <TableRow>
                   <TableHead>Sotuv soni</TableHead>
                   <TableHead>Asosiy oylik</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {BASE_TIERS.map((t) => (
+                  <TableRow key={t.min}>
+                    <TableCell>{t.max === Infinity ? `${t.min}+` : `${t.min}–${t.max}`}</TableCell>
+                    <TableCell>{fmt(t.base)} so'm</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3"><CardTitle className="text-base">KPI % (sotuv soni bo'yicha)</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Sotuv soni</TableHead>
                   <TableHead>KPI %</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {KPI_TIERS.map((t) => (
+                {KPI_PCT_TIERS.map((t) => (
                   <TableRow key={t.min}>
                     <TableCell>{t.max === Infinity ? `${t.min}+` : `${t.min}–${t.max}`}</TableCell>
-                    <TableCell>{fmt(t.base)} so'm</TableCell>
                     <TableCell>{t.kpi}%</TableCell>
                   </TableRow>
                 ))}
@@ -165,6 +203,7 @@ function CallCentreKpi() {
           </div>
         </CardContent>
       </Card>
+
 
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Call-operatorlar oyligi</CardTitle></CardHeader>
@@ -258,7 +297,7 @@ function SalesKpi() {
     queryFn: async () => {
       const { data, error } = await (supabase as any).from("sales_kpi_approvals").select("*");
       if (error) throw error;
-      return (data ?? []) as { contract_id: string; approved_year: number; approved_month: number; bonus_uzs: number }[];
+      return (data ?? []) as { contract_id: string; approved_year: number; approved_month: number; bonus_uzs: number; status: "approved" | "rejected" }[];
     },
   });
 
@@ -281,8 +320,8 @@ function SalesKpi() {
     onError: (e: any) => toast.error(e.message ?? "Xato"),
   });
 
-  const approve = useMutation({
-    mutationFn: async (payload: { contract_id: string; manager_name: string; year: number; month: number; bonus: number }) => {
+  const setStatus = useMutation({
+    mutationFn: async (payload: { contract_id: string; manager_name: string; year: number; month: number; bonus: number; status: "approved" | "rejected" }) => {
       const { error } = await (supabase as any).from("sales_kpi_approvals").upsert(
         {
           contract_id: payload.contract_id,
@@ -290,6 +329,7 @@ function SalesKpi() {
           approved_year: payload.year,
           approved_month: payload.month,
           bonus_uzs: payload.bonus,
+          status: payload.status,
           approved_by: user?.id ?? null,
           approved_at: new Date().toISOString(),
         },
@@ -297,14 +337,14 @@ function SalesKpi() {
       );
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["sales_kpi_approvals"] });
-      toast.success("KPI tasdiqlandi");
+      toast.success(vars.status === "approved" ? "KPI tasdiqlandi" : "KPI berilmaydi");
     },
     onError: (e: any) => toast.error(e.message ?? "Xato"),
   });
 
-  const unapprove = useMutation({
+  const clearStatus = useMutation({
     mutationFn: async (contract_id: string) => {
       const { error } = await (supabase as any).from("sales_kpi_approvals").delete().eq("contract_id", contract_id);
       if (error) throw error;
@@ -314,6 +354,7 @@ function SalesKpi() {
       toast.success("Bekor qilindi");
     },
   });
+
 
   // Compute completed contracts in selected month and group by manager
   const managerGroups = useMemo(() => {
@@ -374,19 +415,41 @@ function SalesKpi() {
       groups.set(name, arr);
     }
 
-    const approvedSet = new Set((approvals ?? []).map((a) => a.contract_id));
+    const approvedSet = new Set((approvals ?? []).filter((a) => a.status === "approved").map((a) => a.contract_id));
+    const rejectedSet = new Set((approvals ?? []).filter((a) => a.status === "rejected").map((a) => a.contract_id));
     return Array.from(groups.entries())
       .map(([name, items]) => {
         const approvedTotal = items.filter((i) => approvedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
-        const pendingTotal = items.filter((i) => !approvedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
-        return { name, items, approvedTotal, pendingTotal, total: approvedTotal + pendingTotal };
+        const rejectedTotal = items.filter((i) => rejectedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
+        const pendingTotal = items
+          .filter((i) => !approvedSet.has(i.id) && !rejectedSet.has(i.id))
+          .reduce((s, i) => s + i.bonus, 0);
+        return { name, items, approvedTotal, pendingTotal, rejectedTotal, total: approvedTotal + pendingTotal };
       })
       .sort((a, b) => b.total - a.total);
   }, [contracts, payments, year, month, getRate, rates, approvals]);
 
-  const approvedSet = useMemo(() => new Set((approvals ?? []).map((a) => a.contract_id)), [approvals]);
+  const approvedSet = useMemo(() => new Set((approvals ?? []).filter((a) => a.status === "approved").map((a) => a.contract_id)), [approvals]);
+  const rejectedSet = useMemo(() => new Set((approvals ?? []).filter((a) => a.status === "rejected").map((a) => a.contract_id)), [approvals]);
+
+
+  const [detail, setDetail] = useState<null | {
+    id: string;
+    client: string;
+    contractNo: string | null;
+    commissionUsd: number;
+    bonus: number;
+    completedAt: string;
+    manager: string;
+  }>(null);
+
+  const detailPayments = useMemo(() => {
+    if (!detail || !payments) return [] as any[];
+    return (payments as any[]).filter((p) => p.contract_id === detail.id);
+  }, [detail, payments]);
 
   const toggle = (name: string) => {
+
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(name)) next.delete(name);
@@ -461,6 +524,7 @@ function SalesKpi() {
                 <div className="ml-auto flex flex-wrap gap-2 text-sm">
                   <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Tasdiqlangan: {fmt(g.approvedTotal)} so'm</Badge>
                   {g.pendingTotal > 0 && <Badge variant="outline">Kutilmoqda: {fmt(g.pendingTotal)} so'm</Badge>}
+                  {g.rejectedTotal > 0 && <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Berilmaydi: {fmt(g.rejectedTotal)} so'm</Badge>}
                   <Badge className="bg-primary text-primary-foreground">Jami: {fmt(g.total)} so'm</Badge>
                 </div>
               </div>
@@ -482,38 +546,71 @@ function SalesKpi() {
                     <TableBody>
                       {g.items.map((it) => {
                         const isApproved = approvedSet.has(it.id);
+                        const isRejected = rejectedSet.has(it.id);
                         return (
-                          <TableRow key={it.id}>
-                            <TableCell className="font-medium">{it.client}</TableCell>
+                          <TableRow
+                            key={it.id}
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => setDetail({ ...it, manager: g.name })}
+                          >
+                            <TableCell className="font-medium text-primary underline-offset-2 hover:underline">{it.client}</TableCell>
                             <TableCell>{it.contractNo ?? "—"}</TableCell>
                             <TableCell>{it.completedAt}</TableCell>
                             <TableCell className="text-right">${fmt(Math.round(it.commissionUsd))}</TableCell>
                             <TableCell className="text-right font-semibold">{fmt(it.bonus)}</TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                               {isApproved ? (
                                 <div className="inline-flex items-center gap-2">
                                   <Badge className="bg-green-100 text-green-800 hover:bg-green-100 gap-1">
                                     <CheckCircle2 className="h-3 w-3" /> Tasdiqlangan
                                   </Badge>
                                   {isAdmin && (
-                                    <Button size="sm" variant="ghost" onClick={() => unapprove.mutate(it.id)}>
+                                    <Button size="sm" variant="ghost" onClick={() => clearStatus.mutate(it.id)}>
+                                      Bekor
+                                    </Button>
+                                  )}
+                                </div>
+                              ) : isRejected ? (
+                                <div className="inline-flex items-center gap-2">
+                                  <Badge className="bg-red-100 text-red-800 hover:bg-red-100 gap-1">
+                                    <XCircle className="h-3 w-3" /> Berilmaydi
+                                  </Badge>
+                                  {isAdmin && (
+                                    <Button size="sm" variant="ghost" onClick={() => clearStatus.mutate(it.id)}>
                                       Bekor
                                     </Button>
                                   )}
                                 </div>
                               ) : isAdmin ? (
-                                <Button
-                                  size="sm"
-                                  onClick={() => approve.mutate({
-                                    contract_id: it.id,
-                                    manager_name: g.name,
-                                    year: Number(year),
-                                    month: Number(month),
-                                    bonus: it.bonus,
-                                  })}
-                                >
-                                  KPI tasdiqlash
-                                </Button>
+                                <div className="inline-flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => setStatus.mutate({
+                                      contract_id: it.id,
+                                      manager_name: g.name,
+                                      year: Number(year),
+                                      month: Number(month),
+                                      bonus: it.bonus,
+                                      status: "approved",
+                                    })}
+                                  >
+                                    KPI tasdiqlash
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    onClick={() => setStatus.mutate({
+                                      contract_id: it.id,
+                                      manager_name: g.name,
+                                      year: Number(year),
+                                      month: Number(month),
+                                      bonus: it.bonus,
+                                      status: "rejected",
+                                    })}
+                                  >
+                                    Berilmasin
+                                  </Button>
+                                </div>
                               ) : (
                                 <Badge variant="outline">Kutilmoqda</Badge>
                               )}
@@ -529,7 +626,52 @@ function SalesKpi() {
           </Card>
         );
       })}
+
+      <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{detail?.client}</DialogTitle>
+          </DialogHeader>
+          {detail && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="text-muted-foreground">Shartnoma №</div><div>{detail.contractNo ?? "—"}</div>
+                <div className="text-muted-foreground">Sales menejer</div><div>{detail.manager}</div>
+                <div className="text-muted-foreground">Yopilgan sana</div><div>{detail.completedAt}</div>
+                <div className="text-muted-foreground">Komissiya</div><div>${fmt(Math.round(detail.commissionUsd))}</div>
+                <div className="text-muted-foreground">Bonus</div><div className="font-semibold">{fmt(detail.bonus)} so'm</div>
+              </div>
+              <div>
+                <div className="font-medium mb-2">To'lovlar</div>
+                <div className="border rounded-md overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Sana</TableHead>
+                        <TableHead className="text-right">Summa</TableHead>
+                        <TableHead>Valyuta</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {detailPayments.length === 0 ? (
+                        <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">To'lov yo'q</TableCell></TableRow>
+                      ) : detailPayments.map((p, i) => (
+                        <TableRow key={i}>
+                          <TableCell>{p.paid_at}</TableCell>
+                          <TableCell className="text-right">{fmt(Number(p.amount))}</TableCell>
+                          <TableCell>{p.currency ?? "UZS"}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
+
   );
 }
 
