@@ -155,7 +155,7 @@ function CallCentreKpi() {
       <PeriodPicker year={year} month={month} setYear={setYear} setMonth={setMonth} />
 
       <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base">KPI Jadvali</CardTitle></CardHeader>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Asosiy oylik (sotuv soni bo'yicha)</CardTitle></CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -163,14 +163,36 @@ function CallCentreKpi() {
                 <TableRow>
                   <TableHead>Sotuv soni</TableHead>
                   <TableHead>Asosiy oylik</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {BASE_TIERS.map((t) => (
+                  <TableRow key={t.min}>
+                    <TableCell>{t.max === Infinity ? `${t.min}+` : `${t.min}–${t.max}`}</TableCell>
+                    <TableCell>{fmt(t.base)} so'm</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3"><CardTitle className="text-base">KPI % (sotuv soni bo'yicha)</CardTitle></CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Sotuv soni</TableHead>
                   <TableHead>KPI %</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {KPI_TIERS.map((t) => (
+                {KPI_PCT_TIERS.map((t) => (
                   <TableRow key={t.min}>
                     <TableCell>{t.max === Infinity ? `${t.min}+` : `${t.min}–${t.max}`}</TableCell>
-                    <TableCell>{fmt(t.base)} so'm</TableCell>
                     <TableCell>{t.kpi}%</TableCell>
                   </TableRow>
                 ))}
@@ -179,6 +201,7 @@ function CallCentreKpi() {
           </div>
         </CardContent>
       </Card>
+
 
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Call-operatorlar oyligi</CardTitle></CardHeader>
