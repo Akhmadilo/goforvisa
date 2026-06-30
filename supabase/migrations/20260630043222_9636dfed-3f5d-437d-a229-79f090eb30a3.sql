@@ -1,0 +1,2 @@
+REVOKE EXECUTE ON FUNCTION public.enforce_leave_requests_role_columns() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.enforce_advance_requests_role_columns() FROM PUBLIC, anon, authenticated;
