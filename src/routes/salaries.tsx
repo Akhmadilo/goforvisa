@@ -565,8 +565,25 @@ function SalaryFormDialog({
             <Input type="number" inputMode="decimal" value={kpi} onChange={(e) => setKpi(e.target.value)} />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">{t("sal.form.penalty")}</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs text-muted-foreground">{t("sal.form.penalty")}</label>
+              {autoPenalty > 0 && (
+                <button
+                  type="button"
+                  className="text-[11px] text-primary hover:underline"
+                  onClick={() => setPenalty(String(autoPenalty))}
+                  title="Avtomatik aniqlangan jarima summasini qo'llash"
+                >
+                  Avtomatik: {nf(autoPenalty)}
+                </button>
+              )}
+            </div>
             <Input type="number" inputMode="decimal" value={penalty} onChange={(e) => setPenalty(e.target.value)} />
+            <div className="text-[11px] text-muted-foreground mt-1">
+              {autoPenalty > 0
+                ? `Bu oyda jarimalar yig'indisi: ${nf(autoPenalty)} so'm`
+                : "Bu oyda jarima yo'q"}
+            </div>
           </div>
           <div>
             <div className="flex items-center justify-between mb-1">
