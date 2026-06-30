@@ -418,6 +418,7 @@ function SalaryFormDialog({
   const [penalty, setPenalty] = useState<string>("0");
   const [advance, setAdvance] = useState<string>("0");
   const [autoAdvance, setAutoAdvance] = useState<number>(0);
+  const [autoPenalty, setAutoPenalty] = useState<number>(0);
   const [note, setNote] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
@@ -442,36 +443,51 @@ function SalaryFormDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editing]);
 
-  // Auto-fetch approved/paid advances for this employee/month
+  // Auto-fetch approved/paid advances + fines for this employee/month
   useEffect(() => {
-    if (!open || !employeeName.trim()) { setAutoAdvance(0); return; }
+    if (!open || !employeeName.trim()) { setAutoAdvance(0); setAutoPenalty(0); return; }
     let cancelled = false;
     (async () => {
-      // Resolve employee id by name
       const { data: emp } = await supabase
         .from("employees")
         .select("id")
         .eq("full_name", employeeName.trim())
         .maybeSingle();
-      if (!emp?.id) { if (!cancelled) setAutoAdvance(0); return; }
+      if (!emp?.id) { if (!cancelled) { setAutoAdvance(0); setAutoPenalty(0); } return; }
       const start = `${year}-${String(month).padStart(2, "0")}-01`;
       const endDate = new Date(year, month, 0).getDate();
-      const end = `${year}-${String(month).padStart(2, "0")}-${String(endDate).padStart(2, "0")}T23:59:59`;
-      const { data: rows } = await supabase
-        .from("advance_requests")
-        .select("amount_uzs, status, created_at, paid_at")
-        .eq("employee_id", emp.id)
-        .in("status", ["approved", "paid"]);
+      const endDateStr = `${year}-${String(month).padStart(2, "0")}-${String(endDate).padStart(2, "0")}`;
+      const end = `${endDateStr}T23:59:59`;
+      const [advRes, fineRes] = await Promise.all([
+        supabase
+          .from("advance_requests")
+          .select("amount_uzs, status, created_at, paid_at")
+          .eq("employee_id", emp.id)
+          .in("status", ["approved", "paid"]),
+        supabase
+          .from("fines")
+          .select("amount_uzs, date")
+          .eq("employee_id", emp.id)
+          .gte("date", start)
+          .lte("date", endDateStr),
+      ]);
       if (cancelled) return;
-      const sum = (rows ?? []).reduce((acc: number, r: any) => {
+      const advSum = (advRes.data ?? []).reduce((acc: number, r: any) => {
         const ref = r.paid_at || r.created_at;
         if (!ref) return acc;
         if (ref >= start && ref <= end) return acc + Number(r.amount_uzs || 0);
         return acc;
       }, 0);
-      setAutoAdvance(sum);
-      // If creating new (no editing), prefill the advance field
-      if (!editing) setAdvance(String(sum));
+      const fineSum = (fineRes.data ?? []).reduce(
+        (acc: number, r: any) => acc + Number(r.amount_uzs || 0),
+        0,
+      );
+      setAutoAdvance(advSum);
+      setAutoPenalty(fineSum);
+      if (!editing) {
+        setAdvance(String(advSum));
+        setPenalty(String(fineSum));
+      }
     })();
     return () => { cancelled = true; };
   }, [open, employeeName, year, month, editing]);
