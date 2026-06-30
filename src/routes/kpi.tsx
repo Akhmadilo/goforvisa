@@ -431,6 +431,12 @@ function SalesKpi() {
 
   const approvedSet = useMemo(() => new Set((approvals ?? []).filter((a) => a.status === "approved").map((a) => a.contract_id)), [approvals]);
   const rejectedSet = useMemo(() => new Set((approvals ?? []).filter((a) => a.status === "rejected").map((a) => a.contract_id)), [approvals]);
+  const approvalByContract = useMemo(() => {
+    const m = new Map<string, { year: number; month: number; status: "approved" | "rejected" }>();
+    (approvals ?? []).forEach((a) => m.set(a.contract_id, { year: a.approved_year, month: a.approved_month, status: a.status }));
+    return m;
+  }, [approvals]);
+  const navigate = useNavigate();
 
 
   const [detail, setDetail] = useState<null | {
