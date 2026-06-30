@@ -390,14 +390,14 @@ function ShartnomalarPage() {
     setDialogOpen(true);
   };
 
-  const search = Route.useSearch();
-  const openIdParam = search.openId;
+  const routeSearch = Route.useSearch();
+  const openIdParam = routeSearch.openId;
   useEffect(() => {
     if (!openIdParam || !data) return;
     const row = data.find((r) => r.id === openIdParam);
     if (row) {
       openEdit(row);
-      navigate({ search: (prev) => ({ ...prev, openId: undefined }), replace: true });
+      navigate({ search: (prev: { openId?: string }) => ({ ...prev, openId: undefined }), replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openIdParam, data]);
