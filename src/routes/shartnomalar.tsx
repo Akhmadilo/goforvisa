@@ -390,6 +390,18 @@ function ShartnomalarPage() {
     setDialogOpen(true);
   };
 
+  const search = Route.useSearch();
+  const openIdParam = search.openId;
+  useEffect(() => {
+    if (!openIdParam || !data) return;
+    const row = data.find((r) => r.id === openIdParam);
+    if (row) {
+      openEdit(row);
+      navigate({ search: (prev) => ({ ...prev, openId: undefined }), replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openIdParam, data]);
+
   const uploadFile = async (file: File, prefix: string): Promise<string> => {
     const ext = file.name.split(".").pop() || "bin";
     const path = `${prefix}/${crypto.randomUUID()}.${ext}`;
