@@ -546,84 +546,28 @@ function SalesKpi() {
                         <TableHead>Yopilgan sana</TableHead>
                         <TableHead className="text-right">Komissiya ($)</TableHead>
                         <TableHead className="text-right">Bonus (so'm)</TableHead>
+                        <TableHead>Oylikka qo'shiladi</TableHead>
                         <TableHead className="text-right">Holat</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {g.items.map((it) => {
-                        const isApproved = approvedSet.has(it.id);
-                        const isRejected = rejectedSet.has(it.id);
-                        return (
-                          <TableRow
-                            key={it.id}
-                            className="cursor-pointer hover:bg-muted/50"
-                            onClick={() => setDetail({ ...it, manager: g.name })}
-                          >
-                            <TableCell className="font-medium text-primary underline-offset-2 hover:underline">{it.client}</TableCell>
-                            <TableCell>{it.contractNo ?? "—"}</TableCell>
-                            <TableCell>{it.completedAt}</TableCell>
-                            <TableCell className="text-right">${fmt(Math.round(it.commissionUsd))}</TableCell>
-                            <TableCell className="text-right font-semibold">{fmt(it.bonus)}</TableCell>
-                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                              {isApproved ? (
-                                <div className="inline-flex items-center gap-2">
-                                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100 gap-1">
-                                    <CheckCircle2 className="h-3 w-3" /> Tasdiqlangan
-                                  </Badge>
-                                  {isAdmin && (
-                                    <Button size="sm" variant="ghost" onClick={() => clearStatus.mutate(it.id)}>
-                                      Bekor
-                                    </Button>
-                                  )}
-                                </div>
-                              ) : isRejected ? (
-                                <div className="inline-flex items-center gap-2">
-                                  <Badge className="bg-red-100 text-red-800 hover:bg-red-100 gap-1">
-                                    <XCircle className="h-3 w-3" /> Berilmaydi
-                                  </Badge>
-                                  {isAdmin && (
-                                    <Button size="sm" variant="ghost" onClick={() => clearStatus.mutate(it.id)}>
-                                      Bekor
-                                    </Button>
-                                  )}
-                                </div>
-                              ) : isAdmin ? (
-                                <div className="inline-flex items-center gap-2">
-                                  <Button
-                                    size="sm"
-                                    onClick={() => setStatus.mutate({
-                                      contract_id: it.id,
-                                      manager_name: g.name,
-                                      year: Number(year),
-                                      month: Number(month),
-                                      bonus: it.bonus,
-                                      status: "approved",
-                                    })}
-                                  >
-                                    KPI tasdiqlash
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => setStatus.mutate({
-                                      contract_id: it.id,
-                                      manager_name: g.name,
-                                      year: Number(year),
-                                      month: Number(month),
-                                      bonus: it.bonus,
-                                      status: "rejected",
-                                    })}
-                                  >
-                                    Berilmasin
-                                  </Button>
-                                </div>
-                              ) : (
-                                <Badge variant="outline">Kutilmoqda</Badge>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
+                      {g.items.map((it) => (
+                        <KpiSalesRow
+                          key={it.id}
+                          it={it}
+                          managerName={g.name}
+                          isAdmin={isAdmin}
+                          isApproved={approvedSet.has(it.id)}
+                          isRejected={rejectedSet.has(it.id)}
+                          approvalInfo={approvalByContract.get(it.id) ?? null}
+                          defaultYear={Number(year)}
+                          defaultMonth={Number(month)}
+                          fmt={fmt}
+                          onOpenContract={(id) => navigate({ to: "/shartnomalar", search: { openId: id } })}
+                          onSetStatus={(payload) => setStatus.mutate(payload)}
+                          onClear={(id) => clearStatus.mutate(id)}
+                        />
+                      ))}
                     </TableBody>
                   </Table>
                 </div>
