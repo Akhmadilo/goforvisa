@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -431,6 +431,12 @@ function SalesKpi() {
 
   const approvedSet = useMemo(() => new Set((approvals ?? []).filter((a) => a.status === "approved").map((a) => a.contract_id)), [approvals]);
   const rejectedSet = useMemo(() => new Set((approvals ?? []).filter((a) => a.status === "rejected").map((a) => a.contract_id)), [approvals]);
+  const approvalByContract = useMemo(() => {
+    const m = new Map<string, { year: number; month: number; status: "approved" | "rejected" }>();
+    (approvals ?? []).forEach((a) => m.set(a.contract_id, { year: a.approved_year, month: a.approved_month, status: a.status }));
+    return m;
+  }, [approvals]);
+  const navigate = useNavigate();
 
 
   const [detail, setDetail] = useState<null | {
@@ -540,84 +546,28 @@ function SalesKpi() {
                         <TableHead>Yopilgan sana</TableHead>
                         <TableHead className="text-right">Komissiya ($)</TableHead>
                         <TableHead className="text-right">Bonus (so'm)</TableHead>
+                        <TableHead>Oylikka qo'shiladi</TableHead>
                         <TableHead className="text-right">Holat</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {g.items.map((it) => {
-                        const isApproved = approvedSet.has(it.id);
-                        const isRejected = rejectedSet.has(it.id);
-                        return (
-                          <TableRow
-                            key={it.id}
-                            className="cursor-pointer hover:bg-muted/50"
-                            onClick={() => setDetail({ ...it, manager: g.name })}
-                          >
-                            <TableCell className="font-medium text-primary underline-offset-2 hover:underline">{it.client}</TableCell>
-                            <TableCell>{it.contractNo ?? "—"}</TableCell>
-                            <TableCell>{it.completedAt}</TableCell>
-                            <TableCell className="text-right">${fmt(Math.round(it.commissionUsd))}</TableCell>
-                            <TableCell className="text-right font-semibold">{fmt(it.bonus)}</TableCell>
-                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
-                              {isApproved ? (
-                                <div className="inline-flex items-center gap-2">
-                                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100 gap-1">
-                                    <CheckCircle2 className="h-3 w-3" /> Tasdiqlangan
-                                  </Badge>
-                                  {isAdmin && (
-                                    <Button size="sm" variant="ghost" onClick={() => clearStatus.mutate(it.id)}>
-                                      Bekor
-                                    </Button>
-                                  )}
-                                </div>
-                              ) : isRejected ? (
-                                <div className="inline-flex items-center gap-2">
-                                  <Badge className="bg-red-100 text-red-800 hover:bg-red-100 gap-1">
-                                    <XCircle className="h-3 w-3" /> Berilmaydi
-                                  </Badge>
-                                  {isAdmin && (
-                                    <Button size="sm" variant="ghost" onClick={() => clearStatus.mutate(it.id)}>
-                                      Bekor
-                                    </Button>
-                                  )}
-                                </div>
-                              ) : isAdmin ? (
-                                <div className="inline-flex items-center gap-2">
-                                  <Button
-                                    size="sm"
-                                    onClick={() => setStatus.mutate({
-                                      contract_id: it.id,
-                                      manager_name: g.name,
-                                      year: Number(year),
-                                      month: Number(month),
-                                      bonus: it.bonus,
-                                      status: "approved",
-                                    })}
-                                  >
-                                    KPI tasdiqlash
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => setStatus.mutate({
-                                      contract_id: it.id,
-                                      manager_name: g.name,
-                                      year: Number(year),
-                                      month: Number(month),
-                                      bonus: it.bonus,
-                                      status: "rejected",
-                                    })}
-                                  >
-                                    Berilmasin
-                                  </Button>
-                                </div>
-                              ) : (
-                                <Badge variant="outline">Kutilmoqda</Badge>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
+                      {g.items.map((it) => (
+                        <KpiSalesRow
+                          key={it.id}
+                          it={it}
+                          managerName={g.name}
+                          isAdmin={isAdmin}
+                          isApproved={approvedSet.has(it.id)}
+                          isRejected={rejectedSet.has(it.id)}
+                          approvalInfo={approvalByContract.get(it.id) ?? null}
+                          defaultYear={Number(year)}
+                          defaultMonth={Number(month)}
+                          fmt={fmt}
+                          onOpenContract={(id) => navigate({ to: "/shartnomalar", search: { openId: id } })}
+                          onSetStatus={(payload) => setStatus.mutate(payload)}
+                          onClear={(id) => clearStatus.mutate(id)}
+                        />
+                      ))}
                     </TableBody>
                   </Table>
                 </div>
@@ -696,6 +646,145 @@ function RateEditor({ initial, onSave }: { initial: number; onSave: (v: number) 
     </div>
   );
 }
+
+type KpiSalesRowProps = {
+  it: { id: string; client: string; contractNo: string | null; commissionUsd: number; bonus: number; completedAt: string };
+  managerName: string;
+  isAdmin: boolean;
+  isApproved: boolean;
+  isRejected: boolean;
+  approvalInfo: { year: number; month: number; status: "approved" | "rejected" } | null;
+  defaultYear: number;
+  defaultMonth: number;
+  fmt: (n: number) => string;
+  onOpenContract: (id: string) => void;
+  onSetStatus: (p: { contract_id: string; manager_name: string; year: number; month: number; bonus: number; status: "approved" | "rejected" }) => void;
+  onClear: (id: string) => void;
+};
+
+function KpiSalesRow({
+  it, managerName, isAdmin, isApproved, isRejected, approvalInfo,
+  defaultYear, defaultMonth, fmt, onOpenContract, onSetStatus, onClear,
+}: KpiSalesRowProps) {
+  const { lang } = useT();
+  const months = getMonthNames(lang);
+  const now = new Date();
+  const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i);
+
+  const initYear = approvalInfo?.year ?? defaultYear;
+  const initMonth = approvalInfo?.month ?? defaultMonth;
+  const [selYear, setSelYear] = useState<number>(initYear);
+  const [selMonth, setSelMonth] = useState<number>(initMonth);
+
+  // Keep in sync if approval changes externally or default period changes for unapproved
+  useEffect(() => {
+    setSelYear(approvalInfo?.year ?? defaultYear);
+    setSelMonth(approvalInfo?.month ?? defaultMonth);
+  }, [approvalInfo?.year, approvalInfo?.month, defaultYear, defaultMonth]);
+
+  const periodChanged = approvalInfo
+    ? approvalInfo.year !== selYear || approvalInfo.month !== selMonth
+    : false;
+
+  return (
+    <TableRow className="hover:bg-muted/50">
+      <TableCell
+        className="font-medium text-primary underline-offset-2 hover:underline cursor-pointer"
+        onClick={() => onOpenContract(it.id)}
+      >
+        {it.client}
+      </TableCell>
+      <TableCell
+        className="cursor-pointer"
+        onClick={() => onOpenContract(it.id)}
+      >
+        {it.contractNo ?? "—"}
+      </TableCell>
+      <TableCell>{it.completedAt}</TableCell>
+      <TableCell className="text-right">${fmt(Math.round(it.commissionUsd))}</TableCell>
+      <TableCell className="text-right font-semibold">{fmt(it.bonus)}</TableCell>
+      <TableCell>
+        {isAdmin ? (
+          <div className="flex gap-1">
+            <Select value={String(selMonth)} onValueChange={(v) => setSelMonth(Number(v))}>
+              <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {months.map((m, i) => <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={String(selYear)} onValueChange={(v) => setSelYear(Number(v))}>
+              <SelectTrigger className="h-8 w-20"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {periodChanged && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => onSetStatus({
+                  contract_id: it.id, manager_name: managerName,
+                  year: selYear, month: selMonth, bonus: it.bonus,
+                  status: approvalInfo!.status,
+                })}
+              >
+                Saqlash
+              </Button>
+            )}
+          </div>
+        ) : (
+          <span className="text-sm text-muted-foreground">{months[selMonth - 1]} {selYear}</span>
+        )}
+      </TableCell>
+      <TableCell className="text-right">
+        {isApproved ? (
+          <div className="inline-flex items-center gap-2">
+            <Badge className="bg-green-100 text-green-800 hover:bg-green-100 gap-1">
+              <CheckCircle2 className="h-3 w-3" /> Tasdiqlangan
+            </Badge>
+            {isAdmin && (
+              <Button size="sm" variant="ghost" onClick={() => onClear(it.id)}>Bekor</Button>
+            )}
+          </div>
+        ) : isRejected ? (
+          <div className="inline-flex items-center gap-2">
+            <Badge className="bg-red-100 text-red-800 hover:bg-red-100 gap-1">
+              <XCircle className="h-3 w-3" /> Berilmaydi
+            </Badge>
+            {isAdmin && (
+              <Button size="sm" variant="ghost" onClick={() => onClear(it.id)}>Bekor</Button>
+            )}
+          </div>
+        ) : isAdmin ? (
+          <div className="inline-flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={() => onSetStatus({
+                contract_id: it.id, manager_name: managerName,
+                year: selYear, month: selMonth, bonus: it.bonus, status: "approved",
+              })}
+            >
+              KPI tasdiqlash
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => onSetStatus({
+                contract_id: it.id, manager_name: managerName,
+                year: selYear, month: selMonth, bonus: it.bonus, status: "rejected",
+              })}
+            >
+              Berilmasin
+            </Button>
+          </div>
+        ) : (
+          <Badge variant="outline">Kutilmoqda</Badge>
+        )}
+      </TableCell>
+    </TableRow>
+  );
+}
+
 
 
 function KpiPage() {

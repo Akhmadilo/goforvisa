@@ -45,6 +45,9 @@ const VISA_RESULTS = ["Topshirildi", "Olindi", "Rad etildi", "Jarayonda", "Bekor
 
 export const Route = createFileRoute("/shartnomalar")({
   component: ShartnomalarPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    openId: typeof search.openId === "string" ? search.openId : undefined,
+  }),
 });
 
 type ContractRow = {
@@ -386,6 +389,18 @@ function ShartnomalarPage() {
     setCommissionManual(true); // preserve stored commission
     setDialogOpen(true);
   };
+
+  const routeSearch = Route.useSearch();
+  const openIdParam = routeSearch.openId;
+  useEffect(() => {
+    if (!openIdParam || !data) return;
+    const row = data.find((r) => r.id === openIdParam);
+    if (row) {
+      openEdit(row);
+      navigate({ search: (prev: { openId?: string }) => ({ ...prev, openId: undefined }), replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openIdParam, data]);
 
   const uploadFile = async (file: File, prefix: string): Promise<string> => {
     const ext = file.name.split(".").pop() || "bin";
