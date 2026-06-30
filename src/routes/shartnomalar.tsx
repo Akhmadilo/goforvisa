@@ -45,6 +45,9 @@ const VISA_RESULTS = ["Topshirildi", "Olindi", "Rad etildi", "Jarayonda", "Bekor
 
 export const Route = createFileRoute("/shartnomalar")({
   component: ShartnomalarPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    openId: typeof search.openId === "string" ? search.openId : undefined,
+  }),
 });
 
 type ContractRow = {
