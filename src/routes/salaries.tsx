@@ -419,6 +419,8 @@ function SalaryFormDialog({
   const [advance, setAdvance] = useState<string>("0");
   const [autoAdvance, setAutoAdvance] = useState<number>(0);
   const [autoPenalty, setAutoPenalty] = useState<number>(0);
+  const [autoFixed, setAutoFixed] = useState<number>(0);
+  const [autoBonus, setAutoBonus] = useState<number>(0);
   const [note, setNote] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
@@ -443,35 +445,75 @@ function SalaryFormDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editing]);
 
-  // Auto-fetch approved/paid advances + fines for this employee/month
+  // Call-centre tiers (mirror src/routes/kpi.tsx)
+  const CC_BASE = [
+    { min: 1, max: 4, base: 1_000_000 },
+    { min: 5, max: 9, base: 1_500_000 },
+    { min: 10, max: 14, base: 2_000_000 },
+    { min: 15, max: 19, base: 2_500_000 },
+    { min: 20, max: 24, base: 3_000_000 },
+    { min: 25, max: 29, base: 3_500_000 },
+    { min: 30, max: Infinity, base: 4_000_000 },
+  ];
+  const CC_KPI = [
+    { min: 10, max: 14, kpi: 5 },
+    { min: 15, max: 19, kpi: 10 },
+    { min: 20, max: 24, kpi: 15 },
+    { min: 25, max: 29, kpi: 20 },
+    { min: 30, max: Infinity, kpi: 25 },
+  ];
+
+  // Auto-fetch advances, fines, and call-centre / sales bonuses for this employee/month
   useEffect(() => {
-    if (!open || !employeeName.trim()) { setAutoAdvance(0); setAutoPenalty(0); return; }
+    if (!open || !employeeName.trim()) {
+      setAutoAdvance(0); setAutoPenalty(0); setAutoFixed(0); setAutoBonus(0);
+      return;
+    }
     let cancelled = false;
     (async () => {
+      const name = employeeName.trim();
       const { data: emp } = await supabase
         .from("employees")
         .select("id")
-        .eq("full_name", employeeName.trim())
+        .eq("full_name", name)
         .maybeSingle();
-      if (!emp?.id) { if (!cancelled) { setAutoAdvance(0); setAutoPenalty(0); } return; }
       const start = `${year}-${String(month).padStart(2, "0")}-01`;
       const endDate = new Date(year, month, 0).getDate();
       const endDateStr = `${year}-${String(month).padStart(2, "0")}-${String(endDate).padStart(2, "0")}`;
       const end = `${endDateStr}T23:59:59`;
-      const [advRes, fineRes] = await Promise.all([
+
+      const [advRes, fineRes, ccRes, salesApprovedRes] = await Promise.all([
+        emp?.id
+          ? supabase
+              .from("advance_requests")
+              .select("amount_uzs, status, created_at, paid_at")
+              .eq("employee_id", emp.id)
+              .in("status", ["approved", "paid"])
+          : Promise.resolve({ data: [] as any[] }),
+        emp?.id
+          ? supabase
+              .from("fines")
+              .select("amount_uzs, date")
+              .eq("employee_id", emp.id)
+              .gte("date", start)
+              .lte("date", endDateStr)
+          : Promise.resolve({ data: [] as any[] }),
         supabase
-          .from("advance_requests")
-          .select("amount_uzs, status, created_at, paid_at")
-          .eq("employee_id", emp.id)
-          .in("status", ["approved", "paid"]),
-        supabase
-          .from("fines")
-          .select("amount_uzs, date")
-          .eq("employee_id", emp.id)
-          .gte("date", start)
-          .lte("date", endDateStr),
+          .from("contracts")
+          .select("id, visa_result")
+          .eq("call_centre", name)
+          .eq("year", String(year))
+          .eq("month", String(month)),
+        (supabase as any)
+          .from("sales_kpi_approvals")
+          .select("bonus_uzs, status, manager_name, approved_year, approved_month")
+          .eq("manager_name", name)
+          .eq("approved_year", year)
+          .eq("approved_month", month)
+          .eq("status", "approved"),
       ]);
       if (cancelled) return;
+
       const advSum = (advRes.data ?? []).reduce((acc: number, r: any) => {
         const ref = r.paid_at || r.created_at;
         if (!ref) return acc;
@@ -479,18 +521,41 @@ function SalaryFormDialog({
         return acc;
       }, 0);
       const fineSum = (fineRes.data ?? []).reduce(
-        (acc: number, r: any) => acc + Number(r.amount_uzs || 0),
-        0,
+        (acc: number, r: any) => acc + Number(r.amount_uzs || 0), 0,
       );
+
+      // Call-centre computation
+      const ccCount = (ccRes.data ?? []).filter(
+        (c: any) => c.visa_result !== "Bekor qilindi" && c.visa_result !== "To'xtatildi",
+      ).length;
+      let ccFixed = 0, ccBonus = 0;
+      if (ccCount > 0) {
+        ccFixed = (CC_BASE.find((t) => ccCount >= t.min && ccCount <= t.max) ?? CC_BASE[0]).base;
+        const pct = (CC_KPI.find((t) => ccCount >= t.min && ccCount <= t.max)?.kpi) ?? 0;
+        ccBonus = Math.round((ccFixed * pct) / 100);
+      }
+
+      // Sales approved bonus (adds to bonus)
+      const salesBonus = (salesApprovedRes.data ?? []).reduce(
+        (acc: number, r: any) => acc + Number(r.bonus_uzs || 0), 0,
+      );
+
+      const totalBonus = ccBonus + salesBonus;
       setAutoAdvance(advSum);
       setAutoPenalty(fineSum);
+      setAutoFixed(ccFixed);
+      setAutoBonus(totalBonus);
+
       if (!editing) {
         setAdvance(String(advSum));
         setPenalty(String(fineSum));
+        if (ccFixed > 0) setFixed(String(ccFixed));
+        if (totalBonus > 0) setKpi(String(totalBonus));
       }
     })();
     return () => { cancelled = true; };
   }, [open, employeeName, year, month, editing]);
+
 
   const total =
     (parseFloat(fixed) || 0) + (parseFloat(kpi) || 0) - (parseFloat(penalty) || 0) - (parseFloat(advance) || 0);
