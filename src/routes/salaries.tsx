@@ -622,11 +622,35 @@ function SalaryFormDialog({
             </div>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">{t("sal.form.fixed")}</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs text-muted-foreground">{t("sal.form.fixed")}</label>
+              {autoFixed > 0 && (
+                <button
+                  type="button"
+                  className="text-[11px] text-primary hover:underline"
+                  onClick={() => setFixed(String(autoFixed))}
+                  title="Call-centre KPI dan avtomatik hisoblangan asosiy oylik"
+                >
+                  Avtomatik: {nf(autoFixed)}
+                </button>
+              )}
+            </div>
             <Input type="number" inputMode="decimal" value={fixed} onChange={(e) => setFixed(e.target.value)} />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">{t("sal.form.bonus")}</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-xs text-muted-foreground">{t("sal.form.bonus")}</label>
+              {autoBonus > 0 && (
+                <button
+                  type="button"
+                  className="text-[11px] text-primary hover:underline"
+                  onClick={() => setKpi(String(autoBonus))}
+                  title="Call-centre KPI + tasdiqlangan Sales bonuslari"
+                >
+                  Avtomatik: {nf(autoBonus)}
+                </button>
+              )}
+            </div>
             <Input type="number" inputMode="decimal" value={kpi} onChange={(e) => setKpi(e.target.value)} />
           </div>
           <div>
