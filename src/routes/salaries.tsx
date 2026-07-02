@@ -369,7 +369,9 @@ function SalariesPage() {
                           <TableCell className="text-right">{fmt(Number(e.fixed_amount))}</TableCell>
                           <TableCell className="text-right text-primary">+{fmt(Number(e.kpi_amount))}</TableCell>
                           <TableCell className="text-right text-destructive">−{fmt(Number(e.penalty_amount))}</TableCell>
-                          <TableCell className="text-right font-semibold">{fmt(e.total)}</TableCell>
+                          <TableCell className="text-right font-semibold">{fmt(e.gross)}</TableCell>
+                          <TableCell className="text-right text-muted-foreground">{e.advance > 0 ? `−${fmt(e.advance)}` : "—"}</TableCell>
+                          <TableCell className="text-right font-bold text-primary">{fmt(e.total)}</TableCell>
                           <TableCell className="text-xs text-muted-foreground max-w-[160px] truncate">{e.note ?? ""}</TableCell>
                           <TableCell className="text-xs text-muted-foreground">
                             {e.created_by ? (creatorMap.get(e.created_by) ?? "—") : "—"}
