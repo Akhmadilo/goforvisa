@@ -368,55 +368,76 @@ function SalariesPage() {
                       <TableHead className="text-right">Umumiy (avanssiz)</TableHead>
                       <TableHead className="text-right">Avans</TableHead>
                       <TableHead className="text-right">{t("sal.col.salary")}</TableHead>
+                      <TableHead className="text-right">To'landi</TableHead>
+                      <TableHead>Holat</TableHead>
                       <TableHead>{t("sal.col.note")}</TableHead>
                       <TableHead>{t("sal.col.creator")}</TableHead>
-                      {canCreate && <TableHead className="w-[100px]"></TableHead>}
+                      {canCreate && <TableHead className="w-[140px]"></TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoading ? (
-                      <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-10">{t("common.loading")}</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={14} className="text-center text-muted-foreground py-10">{t("common.loading")}</TableCell></TableRow>
                     ) : rows.length === 0 ? (
-                      <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-10">{t("common.notFound")}</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={14} className="text-center text-muted-foreground py-10">{t("common.notFound")}</TableCell></TableRow>
                     ) : (
-                      rows.map((e) => (
-                        <TableRow key={e.id}>
-                          <TableCell className="text-muted-foreground">{e.year}</TableCell>
-                          <TableCell>{monthNames[e.month - 1]}</TableCell>
-                          <TableCell className="font-medium">
-                            <button
-                              className="hover:underline"
-                              onClick={() => setSelectedEmployees([e.employee_name])}
-                            >
-                              {e.employee_name}
-                            </button>
-                          </TableCell>
-                          <TableCell className="text-right">{fmt(Number(e.fixed_amount))}</TableCell>
-                          <TableCell className="text-right text-primary">+{fmt(Number(e.kpi_amount))}</TableCell>
-                          <TableCell className="text-right text-destructive">−{fmt(Number(e.penalty_amount))}</TableCell>
-                          <TableCell className="text-right font-semibold">{fmt(e.gross)}</TableCell>
-                          <TableCell className="text-right text-muted-foreground">{e.advance > 0 ? `−${fmt(e.advance)}` : "—"}</TableCell>
-                          <TableCell className="text-right font-bold text-primary">{fmt(e.total)}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground max-w-[160px] truncate">{e.note ?? ""}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {e.created_by ? (creatorMap.get(e.created_by) ?? "—") : "—"}
-                          </TableCell>
-                          {canCreate && (
-                            <TableCell>
-                              <div className="flex gap-1 justify-end">
-                                <Button size="icon" variant="ghost" className="h-8 w-8"
-                                  onClick={() => { setEditing(e); setOpenForm(true); }}>
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive"
-                                  onClick={() => onDelete(e.id)}>
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
+                      rows.map((e) => {
+                        const paid = paidBySalary.get(e.id) ?? 0;
+                        const remaining = Math.max(0, e.gross - paid);
+                        const status =
+                          paid <= 0 ? { label: "To'lanmagan", cls: "bg-muted text-muted-foreground" }
+                          : remaining <= 0.5 ? { label: "Yopilgan", cls: "bg-primary/15 text-primary border-primary/30" }
+                          : { label: "Qisman", cls: "bg-accent/15 text-accent border-accent/30" };
+                        return (
+                          <TableRow key={e.id}>
+                            <TableCell className="text-muted-foreground">{e.year}</TableCell>
+                            <TableCell>{monthNames[e.month - 1]}</TableCell>
+                            <TableCell className="font-medium">
+                              <button
+                                className="hover:underline"
+                                onClick={() => setSelectedEmployees([e.employee_name])}
+                              >
+                                {e.employee_name}
+                              </button>
                             </TableCell>
-                          )}
-                        </TableRow>
-                      ))
+                            <TableCell className="text-right">{fmt(Number(e.fixed_amount))}</TableCell>
+                            <TableCell className="text-right text-primary">+{fmt(Number(e.kpi_amount))}</TableCell>
+                            <TableCell className="text-right text-destructive">−{fmt(Number(e.penalty_amount))}</TableCell>
+                            <TableCell className="text-right font-semibold">{fmt(e.gross)}</TableCell>
+                            <TableCell className="text-right text-muted-foreground">{e.advance > 0 ? `−${fmt(e.advance)}` : "—"}</TableCell>
+                            <TableCell className="text-right font-bold text-primary">{fmt(e.total)}</TableCell>
+                            <TableCell className="text-right">{fmt(paid)}</TableCell>
+                            <TableCell>
+                              <span className={cn("inline-flex items-center px-2 py-0.5 rounded text-xs border", status.cls)}>{status.label}</span>
+                              {remaining > 0.5 && paid > 0 && (
+                                <div className="text-[10px] text-muted-foreground mt-0.5">Qoldiq: {fmt(remaining)}</div>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground max-w-[160px] truncate">{e.note ?? ""}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {e.created_by ? (creatorMap.get(e.created_by) ?? "—") : "—"}
+                            </TableCell>
+                            {canCreate && (
+                              <TableCell>
+                                <div className="flex gap-1 justify-end">
+                                  <Button size="sm" variant="outline" className="h-8"
+                                    onClick={() => setPayFor({ id: e.id, name: e.employee_name, gross: e.gross, paid })}>
+                                    <Plus className="h-3.5 w-3.5 mr-1" /> To'lov
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8"
+                                    onClick={() => { setEditing(e); setOpenForm(true); }}>
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive"
+                                    onClick={() => onDelete(e.id)}>
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
