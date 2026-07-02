@@ -133,10 +133,16 @@ function SalariesPage() {
   }, [user, qc]);
 
   const enriched = useMemo(
-    () => rowsAll.map((r) => ({
-      ...r,
-      total: Number(r.fixed_amount) + Number(r.kpi_amount) - Number(r.penalty_amount) - Number((r as any).advance_amount ?? 0),
-    })),
+    () => rowsAll.map((r) => {
+      const gross = Number(r.fixed_amount) + Number(r.kpi_amount) - Number(r.penalty_amount);
+      const advance = Number((r as any).advance_amount ?? 0);
+      return {
+        ...r,
+        gross,               // hisobot uchun (avanssiz)
+        advance,
+        total: gross - advance, // berilishi kerak (avans allaqachon to'langan)
+      };
+    }),
     [rowsAll],
   );
 
@@ -169,10 +175,12 @@ function SalariesPage() {
       acc.fixed += Number(e.fixed_amount);
       acc.kpi += Number(e.kpi_amount);
       acc.penalty += Number(e.penalty_amount);
+      acc.advance += e.advance;
+      acc.gross += e.gross;
       acc.total += e.total;
       return acc;
     },
-    { fixed: 0, kpi: 0, penalty: 0, total: 0 },
+    { fixed: 0, kpi: 0, penalty: 0, advance: 0, gross: 0, total: 0 },
   );
 
   const fmt = (n: number) =>
