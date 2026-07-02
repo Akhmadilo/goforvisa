@@ -313,10 +313,11 @@ function SalariesPage() {
           </Card>
 
           {canTotals && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <SumCard label={t("sal.stat.fixed")} value={fmt(totals.fixed)} />
               <SumCard label={t("sal.stat.bonus")} value={`+${fmt(totals.kpi)}`} accent="primary" />
               <SumCard label={t("sal.stat.penalty")} value={`−${fmt(totals.penalty)}`} accent="destructive" />
+              <SumCard label="Umumiy (avanssiz)" value={fmt(totals.gross)} bold />
               <SumCard label={t("sal.stat.payable")} value={fmt(totals.total)} accent="primary" bold />
             </div>
           )}
