@@ -340,6 +340,8 @@ function SalariesPage() {
                       <TableHead className="text-right">{t("sal.col.fixed")}</TableHead>
                       <TableHead className="text-right">{t("sal.col.bonus")}</TableHead>
                       <TableHead className="text-right">{t("sal.col.penalty")}</TableHead>
+                      <TableHead className="text-right">Umumiy (avanssiz)</TableHead>
+                      <TableHead className="text-right">Avans</TableHead>
                       <TableHead className="text-right">{t("sal.col.salary")}</TableHead>
                       <TableHead>{t("sal.col.note")}</TableHead>
                       <TableHead>{t("sal.col.creator")}</TableHead>
@@ -348,9 +350,9 @@ function SalariesPage() {
                   </TableHeader>
                   <TableBody>
                     {isLoading ? (
-                      <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-10">{t("common.loading")}</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-10">{t("common.loading")}</TableCell></TableRow>
                     ) : rows.length === 0 ? (
-                      <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-10">{t("common.notFound")}</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={12} className="text-center text-muted-foreground py-10">{t("common.notFound")}</TableCell></TableRow>
                     ) : (
                       rows.map((e) => (
                         <TableRow key={e.id}>
