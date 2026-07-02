@@ -713,10 +713,17 @@ function SalaryFormDialog({
             <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
           </div>
           <div className="rounded-md bg-secondary px-3 py-2 space-y-1">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Hisob: oklad + bonus − jarima − avans</span>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Umumiy oylik (avanssiz, hisobot uchun)</span>
+              <span className="font-semibold">
+                {nf((parseFloat(fixed) || 0) + (parseFloat(kpi) || 0) - (parseFloat(penalty) || 0))} {t("sal.uzs")}
+              </span>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">− Avans (to'langan)</span>
+              <span>−{nf(parseFloat(advance) || 0)} {t("sal.uzs")}</span>
+            </div>
+            <div className="flex items-center justify-between pt-1 border-t border-border">
               <span className="text-sm text-muted-foreground">Berilishi kerak</span>
               <span className="text-base font-bold text-primary">
                 {nf(total)} {t("sal.uzs")}
