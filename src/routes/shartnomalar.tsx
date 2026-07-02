@@ -352,7 +352,13 @@ function ShartnomalarPage() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm(emptyForm);
+    const today = new Date();
+    setForm({
+      ...emptyForm,
+      contract_date: today.toISOString().slice(0, 10),
+      year: String(today.getFullYear()),
+      month: String(today.getMonth() + 1),
+    });
     setPhotoFile(null);
     setPdfFile(null);
     setPhotoUrl(null);
