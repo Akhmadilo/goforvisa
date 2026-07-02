@@ -96,6 +96,26 @@ function SalariesPage() {
     enabled: !!user,
   });
 
+  // Fetch payments (all) so we can show paid / remaining per salary
+  const { data: payments = [] } = useQuery({
+    queryKey: ["salary_payments"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("salary_payments")
+        .select("id, salary_id, amount, kind, paid_at, note");
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+  const paidBySalary = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of payments as any[]) {
+      m.set(p.salary_id, (m.get(p.salary_id) ?? 0) + Number(p.amount || 0));
+    }
+    return m;
+  }, [payments]);
+
   // Creator profiles
   const creatorIds = useMemo(
     () => Array.from(new Set(rowsAll.map((r) => r.created_by).filter(Boolean))) as string[],
