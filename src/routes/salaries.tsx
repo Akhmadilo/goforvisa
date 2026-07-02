@@ -208,7 +208,8 @@ function SalariesPage() {
     { fixed: 0, kpi: 0, penalty: 0, advance: 0, gross: 0, total: 0 },
   );
 
-  const fmt = fmtUzs;
+  const fmt = (n: number) =>
+    new Intl.NumberFormat(localeOf(lang)).format(Math.round(n)) + " " + t("sal.uzs");
 
   const onDelete = async (id: string) => {
     if (!confirm(t("sal.confirm.delete"))) return;
