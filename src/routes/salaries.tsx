@@ -148,9 +148,14 @@ function SalariesPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "salaries" }, () => {
         qc.invalidateQueries({ queryKey: ["salaries"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "salary_payments" }, () => {
+        qc.invalidateQueries({ queryKey: ["salary_payments"] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user, qc]);
+
+  const [payFor, setPayFor] = useState<{ id: string; name: string; gross: number; paid: number } | null>(null);
 
   const enriched = useMemo(
     () => rowsAll.map((r) => {
