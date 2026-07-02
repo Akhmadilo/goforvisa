@@ -1002,87 +1002,8 @@ function Dashboard() {
         </Card>
         )}
 
-        {/* Table */}
-        {can("contracts_table") && (
-        <Card className="shadow-[var(--shadow-card)] overflow-hidden">
-          <div className="p-4 md:p-5 border-b border-border flex items-center justify-between">
-            <h3 className="font-semibold text-sm md:text-base">
-              {t("dash.table.contractsList")}{" "}
-              <span className="text-muted-foreground font-normal">
-                ({filtered.length})
-              </span>
-            </h3>
-            {isLoading && (
-              <span className="text-xs text-muted-foreground">
-                {t("common.loading")}
-              </span>
-            )}
-          </div>
-          <div className="overflow-x-auto max-h-[420px] md:max-h-[600px] overflow-y-auto">
-            <Table>
-              <TableHeader className="sticky top-0 bg-card z-10">
-                <TableRow>
-                  <TableHead>№</TableHead>
-                  <TableHead>{t("common.date")}</TableHead>
-                  <TableHead>{t("dash.table.client")}</TableHead>
-                  <TableHead>{t("dash.table.phone")}</TableHead>
-                  <TableHead>{t("dash.table.type")}</TableHead>
-                  <TableHead className="text-right">{t("dash.table.price")}</TableHead>
-                  <TableHead className="text-right">{t("dash.table.docCost")}</TableHead>
-                  <TableHead className="text-right">{t("dash.table.netRevenue")}</TableHead>
-                  <TableHead>{t("dash.table.manager")}</TableHead>
-                  <TableHead>{t("dash.table.visa")}</TableHead>
-                  <TableHead>{t("dash.table.payment")}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.slice(0, 300).map((c, i) => (
-                  <TableRow key={`${c.contractNo}-${i}`}>
-                    <TableCell className="font-mono text-xs">
-                      {c.contractNo}
-                    </TableCell>
-                    <TableCell className="text-xs whitespace-nowrap">
-                      {c.contractDate}
-                    </TableCell>
-                    <TableCell className="font-medium">{c.name}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {c.phone}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {c.type || "—"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-xs">
-                      {c.priceUsd > 0
-                        ? `$${c.priceUsd.toLocaleString()}`
-                        : c.priceUzs > 0
-                          ? `${(c.priceUzs / 1000).toLocaleString()}k UZS`
-                          : "—"}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-xs text-muted-foreground">
-                      {c.docsUsd > 0 ? `$${c.docsUsd.toLocaleString()}` : "—"}
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-xs font-semibold text-primary">
-                      {fmtUsd(netProfit(c))}
-                    </TableCell>
-                    <TableCell className="text-xs">{c.salesManager}</TableCell>
-                    <TableCell>
-                      <VisaBadge result={c.visaResult} />
-                    </TableCell>
-                    <TableCell className="text-xs">{c.payment}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          {filtered.length > 300 && (
-            <div className="p-3 text-xs text-center text-muted-foreground border-t border-border">
-              {format(t("dash.table.showingOf"), { n: filtered.length })}
-            </div>
-          )}
-        </Card>
-        )}
+        {/* Contracts table removed from CFO dashboard — full list lives in /shartnomalar */}
+
       </main>
       </div>
     </div>

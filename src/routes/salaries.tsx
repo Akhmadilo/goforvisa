@@ -96,6 +96,26 @@ function SalariesPage() {
     enabled: !!user,
   });
 
+  // Fetch payments (all) so we can show paid / remaining per salary
+  const { data: payments = [] } = useQuery({
+    queryKey: ["salary_payments"],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("salary_payments")
+        .select("id, salary_id, amount, kind, paid_at, note");
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!user,
+  });
+  const paidBySalary = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const p of payments as any[]) {
+      m.set(p.salary_id, (m.get(p.salary_id) ?? 0) + Number(p.amount || 0));
+    }
+    return m;
+  }, [payments]);
+
   // Creator profiles
   const creatorIds = useMemo(
     () => Array.from(new Set(rowsAll.map((r) => r.created_by).filter(Boolean))) as string[],
@@ -128,15 +148,26 @@ function SalariesPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "salaries" }, () => {
         qc.invalidateQueries({ queryKey: ["salaries"] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "salary_payments" }, () => {
+        qc.invalidateQueries({ queryKey: ["salary_payments"] });
+      })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [user, qc]);
 
+  const [payFor, setPayFor] = useState<{ id: string; name: string; gross: number; paid: number } | null>(null);
+
   const enriched = useMemo(
-    () => rowsAll.map((r) => ({
-      ...r,
-      total: Number(r.fixed_amount) + Number(r.kpi_amount) - Number(r.penalty_amount) - Number((r as any).advance_amount ?? 0),
-    })),
+    () => rowsAll.map((r) => {
+      const gross = Number(r.fixed_amount) + Number(r.kpi_amount) - Number(r.penalty_amount);
+      const advance = Number((r as any).advance_amount ?? 0);
+      return {
+        ...r,
+        gross,               // hisobot uchun (avanssiz)
+        advance,
+        total: gross - advance, // berilishi kerak (avans allaqachon to'langan)
+      };
+    }),
     [rowsAll],
   );
 
@@ -169,10 +200,12 @@ function SalariesPage() {
       acc.fixed += Number(e.fixed_amount);
       acc.kpi += Number(e.kpi_amount);
       acc.penalty += Number(e.penalty_amount);
+      acc.advance += e.advance;
+      acc.gross += e.gross;
       acc.total += e.total;
       return acc;
     },
-    { fixed: 0, kpi: 0, penalty: 0, total: 0 },
+    { fixed: 0, kpi: 0, penalty: 0, advance: 0, gross: 0, total: 0 },
   );
 
   const fmt = (n: number) =>
@@ -305,10 +338,11 @@ function SalariesPage() {
           </Card>
 
           {canTotals && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
               <SumCard label={t("sal.stat.fixed")} value={fmt(totals.fixed)} />
               <SumCard label={t("sal.stat.bonus")} value={`+${fmt(totals.kpi)}`} accent="primary" />
               <SumCard label={t("sal.stat.penalty")} value={`−${fmt(totals.penalty)}`} accent="destructive" />
+              <SumCard label="Umumiy (avanssiz)" value={fmt(totals.gross)} bold />
               <SumCard label={t("sal.stat.payable")} value={fmt(totals.total)} accent="primary" bold />
             </div>
           )}
@@ -331,54 +365,79 @@ function SalariesPage() {
                       <TableHead className="text-right">{t("sal.col.fixed")}</TableHead>
                       <TableHead className="text-right">{t("sal.col.bonus")}</TableHead>
                       <TableHead className="text-right">{t("sal.col.penalty")}</TableHead>
+                      <TableHead className="text-right">Umumiy (avanssiz)</TableHead>
+                      <TableHead className="text-right">Avans</TableHead>
                       <TableHead className="text-right">{t("sal.col.salary")}</TableHead>
+                      <TableHead className="text-right">To'landi</TableHead>
+                      <TableHead>Holat</TableHead>
                       <TableHead>{t("sal.col.note")}</TableHead>
                       <TableHead>{t("sal.col.creator")}</TableHead>
-                      {canCreate && <TableHead className="w-[100px]"></TableHead>}
+                      {canCreate && <TableHead className="w-[140px]"></TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoading ? (
-                      <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-10">{t("common.loading")}</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={14} className="text-center text-muted-foreground py-10">{t("common.loading")}</TableCell></TableRow>
                     ) : rows.length === 0 ? (
-                      <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-10">{t("common.notFound")}</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={14} className="text-center text-muted-foreground py-10">{t("common.notFound")}</TableCell></TableRow>
                     ) : (
-                      rows.map((e) => (
-                        <TableRow key={e.id}>
-                          <TableCell className="text-muted-foreground">{e.year}</TableCell>
-                          <TableCell>{monthNames[e.month - 1]}</TableCell>
-                          <TableCell className="font-medium">
-                            <button
-                              className="hover:underline"
-                              onClick={() => setSelectedEmployees([e.employee_name])}
-                            >
-                              {e.employee_name}
-                            </button>
-                          </TableCell>
-                          <TableCell className="text-right">{fmt(Number(e.fixed_amount))}</TableCell>
-                          <TableCell className="text-right text-primary">+{fmt(Number(e.kpi_amount))}</TableCell>
-                          <TableCell className="text-right text-destructive">−{fmt(Number(e.penalty_amount))}</TableCell>
-                          <TableCell className="text-right font-semibold">{fmt(e.total)}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground max-w-[160px] truncate">{e.note ?? ""}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground">
-                            {e.created_by ? (creatorMap.get(e.created_by) ?? "—") : "—"}
-                          </TableCell>
-                          {canCreate && (
-                            <TableCell>
-                              <div className="flex gap-1 justify-end">
-                                <Button size="icon" variant="ghost" className="h-8 w-8"
-                                  onClick={() => { setEditing(e); setOpenForm(true); }}>
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive"
-                                  onClick={() => onDelete(e.id)}>
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
+                      rows.map((e) => {
+                        const paid = paidBySalary.get(e.id) ?? 0;
+                        const remaining = Math.max(0, e.gross - paid);
+                        const status =
+                          paid <= 0 ? { label: "To'lanmagan", cls: "bg-muted text-muted-foreground" }
+                          : remaining <= 0.5 ? { label: "Yopilgan", cls: "bg-primary/15 text-primary border-primary/30" }
+                          : { label: "Qisman", cls: "bg-accent/15 text-accent border-accent/30" };
+                        return (
+                          <TableRow key={e.id}>
+                            <TableCell className="text-muted-foreground">{e.year}</TableCell>
+                            <TableCell>{monthNames[e.month - 1]}</TableCell>
+                            <TableCell className="font-medium">
+                              <button
+                                className="hover:underline"
+                                onClick={() => setSelectedEmployees([e.employee_name])}
+                              >
+                                {e.employee_name}
+                              </button>
                             </TableCell>
-                          )}
-                        </TableRow>
-                      ))
+                            <TableCell className="text-right">{fmt(Number(e.fixed_amount))}</TableCell>
+                            <TableCell className="text-right text-primary">+{fmt(Number(e.kpi_amount))}</TableCell>
+                            <TableCell className="text-right text-destructive">−{fmt(Number(e.penalty_amount))}</TableCell>
+                            <TableCell className="text-right font-semibold">{fmt(e.gross)}</TableCell>
+                            <TableCell className="text-right text-muted-foreground">{e.advance > 0 ? `−${fmt(e.advance)}` : "—"}</TableCell>
+                            <TableCell className="text-right font-bold text-primary">{fmt(e.total)}</TableCell>
+                            <TableCell className="text-right">{fmt(paid)}</TableCell>
+                            <TableCell>
+                              <span className={cn("inline-flex items-center px-2 py-0.5 rounded text-xs border", status.cls)}>{status.label}</span>
+                              {remaining > 0.5 && paid > 0 && (
+                                <div className="text-[10px] text-muted-foreground mt-0.5">Qoldiq: {fmt(remaining)}</div>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground max-w-[160px] truncate">{e.note ?? ""}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {e.created_by ? (creatorMap.get(e.created_by) ?? "—") : "—"}
+                            </TableCell>
+                            {canCreate && (
+                              <TableCell>
+                                <div className="flex gap-1 justify-end">
+                                  <Button size="sm" variant="outline" className="h-8"
+                                    onClick={() => setPayFor({ id: e.id, name: e.employee_name, gross: e.gross, paid })}>
+                                    <Plus className="h-3.5 w-3.5 mr-1" /> To'lov
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8"
+                                    onClick={() => { setEditing(e); setOpenForm(true); }}>
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive"
+                                    onClick={() => onDelete(e.id)}>
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
@@ -395,7 +454,101 @@ function SalariesPage() {
         userId={user?.id ?? null}
         knownEmployees={employees}
       />
+
+      <PaymentDialog
+        target={payFor}
+        onClose={() => setPayFor(null)}
+        payments={(payments as any[]).filter((p) => p.salary_id === payFor?.id)}
+        onChanged={() => qc.invalidateQueries({ queryKey: ["salary_payments"] })}
+      />
     </div>
+  );
+}
+
+function PaymentDialog({
+  target, onClose, payments, onChanged,
+}: {
+  target: { id: string; name: string; gross: number; paid: number } | null;
+  onClose: () => void;
+  payments: any[];
+  onChanged: () => void;
+}) {
+  const fmt = (n: number) => new Intl.NumberFormat("uz-UZ").format(Math.round(n)) + " UZS";
+  const [amount, setAmount] = useState("");
+  const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10));
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (target) {
+      const remaining = Math.max(0, target.gross - target.paid);
+      setAmount(remaining > 0 ? String(remaining) : "");
+      setPaidAt(new Date().toISOString().slice(0, 10));
+      setNote("");
+    }
+  }, [target]);
+
+  if (!target) return null;
+  const totalPaid = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const remaining = Math.max(0, target.gross - totalPaid);
+
+  const submit = async () => {
+    const amt = Number(amount);
+    if (!amt || amt <= 0) return;
+    setSaving(true);
+    const { error } = await (supabase as any).from("salary_payments").insert({
+      salary_id: target.id, amount: amt, kind: "manual", paid_at: paidAt, note: note || null,
+    });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("To'lov qo'shildi");
+    setAmount(""); setNote("");
+    onChanged();
+  };
+
+  const removePayment = async (id: string) => {
+    const { error } = await (supabase as any).from("salary_payments").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    onChanged();
+  };
+
+  return (
+    <Dialog open={!!target} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>To'lovlar — {target.name}</DialogTitle></DialogHeader>
+        <div className="grid grid-cols-3 gap-2 text-sm">
+          <Card className="p-2"><div className="text-xs text-muted-foreground">Umumiy</div><div className="font-semibold">{fmt(target.gross)}</div></Card>
+          <Card className="p-2"><div className="text-xs text-muted-foreground">To'landi</div><div className="font-semibold text-primary">{fmt(totalPaid)}</div></Card>
+          <Card className="p-2"><div className="text-xs text-muted-foreground">Qoldiq</div><div className="font-semibold text-destructive">{fmt(remaining)}</div></Card>
+        </div>
+        <div className="space-y-2 max-h-48 overflow-auto">
+          {payments.length === 0 ? (
+            <div className="text-xs text-muted-foreground text-center py-3">To'lovlar yo'q</div>
+          ) : payments.map((p) => (
+            <div key={p.id} className="flex items-center justify-between text-sm border rounded px-2 py-1">
+              <div>
+                <div className="font-medium">{fmt(Number(p.amount))} <span className="text-xs text-muted-foreground">({p.kind === "advance" ? "avans" : "to'lov"})</span></div>
+                <div className="text-xs text-muted-foreground">{p.paid_at}{p.note ? ` — ${p.note}` : ""}</div>
+              </div>
+              {p.kind !== "advance" && (
+                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removePayment(p.id)}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div><label className="text-xs">Summa</label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+          <div><label className="text-xs">Sana</label><Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} /></div>
+        </div>
+        <div><label className="text-xs">Izoh</label><Input value={note} onChange={(e) => setNote(e.target.value)} /></div>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={onClose}>Yopish</Button>
+          <Button onClick={submit} disabled={saving || !amount}>To'lov qo'shish</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -700,10 +853,17 @@ function SalaryFormDialog({
             <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
           </div>
           <div className="rounded-md bg-secondary px-3 py-2 space-y-1">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>Hisob: oklad + bonus − jarima − avans</span>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Umumiy oylik (avanssiz, hisobot uchun)</span>
+              <span className="font-semibold">
+                {nf((parseFloat(fixed) || 0) + (parseFloat(kpi) || 0) - (parseFloat(penalty) || 0))} {t("sal.uzs")}
+              </span>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">− Avans (to'langan)</span>
+              <span>−{nf(parseFloat(advance) || 0)} {t("sal.uzs")}</span>
+            </div>
+            <div className="flex items-center justify-between pt-1 border-t border-border">
               <span className="text-sm text-muted-foreground">Berilishi kerak</span>
               <span className="text-base font-bold text-primary">
                 {nf(total)} {t("sal.uzs")}

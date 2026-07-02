@@ -76,7 +76,14 @@ export const getContracts = createServerFn({ method: "GET" })
     const out: Contract[] = [];
     for (const c of contractsRes.data ?? []) {
       let year = (c.year ?? "").toString().trim();
-      let month = (c.month ?? "").toString().trim();
+      let monthRaw = (c.month ?? "").toString().trim();
+      // month in DB is stored as a number ("1".."12"); dashboard expects month name.
+      let month = "";
+      if (monthRaw) {
+        const idx = Number(monthRaw);
+        if (!isNaN(idx) && idx >= 1 && idx <= 12) month = MONTH_NAMES[idx - 1];
+        else if (MONTH_NAMES.includes(monthRaw)) month = monthRaw;
+      }
       if ((!year || !month) && c.contract_date) {
         const d = new Date(c.contract_date);
         if (!isNaN(d.getTime())) {
