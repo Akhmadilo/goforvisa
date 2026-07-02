@@ -454,7 +454,100 @@ function SalariesPage() {
         userId={user?.id ?? null}
         knownEmployees={employees}
       />
+
+      <PaymentDialog
+        target={payFor}
+        onClose={() => setPayFor(null)}
+        payments={(payments as any[]).filter((p) => p.salary_id === payFor?.id)}
+        onChanged={() => qc.invalidateQueries({ queryKey: ["salary_payments"] })}
+      />
     </div>
+  );
+}
+
+function PaymentDialog({
+  target, onClose, payments, onChanged,
+}: {
+  target: { id: string; name: string; gross: number; paid: number } | null;
+  onClose: () => void;
+  payments: any[];
+  onChanged: () => void;
+}) {
+  const [amount, setAmount] = useState("");
+  const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10));
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (target) {
+      const remaining = Math.max(0, target.gross - target.paid);
+      setAmount(remaining > 0 ? String(remaining) : "");
+      setPaidAt(new Date().toISOString().slice(0, 10));
+      setNote("");
+    }
+  }, [target]);
+
+  if (!target) return null;
+  const totalPaid = payments.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const remaining = Math.max(0, target.gross - totalPaid);
+
+  const submit = async () => {
+    const amt = Number(amount);
+    if (!amt || amt <= 0) return;
+    setSaving(true);
+    const { error } = await (supabase as any).from("salary_payments").insert({
+      salary_id: target.id, amount: amt, kind: "manual", paid_at: paidAt, note: note || null,
+    });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("To'lov qo'shildi");
+    setAmount(""); setNote("");
+    onChanged();
+  };
+
+  const removePayment = async (id: string) => {
+    const { error } = await (supabase as any).from("salary_payments").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    onChanged();
+  };
+
+  return (
+    <Dialog open={!!target} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader><DialogTitle>To'lovlar — {target.name}</DialogTitle></DialogHeader>
+        <div className="grid grid-cols-3 gap-2 text-sm">
+          <Card className="p-2"><div className="text-xs text-muted-foreground">Umumiy</div><div className="font-semibold">{fmt(target.gross)}</div></Card>
+          <Card className="p-2"><div className="text-xs text-muted-foreground">To'landi</div><div className="font-semibold text-primary">{fmt(totalPaid)}</div></Card>
+          <Card className="p-2"><div className="text-xs text-muted-foreground">Qoldiq</div><div className="font-semibold text-destructive">{fmt(remaining)}</div></Card>
+        </div>
+        <div className="space-y-2 max-h-48 overflow-auto">
+          {payments.length === 0 ? (
+            <div className="text-xs text-muted-foreground text-center py-3">To'lovlar yo'q</div>
+          ) : payments.map((p) => (
+            <div key={p.id} className="flex items-center justify-between text-sm border rounded px-2 py-1">
+              <div>
+                <div className="font-medium">{fmt(Number(p.amount))} <span className="text-xs text-muted-foreground">({p.kind === "advance" ? "avans" : "to'lov"})</span></div>
+                <div className="text-xs text-muted-foreground">{p.paid_at}{p.note ? ` — ${p.note}` : ""}</div>
+              </div>
+              {p.kind !== "advance" && (
+                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => removePayment(p.id)}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div><label className="text-xs">Summa</label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+          <div><label className="text-xs">Sana</label><Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} /></div>
+        </div>
+        <div><label className="text-xs">Izoh</label><Input value={note} onChange={(e) => setNote(e.target.value)} /></div>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={onClose}>Yopish</Button>
+          <Button onClick={submit} disabled={saving || !amount}>To'lov qo'shish</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
