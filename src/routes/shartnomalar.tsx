@@ -777,12 +777,13 @@ function ShartnomalarPage() {
                            const price = Number(c.price_usd || 0);
                            const isStopped = c.visa_result === "To'xtatildi";
                            a.price += price;
+                           a.commission += Number(c.commission || 0);
                            a.paid += paid;
                            a.remaining += isStopped ? 0 : Math.max(0, price - paid);
                            a.people += Number(c.people || 0);
                            return a;
                          },
-                        { price: 0, paid: 0, remaining: 0, people: 0 },
+                        { price: 0, commission: 0, paid: 0, remaining: 0, people: 0 },
                       );
                       return (
                         <tfoot className="bg-muted/50 font-semibold sticky bottom-0">
@@ -793,6 +794,7 @@ function ShartnomalarPage() {
                               {totals.people} {t("contracts.col.people")}
                             </TableCell>
                             <TableCell className="text-right tabular-nums">${fmt(totals.price)}</TableCell>
+                            <TableCell className="text-right tabular-nums">${fmt(totals.commission)}</TableCell>
                             <TableCell className="text-right tabular-nums text-green-700 dark:text-green-400">${fmt(totals.paid)}</TableCell>
                             <TableCell className="text-right tabular-nums text-destructive">${fmt(totals.remaining)}</TableCell>
                             <TableCell colSpan={7}></TableCell>
