@@ -392,7 +392,10 @@ function ShartnomalarPage() {
     setPdfFile(null);
     setPhotoUrl(row.client_photo_url);
     setPdfUrl(row.contract_pdf_url);
-    setCommissionManual(true); // preserve stored commission
+    // Keep auto-calc active so that if the user edits price_usd or docs_usd,
+    // commission is recomputed. It'll be marked manual only if the user
+    // directly edits the commission input.
+    setCommissionManual(false);
     setDialogOpen(true);
   };
 
@@ -634,6 +637,7 @@ function ShartnomalarPage() {
                         <TableHead>{t("contracts.col.no")}</TableHead>
                         <TableHead>{t("contracts.col.phone")}</TableHead>
                         <TableHead className="text-right">{t("contracts.col.price")}</TableHead>
+                        <TableHead className="text-right">Komissiya</TableHead>
                         <TableHead className="text-right">{t("contracts.col.paid")}</TableHead>
                         <TableHead className="text-right">{t("contracts.col.remaining")}</TableHead>
                         <TableHead>{t("contracts.col.status")}</TableHead>
@@ -707,6 +711,9 @@ function ShartnomalarPage() {
                                   {fmt(c.price_uzs)} so'm
                                 </div>
                               ) : null}
+                            </TableCell>
+                            <TableCell className="text-right tabular-nums font-medium">
+                              ${fmt(c.commission)}
                             </TableCell>
                             <TableCell className="text-right tabular-nums font-medium text-green-700 dark:text-green-400">
                               ${fmt(paidUsd)}
