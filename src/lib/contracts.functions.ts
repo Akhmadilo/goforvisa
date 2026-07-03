@@ -17,6 +17,8 @@ export interface Contract {
   docsUsd: number;
   commission: number;
   payment: string;
+  paidUsd: number;
+  remainingUsd: number;
   people: number;
   note: string;
   type: string;
