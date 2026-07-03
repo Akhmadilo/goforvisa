@@ -402,18 +402,18 @@ function Dashboard() {
   const debtors = useMemo(() => {
     const today = new Date();
     return filtered
-      .filter((c) => c.payment === "Partially" || c.payment === "No payment")
+      .filter((c) => (c.remainingUsd || 0) > 0.5)
       .filter((c) => (c.visaResult ?? "").trim() !== "To'xtatildi")
       .map((c) => {
         const date = parseContractDate(c.contractDate);
         const days = date ? daysBetween(today, date) : 0;
         return { ...c, daysOverdue: days, parsedDate: date };
       })
-      .sort((a, b) => b.daysOverdue - a.daysOverdue);
+      .sort((a, b) => (b.remainingUsd || 0) - (a.remainingUsd || 0));
   }, [filtered]);
 
   const debtorsTotalUsd = useMemo(
-    () => debtors.reduce((s, c) => s + toUsd(c, getRate), 0),
+    () => debtors.reduce((s, c) => s + (c.remainingUsd || 0), 0),
     [debtors],
   );
 
@@ -942,7 +942,8 @@ function Dashboard() {
                     <TableHead>{t("common.date")}</TableHead>
                     <TableHead className="text-right">{t("dash.table.daysOverdue")}</TableHead>
                     <TableHead className="text-right">{t("dash.table.contract")}</TableHead>
-                    <TableHead>{t("dash.table.payment")}</TableHead>
+                    <TableHead className="text-right">To'langan</TableHead>
+                    <TableHead className="text-right">Qoldiq</TableHead>
                     <TableHead>{t("dash.table.manager")}</TableHead>
                     <TableHead>{t("common.note")}</TableHead>
                   </TableRow>
@@ -954,7 +955,7 @@ function Dashboard() {
                       className="hover:bg-destructive/5"
                     >
                       <TableCell className="font-mono text-xs">
-                        {c.contractNo}
+                        {c.contractNo || (i + 1)}
                       </TableCell>
                       <TableCell className="font-medium">{c.name}</TableCell>
                       <TableCell className="text-xs text-muted-foreground">
@@ -973,16 +974,11 @@ function Dashboard() {
                             ? `${(c.priceUzs / 1000).toLocaleString()}k UZS`
                             : "—"}
                       </TableCell>
-                      <TableCell>
-                        <Badge
-                          className={
-                            c.payment === "No payment"
-                              ? "bg-destructive/15 text-destructive border-destructive/30"
-                              : "bg-accent/15 text-accent border-accent/30"
-                          }
-                        >
-                          {c.payment}
-                        </Badge>
+                      <TableCell className="text-right font-mono text-xs text-green-700 dark:text-green-400">
+                        ${Math.round(c.paidUsd).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-xs font-semibold text-destructive">
+                        ${Math.round(c.remainingUsd).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-xs">
                         {c.salesManager}

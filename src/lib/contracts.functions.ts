@@ -17,6 +17,8 @@ export interface Contract {
   docsUsd: number;
   commission: number;
   payment: string;
+  paidUsd: number;
+  remainingUsd: number;
   people: number;
   note: string;
   type: string;
@@ -121,6 +123,8 @@ export const getContracts = createServerFn({ method: "GET" })
         docsUsd: Number(c.docs_usd || 0),
         commission: Number(c.commission || 0),
         payment: paymentStr,
+        paidUsd,
+        remainingUsd: totalUsd > 0 ? Math.max(0, totalUsd - paidUsd) : 0,
         people: Number(c.people || 1),
         note: c.note ?? "",
         type: c.contract_type ?? "",
