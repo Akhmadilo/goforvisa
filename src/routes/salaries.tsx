@@ -342,7 +342,7 @@ function SalariesPage() {
               <SumCard label={t("sal.stat.fixed")} value={fmt(totals.fixed)} />
               <SumCard label={t("sal.stat.bonus")} value={`+${fmt(totals.kpi)}`} accent="primary" />
               <SumCard label={t("sal.stat.penalty")} value={`−${fmt(totals.penalty)}`} accent="destructive" />
-              <SumCard label="Umumiy (avanssiz)" value={fmt(totals.gross)} bold />
+              <SumCard label="Hisoblangan oylik" value={fmt(totals.gross)} bold />
               <SumCard label={t("sal.stat.payable")} value={fmt(totals.total)} accent="primary" bold />
             </div>
           )}
@@ -365,7 +365,7 @@ function SalariesPage() {
                       <TableHead className="text-right">{t("sal.col.fixed")}</TableHead>
                       <TableHead className="text-right">{t("sal.col.bonus")}</TableHead>
                       <TableHead className="text-right">{t("sal.col.penalty")}</TableHead>
-                      <TableHead className="text-right">Umumiy (avanssiz)</TableHead>
+                      <TableHead className="text-right">Hisoblangan oylik</TableHead>
                       <TableHead className="text-right">Avans</TableHead>
                       <TableHead className="text-right">{t("sal.col.salary")}</TableHead>
                       <TableHead className="text-right">To'landi</TableHead>
@@ -854,7 +854,7 @@ function SalaryFormDialog({
           </div>
           <div className="rounded-md bg-secondary px-3 py-2 space-y-1">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Umumiy oylik (avanssiz, hisobot uchun)</span>
+              <span className="text-muted-foreground">Hisoblangan oylik (hisobot uchun)</span>
               <span className="font-semibold">
                 {nf((parseFloat(fixed) || 0) + (parseFloat(kpi) || 0) - (parseFloat(penalty) || 0))} {t("sal.uzs")}
               </span>
