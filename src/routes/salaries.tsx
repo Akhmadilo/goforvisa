@@ -1004,6 +1004,7 @@ type PivotRow = {
   employee_name: string;
   month: number;
   year: number;
+  gross: number;
   total: number;
 };
 
@@ -1034,7 +1035,7 @@ function PivotTable({ rows, fmt }: { rows: PivotRow[]; fmt: (n: number) => strin
   for (const r of rows) {
     const k = `${r.year}-${r.month}`;
     if (!grid.has(r.employee_name)) grid.set(r.employee_name, new Map());
-    grid.get(r.employee_name)!.set(k, (grid.get(r.employee_name)!.get(k) ?? 0) + r.total);
+    grid.get(r.employee_name)!.set(k, (grid.get(r.employee_name)!.get(k) ?? 0) + r.gross);
   }
 
   const colTotals = cols.map((c) =>
