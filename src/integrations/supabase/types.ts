@@ -882,6 +882,7 @@ export type Database = {
           contract_id: string
           id: string
           manager_name: string
+          role: string
           status: string
         }
         Insert: {
@@ -893,6 +894,7 @@ export type Database = {
           contract_id: string
           id?: string
           manager_name: string
+          role?: string
           status?: string
         }
         Update: {
@@ -904,13 +906,14 @@ export type Database = {
           contract_id?: string
           id?: string
           manager_name?: string
+          role?: string
           status?: string
         }
         Relationships: [
           {
             foreignKeyName: "sales_kpi_approvals_contract_id_fkey"
             columns: ["contract_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
@@ -922,6 +925,7 @@ export type Database = {
           id: string
           manager_name: string
           rate_per_usd: number
+          role: string
           updated_at: string
         }
         Insert: {
@@ -929,6 +933,7 @@ export type Database = {
           id?: string
           manager_name: string
           rate_per_usd?: number
+          role?: string
           updated_at?: string
         }
         Update: {
@@ -936,6 +941,7 @@ export type Database = {
           id?: string
           manager_name?: string
           rate_per_usd?: number
+          role?: string
           updated_at?: string
         }
         Relationships: []
