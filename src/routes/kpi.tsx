@@ -75,23 +75,6 @@ const baseFor = callCentreBaseFor;
 const kpiPctFor = callCentreKpiPctFor;
 
 
-// Sales rate is per-manager (sales_kpi_rates); default fallback handled inline.
-
-
-function SectionPlaceholder({ title, icon: Icon }: { title: string; icon: typeof PhoneCall }) {
-  return (
-    <Card className="p-8 md:p-12">
-      <div className="flex flex-col items-center text-center gap-3 text-muted-foreground">
-        <Icon className="h-10 w-10 text-primary/60" />
-        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
-        <p className="text-sm max-w-md">
-          Bu bo'lim uchun KPI tizimi tez orada qo'shiladi.
-        </p>
-      </div>
-    </Card>
-  );
-}
-
 function PeriodPicker({
   year, month, setYear, setMonth,
 }: { year: string; month: string; setYear: (v: string) => void; setMonth: (v: string) => void }) {
@@ -116,11 +99,31 @@ function PeriodPicker({
   );
 }
 
+function EmployeeFilter({
+  value, onChange, names,
+}: { value: string; onChange: (v: string) => void; names: string[] }) {
+  return (
+    <Card>
+      <CardHeader className="pb-3"><CardTitle className="text-base">Xodim</CardTitle></CardHeader>
+      <CardContent>
+        <Select value={value} onValueChange={onChange}>
+          <SelectTrigger className="w-64"><SelectValue placeholder="Barchasi" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">Barchasi</SelectItem>
+            {names.map((n) => <SelectItem key={n} value={n}>{n}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </CardContent>
+    </Card>
+  );
+}
+
 function CallCentreKpi() {
   const { lang } = useT();
   const now = new Date();
   const [year, setYear] = useState<string>(String(now.getFullYear()));
   const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
+  const [employee, setEmployee] = useState<string>("__all__");
 
   const { data: contracts } = useQuery({
     queryKey: ["kpi-cc-contracts", year, month],
@@ -135,7 +138,7 @@ function CallCentreKpi() {
     },
   });
 
-  const rows = useMemo(() => {
+  const allRows = useMemo(() => {
     const map = new Map<string, number>();
     (contracts ?? []).forEach((c: { call_centre: string | null; visa_result: string | null }) => {
       const name = (c.call_centre ?? "").trim();
@@ -155,11 +158,18 @@ function CallCentreKpi() {
     return list;
   }, [contracts]);
 
+  const rows = useMemo(
+    () => (employee === "__all__" ? allRows : allRows.filter((r) => r.name === employee)),
+    [allRows, employee],
+  );
+  const names = useMemo(() => allRows.map((r) => r.name), [allRows]);
+
   const fmt = (n: number) => n.toLocaleString(localeOf(lang));
 
   return (
     <div className="space-y-4">
       <PeriodPicker year={year} month={month} setYear={setYear} setMonth={setMonth} />
+      <EmployeeFilter value={employee} onChange={setEmployee} names={names} />
 
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Asosiy oylik (sotuv soni bo'yicha)</CardTitle></CardHeader>
@@ -249,11 +259,24 @@ function CallCentreKpi() {
   );
 }
 
-function SalesKpi() {
+type CommissionRole = "sales" | "back_office";
+
+function CommissionKpi({
+  role,
+  managerField,
+  managerLabel,
+  formulaHint,
+}: {
+  role: CommissionRole;
+  managerField: "sales_manager" | "back_office_manager";
+  managerLabel: string;
+  formulaHint: string;
+}) {
   const { lang } = useT();
   const now = new Date();
   const [year, setYear] = useState<string>(String(now.getFullYear()));
   const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
+  const [employee, setEmployee] = useState<string>("__all__");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const { getRate } = useUsdRates();
   const isAdmin = useIsAdmin();
@@ -262,11 +285,11 @@ function SalesKpi() {
   const fmt = (n: number) => n.toLocaleString(localeOf(lang));
 
   const { data: contracts } = useQuery({
-    queryKey: ["kpi-sales-contracts"],
+    queryKey: ["kpi-commission-contracts", managerField],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contracts")
-        .select("id, client_name, contract_no, sales_manager, price_usd, commission, visa_result");
+        .select(`id, client_name, contract_no, ${managerField}, price_usd, commission, visa_result`);
       if (error) throw error;
       return data ?? [];
     },
@@ -275,7 +298,7 @@ function SalesKpi() {
   const contractIds = useMemo(() => (contracts ?? []).map((c: any) => c.id), [contracts]);
 
   const { data: payments } = useQuery({
-    queryKey: ["kpi-sales-payments", contractIds.length],
+    queryKey: ["kpi-commission-payments", role, contractIds.length],
     enabled: contractIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -289,18 +312,24 @@ function SalesKpi() {
   });
 
   const { data: rates } = useQuery({
-    queryKey: ["sales_kpi_rates"],
+    queryKey: ["sales_kpi_rates", role],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("sales_kpi_rates").select("*");
+      const { data, error } = await (supabase as any)
+        .from("sales_kpi_rates")
+        .select("*")
+        .eq("role", role);
       if (error) throw error;
       return (data ?? []) as { manager_name: string; rate_per_usd: number }[];
     },
   });
 
   const { data: approvals } = useQuery({
-    queryKey: ["sales_kpi_approvals"],
+    queryKey: ["sales_kpi_approvals", role],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("sales_kpi_approvals").select("*");
+      const { data, error } = await (supabase as any)
+        .from("sales_kpi_approvals")
+        .select("*")
+        .eq("role", role);
       if (error) throw error;
       return (data ?? []) as { contract_id: string; approved_year: number; approved_month: number; bonus_uzs: number; status: "approved" | "rejected" }[];
     },
@@ -315,11 +344,11 @@ function SalesKpi() {
     mutationFn: async ({ name, rate }: { name: string; rate: number }) => {
       const { error } = await (supabase as any)
         .from("sales_kpi_rates")
-        .upsert({ manager_name: name, rate_per_usd: rate }, { onConflict: "manager_name" });
+        .upsert({ manager_name: name, rate_per_usd: rate, role }, { onConflict: "role,manager_name" });
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["sales_kpi_rates"] });
+      qc.invalidateQueries({ queryKey: ["sales_kpi_rates", role] });
       toast.success("Saqlandi");
     },
     onError: (e: any) => toast.error(e.message ?? "Xato"),
@@ -337,13 +366,14 @@ function SalesKpi() {
           status: payload.status,
           approved_by: user?.id ?? null,
           approved_at: new Date().toISOString(),
+          role,
         },
-        { onConflict: "contract_id" },
+        { onConflict: "role,contract_id" },
       );
       if (error) throw error;
     },
     onSuccess: (_d, vars) => {
-      qc.invalidateQueries({ queryKey: ["sales_kpi_approvals"] });
+      qc.invalidateQueries({ queryKey: ["sales_kpi_approvals", role] });
       toast.success(vars.status === "approved" ? "KPI tasdiqlandi" : "KPI berilmaydi");
     },
     onError: (e: any) => toast.error(e.message ?? "Xato"),
@@ -351,17 +381,19 @@ function SalesKpi() {
 
   const clearStatus = useMutation({
     mutationFn: async (contract_id: string) => {
-      const { error } = await (supabase as any).from("sales_kpi_approvals").delete().eq("contract_id", contract_id);
+      const { error } = await (supabase as any)
+        .from("sales_kpi_approvals")
+        .delete()
+        .eq("contract_id", contract_id)
+        .eq("role", role);
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["sales_kpi_approvals"] });
+      qc.invalidateQueries({ queryKey: ["sales_kpi_approvals", role] });
       toast.success("Bekor qilindi");
     },
   });
 
-
-  // Compute completed contracts in selected month and group by manager
   const managerGroups = useMemo(() => {
     if (!contracts || !payments) return [];
     const yNum = Number(year);
@@ -384,7 +416,7 @@ function SalesKpi() {
     const groups = new Map<string, Item[]>();
 
     for (const c of contracts as any[]) {
-      const name = (c.sales_manager ?? "").trim();
+      const name = (c[managerField] ?? "").trim();
       if (!name) continue;
       if (c.visa_result === "Bekor qilindi" || c.visa_result === "To'xtatildi") continue;
       const price = Number(c.price_usd ?? 0);
@@ -422,7 +454,7 @@ function SalesKpi() {
 
     const approvedSet = new Set((approvals ?? []).filter((a) => a.status === "approved").map((a) => a.contract_id));
     const rejectedSet = new Set((approvals ?? []).filter((a) => a.status === "rejected").map((a) => a.contract_id));
-    return Array.from(groups.entries())
+    const list = Array.from(groups.entries())
       .map(([name, items]) => {
         const approvedTotal = items.filter((i) => approvedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
         const rejectedTotal = items.filter((i) => rejectedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
@@ -432,7 +464,14 @@ function SalesKpi() {
         return { name, items, approvedTotal, pendingTotal, rejectedTotal, total: approvedTotal + pendingTotal };
       })
       .sort((a, b) => b.total - a.total);
-  }, [contracts, payments, year, month, getRate, rates, approvals]);
+    return list;
+  }, [contracts, payments, year, month, getRate, rates, approvals, managerField]);
+
+  const allNames = useMemo(() => managerGroups.map((g) => g.name), [managerGroups]);
+  const filteredGroups = useMemo(
+    () => (employee === "__all__" ? managerGroups : managerGroups.filter((g) => g.name === employee)),
+    [managerGroups, employee],
+  );
 
   const approvedSet = useMemo(() => new Set((approvals ?? []).filter((a) => a.status === "approved").map((a) => a.contract_id)), [approvals]);
   const rejectedSet = useMemo(() => new Set((approvals ?? []).filter((a) => a.status === "rejected").map((a) => a.contract_id)), [approvals]);
@@ -443,24 +482,7 @@ function SalesKpi() {
   }, [approvals]);
   const navigate = useNavigate();
 
-
-  const [detail, setDetail] = useState<null | {
-    id: string;
-    client: string;
-    contractNo: string | null;
-    commissionUsd: number;
-    bonus: number;
-    completedAt: string;
-    manager: string;
-  }>(null);
-
-  const detailPayments = useMemo(() => {
-    if (!detail || !payments) return [] as any[];
-    return (payments as any[]).filter((p) => p.contract_id === detail.id);
-  }, [detail, payments]);
-
   const toggle = (name: string) => {
-
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(name)) next.delete(name);
@@ -472,34 +494,34 @@ function SalesKpi() {
   return (
     <div className="space-y-4">
       <PeriodPicker year={year} month={month} setYear={setYear} setMonth={setMonth} />
+      <EmployeeFilter value={employee} onChange={setEmployee} names={allNames} />
 
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Formula</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Har sales menejer uchun komissiyaning <b className="text-foreground">har $1</b> i = <b className="text-foreground">belgilangan stavka</b> (default 500 so'm = 50 000/$100).
-          Bonus shartnoma 100% to'lab bo'lingan oyda hisoblanadi (masalan, apreldagi mijoz iyunda yopilsa, iyunga tushadi).
+          {formulaHint}
         </CardContent>
       </Card>
 
       {isAdmin && (
         <Card>
-          <CardHeader className="pb-3"><CardTitle className="text-base">Sales menejerlar stavkasi (so'm / $1)</CardTitle></CardHeader>
+          <CardHeader className="pb-3"><CardTitle className="text-base">{managerLabel} stavkasi (so'm / $1)</CardTitle></CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Manager</TableHead>
+                    <TableHead>{managerLabel}</TableHead>
                     <TableHead className="w-48">Stavka (so'm/$)</TableHead>
                     <TableHead className="text-right">Ekvivalent</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {managerGroups.length === 0 ? (
-                    <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-4">Bu oyda manejerlar yo'q</TableCell></TableRow>
-                  ) : managerGroups.map((g) => {
+                  {filteredGroups.length === 0 ? (
+                    <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-4">Bu oyda xodimlar yo'q</TableCell></TableRow>
+                  ) : filteredGroups.map((g) => {
                     const cur = rateFor(g.name);
                     return (
                       <TableRow key={g.name}>
@@ -521,9 +543,9 @@ function SalesKpi() {
         </Card>
       )}
 
-      {managerGroups.length === 0 ? (
+      {filteredGroups.length === 0 ? (
         <Card><CardContent className="py-8 text-center text-muted-foreground">Bu oyda to'liq to'lov amalga oshmagan</CardContent></Card>
-      ) : managerGroups.map((g) => {
+      ) : filteredGroups.map((g) => {
         const isOpen = expanded.has(g.name);
         return (
           <Card key={g.name}>
@@ -557,7 +579,7 @@ function SalesKpi() {
                     </TableHeader>
                     <TableBody>
                       {g.items.map((it) => (
-                        <KpiSalesRow
+                        <KpiCommissionRow
                           key={it.id}
                           it={it}
                           managerName={g.name}
@@ -581,52 +603,7 @@ function SalesKpi() {
           </Card>
         );
       })}
-
-      <Dialog open={!!detail} onOpenChange={(o) => !o && setDetail(null)}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{detail?.client}</DialogTitle>
-          </DialogHeader>
-          {detail && (
-            <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-2">
-                <div className="text-muted-foreground">Shartnoma №</div><div>{detail.contractNo ?? "—"}</div>
-                <div className="text-muted-foreground">Sales menejer</div><div>{detail.manager}</div>
-                <div className="text-muted-foreground">Yopilgan sana</div><div>{detail.completedAt}</div>
-                <div className="text-muted-foreground">Komissiya</div><div>${fmt(Math.round(detail.commissionUsd))}</div>
-                <div className="text-muted-foreground">Bonus</div><div className="font-semibold">{fmt(detail.bonus)} so'm</div>
-              </div>
-              <div>
-                <div className="font-medium mb-2">To'lovlar</div>
-                <div className="border rounded-md overflow-hidden">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Sana</TableHead>
-                        <TableHead className="text-right">Summa</TableHead>
-                        <TableHead>Valyuta</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {detailPayments.length === 0 ? (
-                        <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">To'lov yo'q</TableCell></TableRow>
-                      ) : detailPayments.map((p, i) => (
-                        <TableRow key={i}>
-                          <TableCell>{p.paid_at}</TableCell>
-                          <TableCell className="text-right">{fmt(Number(p.amount))}</TableCell>
-                          <TableCell>{p.currency ?? "UZS"}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
-
   );
 }
 
@@ -652,7 +629,7 @@ function RateEditor({ initial, onSave }: { initial: number; onSave: (v: number) 
   );
 }
 
-type KpiSalesRowProps = {
+type KpiCommissionRowProps = {
   it: { id: string; client: string; contractNo: string | null; commissionUsd: number; bonus: number; completedAt: string };
   managerName: string;
   isAdmin: boolean;
@@ -667,10 +644,10 @@ type KpiSalesRowProps = {
   onClear: (id: string) => void;
 };
 
-function KpiSalesRow({
+function KpiCommissionRow({
   it, managerName, isAdmin, isApproved, isRejected, approvalInfo,
   defaultYear, defaultMonth, fmt, onOpenContract, onSetStatus, onClear,
-}: KpiSalesRowProps) {
+}: KpiCommissionRowProps) {
   const { lang } = useT();
   const months = getMonthNames(lang);
   const now = new Date();
@@ -681,7 +658,6 @@ function KpiSalesRow({
   const [selYear, setSelYear] = useState<number>(initYear);
   const [selMonth, setSelMonth] = useState<number>(initMonth);
 
-  // Keep in sync if approval changes externally or default period changes for unapproved
   useEffect(() => {
     setSelYear(approvalInfo?.year ?? defaultYear);
     setSelMonth(approvalInfo?.month ?? defaultMonth);
@@ -822,9 +798,21 @@ function KpiPage() {
           </TabsList>
 
           <TabsContent value="call-centre" className="mt-4"><CallCentreKpi /></TabsContent>
-          <TabsContent value="sales" className="mt-4"><SalesKpi /></TabsContent>
+          <TabsContent value="sales" className="mt-4">
+            <CommissionKpi
+              role="sales"
+              managerField="sales_manager"
+              managerLabel="Sales menejer"
+              formulaHint="Har sales menejer uchun komissiyaning har $1 i = belgilangan stavka (default 500 so'm = 50 000/$100). Bonus shartnoma 100% to'lab bo'lingan oyda hisoblanadi."
+            />
+          </TabsContent>
           <TabsContent value="back-office" className="mt-4">
-            <SectionPlaceholder title="Back office KPI" icon={Briefcase} />
+            <CommissionKpi
+              role="back_office"
+              managerField="back_office_manager"
+              managerLabel="Back office xodim"
+              formulaHint="Har back office xodim uchun komissiyaning har $1 i = belgilangan stavka (default 500 so'm = 50 000/$100). Bonus shartnoma 100% to'lab bo'lingan oyda hisoblanadi."
+            />
           </TabsContent>
         </Tabs>
       </main>
