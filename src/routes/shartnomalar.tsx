@@ -41,7 +41,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUsdRates } from "@/lib/usd-rates";
 import { cn } from "@/lib/utils";
 
-const VISA_RESULTS = ["Topshirildi", "Olindi", "Rad etildi", "Jarayonda", "Bekor qilindi", "To'xtatildi"] as const;
+const VISA_RESULTS = ["Olindi", "Rad etildi", "Jarayonda", "Bekor qilindi"] as const;
 
 export const Route = createFileRoute("/shartnomalar")({
   component: ShartnomalarPage,
