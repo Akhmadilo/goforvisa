@@ -106,6 +106,7 @@ type FormState = {
   back_office_manager: string;
   company: string;
   visa_result: string;
+  visa_taken_date: string;
   note: string;
 };
 
