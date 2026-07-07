@@ -768,6 +768,259 @@ function KpiCommissionRow({
 
 
 
+function VisaBonusKpi() {
+  const { lang } = useT();
+  const now = new Date();
+  const [year, setYear] = useState<string>(String(now.getFullYear()));
+  const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
+  const [employee, setEmployee] = useState<string>("__all__");
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const isAdmin = useIsAdmin();
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const fmt = (n: number) => n.toLocaleString(localeOf(lang));
+  const role = "visa_bonus" as const;
+  const DEFAULT_RATE = 250;
+
+  const { data: contracts } = useQuery({
+    queryKey: ["kpi-visa-contracts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contracts")
+        .select("id, client_name, contract_no, back_office_manager, commission, visa_result, visa_taken_date" as unknown as "*")
+        .eq("visa_result", "Olindi");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: rates } = useQuery({
+    queryKey: ["sales_kpi_rates", role],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("sales_kpi_rates").select("*").eq("role", role);
+      if (error) throw error;
+      return (data ?? []) as { manager_name: string; rate_per_usd: number }[];
+    },
+  });
+
+  const { data: approvals } = useQuery({
+    queryKey: ["sales_kpi_approvals", role],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).from("sales_kpi_approvals").select("*").eq("role", role);
+      if (error) throw error;
+      return (data ?? []) as { contract_id: string; approved_year: number; approved_month: number; bonus_uzs: number; status: "approved" | "rejected" }[];
+    },
+  });
+
+  const rateFor = (name: string): number => {
+    const r = (rates ?? []).find((x) => x.manager_name === name);
+    return r ? Number(r.rate_per_usd) : DEFAULT_RATE;
+  };
+
+  const setRate = useMutation({
+    mutationFn: async ({ name, rate }: { name: string; rate: number }) => {
+      const { error } = await (supabase as any)
+        .from("sales_kpi_rates")
+        .upsert({ manager_name: name, rate_per_usd: rate, role }, { onConflict: "role,manager_name" });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sales_kpi_rates", role] });
+      toast.success("Saqlandi");
+    },
+  });
+
+  const setStatus = useMutation({
+    mutationFn: async (payload: { contract_id: string; manager_name: string; year: number; month: number; bonus: number; status: "approved" | "rejected" }) => {
+      const { error } = await (supabase as any).from("sales_kpi_approvals").upsert(
+        {
+          contract_id: payload.contract_id,
+          manager_name: payload.manager_name,
+          approved_year: payload.year,
+          approved_month: payload.month,
+          bonus_uzs: payload.bonus,
+          status: payload.status,
+          approved_by: user?.id ?? null,
+          approved_at: new Date().toISOString(),
+          role,
+        },
+        { onConflict: "role,contract_id" },
+      );
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ["sales_kpi_approvals", role] });
+      toast.success(vars.status === "approved" ? "Bonus tasdiqlandi" : "Bonus berilmaydi");
+    },
+  });
+
+  const clearStatus = useMutation({
+    mutationFn: async (contract_id: string) => {
+      const { error } = await (supabase as any).from("sales_kpi_approvals").delete().eq("contract_id", contract_id).eq("role", role);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["sales_kpi_approvals", role] });
+      toast.success("Bekor qilindi");
+    },
+  });
+
+  const managerGroups = useMemo(() => {
+    if (!contracts) return [];
+    const yNum = Number(year);
+    const mNum = Number(month);
+
+    type Item = { id: string; client: string; contractNo: string | null; commissionUsd: number; bonus: number; completedAt: string };
+    const groups = new Map<string, Item[]>();
+
+    for (const c of contracts as any[]) {
+      const name = (c.back_office_manager ?? "").trim();
+      if (!name) continue;
+      const takenDate: string | null = c.visa_taken_date ?? null;
+      if (!takenDate) continue;
+      const d = new Date(takenDate);
+      if (isNaN(d.getTime())) continue;
+      if (d.getFullYear() !== yNum || d.getMonth() + 1 !== mNum) continue;
+      const commissionUsd = Number(c.commission ?? 0);
+      if (commissionUsd <= 0) continue;
+      const rate = rateFor(name);
+      const bonus = Math.round(commissionUsd * rate);
+      const arr = groups.get(name) ?? [];
+      arr.push({ id: c.id, client: c.client_name, contractNo: c.contract_no, commissionUsd, bonus, completedAt: takenDate });
+      groups.set(name, arr);
+    }
+
+    const approvedSet = new Set((approvals ?? []).filter((a) => a.status === "approved").map((a) => a.contract_id));
+    const rejectedSet = new Set((approvals ?? []).filter((a) => a.status === "rejected").map((a) => a.contract_id));
+    return Array.from(groups.entries())
+      .map(([name, items]) => {
+        const approvedTotal = items.filter((i) => approvedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
+        const rejectedTotal = items.filter((i) => rejectedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
+        const pendingTotal = items.filter((i) => !approvedSet.has(i.id) && !rejectedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
+        return { name, items, approvedTotal, pendingTotal, rejectedTotal, total: approvedTotal + pendingTotal };
+      })
+      .sort((a, b) => b.total - a.total);
+  }, [contracts, year, month, rates, approvals]);
+
+  const allNames = useMemo(() => managerGroups.map((g) => g.name), [managerGroups]);
+  const filteredGroups = useMemo(
+    () => (employee === "__all__" ? managerGroups : managerGroups.filter((g) => g.name === employee)),
+    [managerGroups, employee],
+  );
+  const approvedSet = useMemo(() => new Set((approvals ?? []).filter((a) => a.status === "approved").map((a) => a.contract_id)), [approvals]);
+  const rejectedSet = useMemo(() => new Set((approvals ?? []).filter((a) => a.status === "rejected").map((a) => a.contract_id)), [approvals]);
+  const approvalByContract = useMemo(() => {
+    const m = new Map<string, { year: number; month: number; status: "approved" | "rejected" }>();
+    (approvals ?? []).forEach((a) => m.set(a.contract_id, { year: a.approved_year, month: a.approved_month, status: a.status }));
+    return m;
+  }, [approvals]);
+  const navigate = useNavigate();
+
+  const toggle = (name: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name); else next.add(name);
+      return next;
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <PeriodPicker year={year} month={month} setYear={setYear} setMonth={setMonth} />
+      <EmployeeFilter value={employee} onChange={setEmployee} names={allNames} />
+
+      <Card>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Formula</CardTitle></CardHeader>
+        <CardContent className="text-sm text-muted-foreground">
+          Viza olingan (Olindi) shartnomalar uchun bonus. Komissiyaning har $1 iga {DEFAULT_RATE} so'm (default). Davr - viza olingan sana bo'yicha.
+        </CardContent>
+      </Card>
+
+      {isAdmin && (
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-base">Back office xodim stavkasi (so'm / $1)</CardTitle></CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader><TableRow><TableHead>Xodim</TableHead><TableHead className="w-48">Stavka (so'm/$)</TableHead><TableHead className="text-right">Ekvivalent</TableHead></TableRow></TableHeader>
+                <TableBody>
+                  {filteredGroups.length === 0 ? (
+                    <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-4">Bu oyda xodimlar yo'q</TableCell></TableRow>
+                  ) : filteredGroups.map((g) => {
+                    const cur = rateFor(g.name);
+                    return (
+                      <TableRow key={g.name}>
+                        <TableCell className="font-medium">{g.name}</TableCell>
+                        <TableCell><RateEditor initial={cur} onSave={(v) => setRate.mutate({ name: g.name, rate: v })} /></TableCell>
+                        <TableCell className="text-right text-muted-foreground text-sm">{fmt(cur * 100)} so'm / $100</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {filteredGroups.length === 0 ? (
+        <Card><CardContent className="py-8 text-center text-muted-foreground">Bu oyda viza olingan shartnomalar yo'q</CardContent></Card>
+      ) : filteredGroups.map((g) => {
+        const isOpen = expanded.has(g.name);
+        return (
+          <Card key={g.name}>
+            <CardHeader className="pb-3 cursor-pointer" onClick={() => toggle(g.name)}>
+              <div className="flex flex-wrap items-center gap-3">
+                {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                <CardTitle className="text-base">{g.name}</CardTitle>
+                <Badge variant="secondary">{g.items.length} viza</Badge>
+                <div className="ml-auto flex flex-wrap gap-2 text-sm">
+                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Tasdiqlangan: {fmt(g.approvedTotal)} so'm</Badge>
+                  {g.pendingTotal > 0 && <Badge variant="outline">Kutilmoqda: {fmt(g.pendingTotal)} so'm</Badge>}
+                  {g.rejectedTotal > 0 && <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Berilmaydi: {fmt(g.rejectedTotal)} so'm</Badge>}
+                  <Badge className="bg-primary text-primary-foreground">Jami: {fmt(g.total)} so'm</Badge>
+                </div>
+              </div>
+            </CardHeader>
+            {isOpen && (
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader><TableRow>
+                      <TableHead>Mijoz</TableHead><TableHead>Shartnoma №</TableHead><TableHead>Viza olingan</TableHead>
+                      <TableHead className="text-right">Komissiya ($)</TableHead><TableHead className="text-right">Bonus (so'm)</TableHead>
+                      <TableHead>Oylikka qo'shiladi</TableHead><TableHead className="text-right">Holat</TableHead>
+                    </TableRow></TableHeader>
+                    <TableBody>
+                      {g.items.map((it) => (
+                        <KpiCommissionRow
+                          key={it.id}
+                          it={it}
+                          managerName={g.name}
+                          isAdmin={isAdmin}
+                          isApproved={approvedSet.has(it.id)}
+                          isRejected={rejectedSet.has(it.id)}
+                          approvalInfo={approvalByContract.get(it.id) ?? null}
+                          defaultYear={Number(year)}
+                          defaultMonth={Number(month)}
+                          fmt={fmt}
+                          onOpenContract={(id) => navigate({ to: "/shartnomalar", search: { openId: id } })}
+                          onSetStatus={(payload) => setStatus.mutate(payload)}
+                          onClear={(id) => clearStatus.mutate(id)}
+                        />
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            )}
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
 function KpiPage() {
   const { t } = useT();
   return (
@@ -780,7 +1033,7 @@ function KpiPage() {
         </div>
 
         <Tabs defaultValue="call-centre" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 max-w-2xl">
+          <TabsList className="grid w-full grid-cols-4 max-w-3xl">
             <TabsTrigger value="call-centre" className="gap-2">
               <PhoneCall className="h-4 w-4" />
               <span className="hidden sm:inline">Call-centre</span>
@@ -794,6 +1047,11 @@ function KpiPage() {
               <Briefcase className="h-4 w-4" />
               <span className="hidden sm:inline">Back office</span>
               <span className="sm:hidden">Back</span>
+            </TabsTrigger>
+            <TabsTrigger value="visa-bonus" className="gap-2">
+              <CheckCircle2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Viza bonusi</span>
+              <span className="sm:hidden">Viza</span>
             </TabsTrigger>
           </TabsList>
 
@@ -814,6 +1072,7 @@ function KpiPage() {
               formulaHint="Har back office xodim uchun komissiyaning har $1 i = belgilangan stavka (default 500 so'm = 50 000/$100). Bonus shartnoma 100% to'lab bo'lingan oyda hisoblanadi."
             />
           </TabsContent>
+          <TabsContent value="visa-bonus" className="mt-4"><VisaBonusKpi /></TabsContent>
         </Tabs>
       </main>
     </div>
