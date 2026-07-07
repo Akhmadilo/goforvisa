@@ -389,6 +389,7 @@ function ShartnomalarPage() {
       back_office_manager: row.back_office_manager ?? "",
       company: row.company ?? "",
       visa_result: row.visa_result ?? "",
+      visa_taken_date: (row as any).visa_taken_date ?? "",
       note: row.note ?? "",
     });
     setPhotoFile(null);
