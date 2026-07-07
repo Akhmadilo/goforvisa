@@ -254,6 +254,7 @@ export type Database = {
           sales_manager: string | null
           updated_at: string
           visa_result: string | null
+          visa_taken_date: string | null
           year: string | null
         }
         Insert: {
@@ -281,6 +282,7 @@ export type Database = {
           sales_manager?: string | null
           updated_at?: string
           visa_result?: string | null
+          visa_taken_date?: string | null
           year?: string | null
         }
         Update: {
@@ -308,6 +310,7 @@ export type Database = {
           sales_manager?: string | null
           updated_at?: string
           visa_result?: string | null
+          visa_taken_date?: string | null
           year?: string | null
         }
         Relationships: []
