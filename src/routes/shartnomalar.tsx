@@ -71,6 +71,7 @@ type ContractRow = {
   back_office_manager: string | null;
   company: string | null;
   visa_result: string | null;
+  visa_taken_date: string | null;
   client_photo_url: string | null;
   contract_pdf_url: string | null;
   created_at: string;
