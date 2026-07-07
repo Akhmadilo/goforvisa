@@ -461,6 +461,7 @@ function ShartnomalarPage() {
         back_office_manager: form.back_office_manager || null,
         company: form.company || null,
         visa_result: form.visa_result || null,
+        visa_taken_date: form.visa_result === "Olindi" ? (form.visa_taken_date || null) : null,
         note: form.note || null,
         client_photo_url: newPhotoPath,
         contract_pdf_url: newPdfPath,
