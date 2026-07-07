@@ -1064,16 +1064,32 @@ function visaLabel(value: string | null, t: (k: any) => string) {
   return key ? t(key) : value;
 }
 
-function VisaResultSelect({ contractId, value }: { contractId: string; value: string | null }) {
+function VisaResultSelect({ contractId, value, takenDate }: { contractId: string; value: string | null; takenDate: string | null }) {
   const qc = useQueryClient();
   const { t } = useT();
   const [saving, setSaving] = useState(false);
+  const [dateOpen, setDateOpen] = useState(false);
+  const [dateVal, setDateVal] = useState<string>(takenDate ?? new Date().toISOString().slice(0, 10));
   const onChange = async (v: string) => {
     setSaving(true);
-    const { error } = await supabase.from("contracts").update({ visa_result: v || null }).eq("id", contractId);
+    const patch: { visa_result: string | null; visa_taken_date?: string | null } = { visa_result: v || null };
+    if (v === "Olindi") {
+      patch.visa_taken_date = takenDate || new Date().toISOString().slice(0, 10);
+    } else {
+      patch.visa_taken_date = null;
+    }
+    const { error } = await supabase.from("contracts").update(patch as never).eq("id", contractId);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success(t("contracts.toast.visaUpdated"));
+    qc.invalidateQueries({ queryKey: ["contracts-db"] });
+    if (v === "Olindi") setDateOpen(true);
+  };
+  const saveDate = async () => {
+    const { error } = await supabase.from("contracts").update({ visa_taken_date: dateVal || null } as never).eq("id", contractId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Sana saqlandi");
+    setDateOpen(false);
     qc.invalidateQueries({ queryKey: ["contracts-db"] });
   };
   return (
