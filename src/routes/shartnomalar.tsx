@@ -41,7 +41,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUsdRates } from "@/lib/usd-rates";
 import { cn } from "@/lib/utils";
 
-const VISA_RESULTS = ["Topshirildi", "Olindi", "Rad etildi", "Jarayonda", "Bekor qilindi", "To'xtatildi"] as const;
+const VISA_RESULTS = ["Olindi", "Rad etildi", "Jarayonda", "Bekor qilindi"] as const;
 
 export const Route = createFileRoute("/shartnomalar")({
   component: ShartnomalarPage,
@@ -71,6 +71,7 @@ type ContractRow = {
   back_office_manager: string | null;
   company: string | null;
   visa_result: string | null;
+  visa_taken_date: string | null;
   client_photo_url: string | null;
   contract_pdf_url: string | null;
   created_at: string;
@@ -105,6 +106,7 @@ type FormState = {
   back_office_manager: string;
   company: string;
   visa_result: string;
+  visa_taken_date: string;
   note: string;
 };
 
@@ -126,6 +128,7 @@ const emptyForm: FormState = {
   back_office_manager: "",
   company: "",
   visa_result: "",
+  visa_taken_date: "",
   note: "",
 };
 
@@ -386,6 +389,7 @@ function ShartnomalarPage() {
       back_office_manager: row.back_office_manager ?? "",
       company: row.company ?? "",
       visa_result: row.visa_result ?? "",
+      visa_taken_date: (row as any).visa_taken_date ?? "",
       note: row.note ?? "",
     });
     setPhotoFile(null);
@@ -457,6 +461,7 @@ function ShartnomalarPage() {
         back_office_manager: form.back_office_manager || null,
         company: form.company || null,
         visa_result: form.visa_result || null,
+        visa_taken_date: form.visa_result === "Olindi" ? (form.visa_taken_date || null) : null,
         note: form.note || null,
         client_photo_url: newPhotoPath,
         contract_pdf_url: newPdfPath,
@@ -729,16 +734,24 @@ function ShartnomalarPage() {
                             <TableCell className="whitespace-nowrap">{c.company ?? "—"}</TableCell>
                             <TableCell onClick={stop}>
                               {canEdit ? (
-                                <VisaResultSelect contractId={c.id} value={c.visa_result} />
+                                <VisaResultSelect
+                                  contractId={c.id}
+                                  value={c.visa_result}
+                                  takenDate={(c as any).visa_taken_date ?? null}
+                                />
                               ) : c.visa_result ? (
                                 <span className="inline-flex items-center gap-1.5 text-xs">
                                   <span className={cn("inline-block h-2 w-2 rounded-full", visaResultColor(c.visa_result))} />
                                   <span className="font-medium">{visaLabel(c.visa_result, t)}</span>
+                                  {c.visa_result === "Olindi" && (c as any).visa_taken_date && (
+                                    <span className="text-muted-foreground">({(c as any).visa_taken_date})</span>
+                                  )}
                                 </span>
                               ) : (
                                 "—"
                               )}
                             </TableCell>
+
                             <TableCell onClick={stop}>
                               {c.contract_pdf_url ? (
                                 <button
@@ -908,12 +921,28 @@ function ShartnomalarPage() {
             <Field label={t("contracts.form.visa")}>
               <SelectBox
                 value={form.visa_result}
-                onChange={(v) => setForm({ ...form, visa_result: v })}
+                onChange={(v) => setForm({
+                  ...form,
+                  visa_result: v,
+                  visa_taken_date: v === "Olindi"
+                    ? (form.visa_taken_date || new Date().toISOString().slice(0, 10))
+                    : "",
+                })}
                 options={VISA_RESULTS as unknown as string[]}
                 placeholder={t("contracts.placeholder.select")}
                 renderOption={(v) => visaLabel(v, t)}
               />
             </Field>
+            {form.visa_result === "Olindi" && (
+              <Field label="Viza olingan sana">
+                <Input
+                  type="date"
+                  value={form.visa_taken_date}
+                  onChange={(e) => setForm({ ...form, visa_taken_date: e.target.value })}
+                />
+              </Field>
+            )}
+
 
             <Field label={t("contracts.form.photo")}>
               <div className="flex items-center gap-2">
@@ -1035,45 +1064,85 @@ function visaLabel(value: string | null, t: (k: any) => string) {
   return key ? t(key) : value;
 }
 
-function VisaResultSelect({ contractId, value }: { contractId: string; value: string | null }) {
+function VisaResultSelect({ contractId, value, takenDate }: { contractId: string; value: string | null; takenDate: string | null }) {
   const qc = useQueryClient();
   const { t } = useT();
   const [saving, setSaving] = useState(false);
+  const [dateOpen, setDateOpen] = useState(false);
+  const [dateVal, setDateVal] = useState<string>(takenDate ?? new Date().toISOString().slice(0, 10));
   const onChange = async (v: string) => {
     setSaving(true);
-    const { error } = await supabase.from("contracts").update({ visa_result: v || null }).eq("id", contractId);
+    const patch: { visa_result: string | null; visa_taken_date?: string | null } = { visa_result: v || null };
+    if (v === "Olindi") {
+      patch.visa_taken_date = takenDate || new Date().toISOString().slice(0, 10);
+    } else {
+      patch.visa_taken_date = null;
+    }
+    const { error } = await supabase.from("contracts").update(patch as never).eq("id", contractId);
     setSaving(false);
     if (error) { toast.error(error.message); return; }
     toast.success(t("contracts.toast.visaUpdated"));
     qc.invalidateQueries({ queryKey: ["contracts-db"] });
+    if (v === "Olindi") setDateOpen(true);
+  };
+  const saveDate = async () => {
+    const { error } = await supabase.from("contracts").update({ visa_taken_date: dateVal || null } as never).eq("id", contractId);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Sana saqlandi");
+    setDateOpen(false);
+    qc.invalidateQueries({ queryKey: ["contracts-db"] });
   };
   return (
-    <Select value={value || undefined} onValueChange={onChange} disabled={saving}>
-      <SelectTrigger className="h-7 w-[150px] text-xs">
-        <SelectValue placeholder="—">
-          {value ? (
-            <span className="inline-flex items-center gap-1.5">
-              <span className={cn("inline-block h-2 w-2 rounded-full", visaResultColor(value))} />
-              {visaLabel(value, t)}
-            </span>
-          ) : (
-            "—"
-          )}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {VISA_RESULTS.map((o) => (
-          <SelectItem key={o} value={o}>
-            <span className="inline-flex items-center gap-2">
-              <span className={cn("inline-block h-2.5 w-2.5 rounded-full", visaResultColor(o))} />
-              {visaLabel(o, t)}
-            </span>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="flex flex-col gap-1">
+      <Select value={value || undefined} onValueChange={onChange} disabled={saving}>
+        <SelectTrigger className="h-7 w-[150px] text-xs">
+          <SelectValue placeholder="—">
+            {value ? (
+              <span className="inline-flex items-center gap-1.5">
+                <span className={cn("inline-block h-2 w-2 rounded-full", visaResultColor(value))} />
+                {visaLabel(value, t)}
+              </span>
+            ) : (
+              "—"
+            )}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {VISA_RESULTS.map((o) => (
+            <SelectItem key={o} value={o}>
+              <span className="inline-flex items-center gap-2">
+                <span className={cn("inline-block h-2.5 w-2.5 rounded-full", visaResultColor(o))} />
+                {visaLabel(o, t)}
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {value === "Olindi" && (
+        dateOpen ? (
+          <div className="flex items-center gap-1">
+            <Input
+              type="date"
+              value={dateVal}
+              onChange={(e) => setDateVal(e.target.value)}
+              className="h-7 w-[130px] text-xs"
+            />
+            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={saveDate}>OK</Button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => { setDateVal(takenDate ?? new Date().toISOString().slice(0, 10)); setDateOpen(true); }}
+            className="text-[11px] text-muted-foreground hover:text-primary text-left"
+          >
+            {takenDate ? `📅 ${takenDate}` : "📅 Sana tanlang"}
+          </button>
+        )
+      )}
+    </div>
   );
 }
+
 
 
 function PaymentsDialog({
