@@ -1093,32 +1093,56 @@ function VisaResultSelect({ contractId, value, takenDate }: { contractId: string
     qc.invalidateQueries({ queryKey: ["contracts-db"] });
   };
   return (
-    <Select value={value || undefined} onValueChange={onChange} disabled={saving}>
-      <SelectTrigger className="h-7 w-[150px] text-xs">
-        <SelectValue placeholder="—">
-          {value ? (
-            <span className="inline-flex items-center gap-1.5">
-              <span className={cn("inline-block h-2 w-2 rounded-full", visaResultColor(value))} />
-              {visaLabel(value, t)}
-            </span>
-          ) : (
-            "—"
-          )}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent>
-        {VISA_RESULTS.map((o) => (
-          <SelectItem key={o} value={o}>
-            <span className="inline-flex items-center gap-2">
-              <span className={cn("inline-block h-2.5 w-2.5 rounded-full", visaResultColor(o))} />
-              {visaLabel(o, t)}
-            </span>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+    <div className="flex flex-col gap-1">
+      <Select value={value || undefined} onValueChange={onChange} disabled={saving}>
+        <SelectTrigger className="h-7 w-[150px] text-xs">
+          <SelectValue placeholder="—">
+            {value ? (
+              <span className="inline-flex items-center gap-1.5">
+                <span className={cn("inline-block h-2 w-2 rounded-full", visaResultColor(value))} />
+                {visaLabel(value, t)}
+              </span>
+            ) : (
+              "—"
+            )}
+          </SelectValue>
+        </SelectTrigger>
+        <SelectContent>
+          {VISA_RESULTS.map((o) => (
+            <SelectItem key={o} value={o}>
+              <span className="inline-flex items-center gap-2">
+                <span className={cn("inline-block h-2.5 w-2.5 rounded-full", visaResultColor(o))} />
+                {visaLabel(o, t)}
+              </span>
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {value === "Olindi" && (
+        dateOpen ? (
+          <div className="flex items-center gap-1">
+            <Input
+              type="date"
+              value={dateVal}
+              onChange={(e) => setDateVal(e.target.value)}
+              className="h-7 w-[130px] text-xs"
+            />
+            <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={saveDate}>OK</Button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => { setDateVal(takenDate ?? new Date().toISOString().slice(0, 10)); setDateOpen(true); }}
+            className="text-[11px] text-muted-foreground hover:text-primary text-left"
+          >
+            {takenDate ? `📅 ${takenDate}` : "📅 Sana tanlang"}
+          </button>
+        )
+      )}
+    </div>
   );
 }
+
 
 
 function PaymentsDialog({
