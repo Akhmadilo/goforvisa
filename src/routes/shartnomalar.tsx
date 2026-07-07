@@ -913,12 +913,28 @@ function ShartnomalarPage() {
             <Field label={t("contracts.form.visa")}>
               <SelectBox
                 value={form.visa_result}
-                onChange={(v) => setForm({ ...form, visa_result: v })}
+                onChange={(v) => setForm({
+                  ...form,
+                  visa_result: v,
+                  visa_taken_date: v === "Olindi"
+                    ? (form.visa_taken_date || new Date().toISOString().slice(0, 10))
+                    : "",
+                })}
                 options={VISA_RESULTS as unknown as string[]}
                 placeholder={t("contracts.placeholder.select")}
                 renderOption={(v) => visaLabel(v, t)}
               />
             </Field>
+            {form.visa_result === "Olindi" && (
+              <Field label="Viza olingan sana">
+                <Input
+                  type="date"
+                  value={form.visa_taken_date}
+                  onChange={(e) => setForm({ ...form, visa_taken_date: e.target.value })}
+                />
+              </Field>
+            )}
+
 
             <Field label={t("contracts.form.photo")}>
               <div className="flex items-center gap-2">
