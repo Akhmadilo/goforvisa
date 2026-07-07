@@ -128,6 +128,7 @@ const emptyForm: FormState = {
   back_office_manager: "",
   company: "",
   visa_result: "",
+  visa_taken_date: "",
   note: "",
 };
 
