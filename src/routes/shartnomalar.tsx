@@ -734,16 +734,24 @@ function ShartnomalarPage() {
                             <TableCell className="whitespace-nowrap">{c.company ?? "—"}</TableCell>
                             <TableCell onClick={stop}>
                               {canEdit ? (
-                                <VisaResultSelect contractId={c.id} value={c.visa_result} />
+                                <VisaResultSelect
+                                  contractId={c.id}
+                                  value={c.visa_result}
+                                  takenDate={(c as any).visa_taken_date ?? null}
+                                />
                               ) : c.visa_result ? (
                                 <span className="inline-flex items-center gap-1.5 text-xs">
                                   <span className={cn("inline-block h-2 w-2 rounded-full", visaResultColor(c.visa_result))} />
                                   <span className="font-medium">{visaLabel(c.visa_result, t)}</span>
+                                  {c.visa_result === "Olindi" && (c as any).visa_taken_date && (
+                                    <span className="text-muted-foreground">({(c as any).visa_taken_date})</span>
+                                  )}
                                 </span>
                               ) : (
                                 "—"
                               )}
                             </TableCell>
+
                             <TableCell onClick={stop}>
                               {c.contract_pdf_url ? (
                                 <button
