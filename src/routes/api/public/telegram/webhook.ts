@@ -199,7 +199,113 @@ async function notifyDirectorsAboutAdvance(advId: string, empName: string, amoun
   }
 }
 
-async function handleCheckIn(chatId: number, telegramId: number) {
+const MONTHS_UZ = [
+  "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
+  "Iyul", "Avgust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr",
+];
+
+function contractsMonthsKb() {
+  const now = nowInTashkent();
+  const rows: Array<Array<{ text: string; callback_data: string }>> = [];
+  let row: Array<{ text: string; callback_data: string }> = [];
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    const y = d.getUTCFullYear();
+    const m = d.getUTCMonth() + 1;
+    row.push({ text: `${MONTHS_UZ[m - 1]} ${y}`, callback_data: `ctr_${y}_${m}` });
+    if (row.length === 2) { rows.push(row); row = []; }
+  }
+  if (row.length) rows.push(row);
+  return { inline_keyboard: rows };
+}
+
+async function sendContractsForMonth(chatId: number, year: number, month: number) {
+  const c = sb();
+  const ymStr = `${year}-${String(month).padStart(2, "0")}`;
+  const monthStr = String(month);
+
+  const { data: contracts } = await c
+    .from("contracts")
+    .select("id, client_name, contract_no, contract_date, price_uzs, price_usd, sales_manager, company")
+    .or(`and(year.eq.${year},month.eq.${monthStr}),and(year.is.null,contract_date.gte.${ymStr}-01,contract_date.lt.${ymStr}-32)`)
+    .order("contract_date", { ascending: true });
+
+  const list = contracts || [];
+  if (list.length === 0) {
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: `📄 *${MONTHS_UZ[month - 1]} ${year}*\n\nShu oyda shartnoma yo'q.`,
+      parse_mode: "Markdown",
+    });
+    return;
+  }
+
+  const ids = list.map((r: any) => r.id);
+  const { data: pays } = await c
+    .from("contract_payments")
+    .select("contract_id, amount, currency, paid_at")
+    .in("contract_id", ids);
+  const { data: rates } = await c.from("usd_rates").select("year, month, rate");
+
+  const rateMap = new Map<string, number>();
+  (rates || []).forEach((r: any) => rateMap.set(`${r.year}-${String(r.month).padStart(2, "0")}`, Number(r.rate)));
+  const allRates = (rates || []).map((r: any) => Number(r.rate)).filter((n) => n > 0);
+  const fallbackRate = allRates.length ? allRates[allRates.length - 1] : 12700;
+  const getRate = (ym: string) => rateMap.get(ym) || fallbackRate;
+
+  const paidByContract = new Map<string, number>();
+  (pays || []).forEach((p: any) => {
+    const amt = Number(p.amount || 0);
+    let usd = 0;
+    if ((p.currency || "").toUpperCase() === "USD") usd = amt;
+    else {
+      const ym = (p.paid_at || "").slice(0, 7);
+      const r = getRate(ym);
+      usd = r > 0 ? amt / r : 0;
+    }
+    paidByContract.set(p.contract_id, (paidByContract.get(p.contract_id) || 0) + usd);
+  });
+
+  let totalUsd = 0, totalPaid = 0, totalDebt = 0;
+  const lines: string[] = [];
+  const debtors: string[] = [];
+
+  list.forEach((row: any, i: number) => {
+    const priceUsd = Number(row.price_usd || 0);
+    const priceUzs = Number(row.price_uzs || 0);
+    const total = priceUsd > 0 ? priceUsd : (priceUzs > 0 ? priceUzs / getRate(ymStr) : 0);
+    const paid = paidByContract.get(row.id) || 0;
+    const debt = Math.max(0, total - paid);
+    totalUsd += total; totalPaid += paid; totalDebt += debt;
+
+    const status = total <= 0 ? "—" : (paid + 0.01 >= total ? "✅ To'langan" : (paid > 0 ? `⚠️ Qisman (${fmt(debt)}$ qarz)` : `❌ To'lanmagan (${fmt(debt)}$)`));
+    lines.push(`${i + 1}. *${row.client_name || "—"}* ${row.contract_no ? `(№${row.contract_no})` : ""}\n   💵 ${fmt(total)}$ · ${status}${row.sales_manager ? ` · ${row.sales_manager}` : ""}`);
+    if (debt > 0.01) debtors.push(`• ${row.client_name || "—"} — ${fmt(debt)}$`);
+  });
+
+  const header = `📄 *Shartnomalar — ${MONTHS_UZ[month - 1]} ${year}*\n👥 Jami: ${list.length} ta\n💵 Umumiy: ${fmt(totalUsd)}$\n✅ To'langan: ${fmt(totalPaid)}$\n❌ Qarzdorlik: ${fmt(totalDebt)}$\n`;
+
+  // Chunk to avoid Telegram 4096 char limit
+  const chunks: string[] = [];
+  let cur = header + "\n";
+  for (const l of lines) {
+    if (cur.length + l.length + 2 > 3800) { chunks.push(cur); cur = ""; }
+    cur += l + "\n\n";
+  }
+  if (cur.trim()) chunks.push(cur);
+
+  if (debtors.length) {
+    let d = `\n💸 *Qarzdorlar (${debtors.length})*\n` + debtors.join("\n");
+    if (d.length > 3800) d = d.slice(0, 3800) + "\n…";
+    chunks.push(d);
+  }
+
+  for (const ch of chunks) {
+    await tg("sendMessage", { chat_id: chatId, text: ch, parse_mode: "Markdown" });
+  }
+}
+
+
   const c = sb();
   const { data: link } = await c
     .from("employee_telegram")
