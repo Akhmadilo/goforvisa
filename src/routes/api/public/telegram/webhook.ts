@@ -753,6 +753,19 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
               });
             } else if (data === "face_yes") {
               await handleCheckIn(chatId, tgId);
+            } else if (data.startsWith("ctr_")) {
+              const { data: actor } = await sb()
+                .from("employee_telegram").select("bot_role").eq("telegram_id", tgId).maybeSingle();
+              if (!actor || !(CONTRACTS_ROLES as readonly string[]).includes(actor.bot_role || "")) {
+                await tg("answerCallbackQuery", { callback_query_id: cq.id, text: "❌ Ruxsat yo'q", show_alert: true });
+              } else {
+                const parts = data.split("_"); // ctr_YYYY_MM
+                const y = Number(parts[1]);
+                const m = Number(parts[2]);
+                if (y && m) {
+                  await sendContractsForMonth(chatId, y, m);
+                }
+              }
             } else if (data.startsWith("lv_")) {
               // Director CEO-stage leave decisions: lv_ac_<id>, lv_an_<id>, lv_rj_<id>
               const c = sb();
