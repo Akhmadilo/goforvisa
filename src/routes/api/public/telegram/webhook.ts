@@ -56,6 +56,24 @@ const MAIN_KB = {
   resize_keyboard: true,
 };
 
+const CONTRACTS_ROLES = ["owner", "ceo", "director", "financier"] as const;
+
+function mainKb(role?: string | null) {
+  if (role && (CONTRACTS_ROLES as readonly string[]).includes(role)) {
+    return {
+      keyboard: [
+        [{ text: "🟢 Keldim" }],
+        [{ text: "💰 Avans so'rash" }, { text: "📅 Javob so'rash" }],
+        [{ text: "📋 Bajarilgan ishlar" }],
+        [{ text: "📄 Shartnomalar" }],
+      ],
+      resize_keyboard: true,
+    };
+  }
+  return MAIN_KB;
+}
+
+
 const ABSENCE_FINE_UZS = 120000;
 
 const CANCEL_KB = {
@@ -181,8 +199,116 @@ async function notifyDirectorsAboutAdvance(advId: string, empName: string, amoun
   }
 }
 
+const MONTHS_UZ = [
+  "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
+  "Iyul", "Avgust", "Sentyabr", "Oktyabr", "Noyabr", "Dekabr",
+];
+
+function contractsMonthsKb() {
+  const now = nowInTashkent();
+  const rows: Array<Array<{ text: string; callback_data: string }>> = [];
+  let row: Array<{ text: string; callback_data: string }> = [];
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    const y = d.getUTCFullYear();
+    const m = d.getUTCMonth() + 1;
+    row.push({ text: `${MONTHS_UZ[m - 1]} ${y}`, callback_data: `ctr_${y}_${m}` });
+    if (row.length === 2) { rows.push(row); row = []; }
+  }
+  if (row.length) rows.push(row);
+  return { inline_keyboard: rows };
+}
+
+async function sendContractsForMonth(chatId: number, year: number, month: number) {
+  const c = sb();
+  const ymStr = `${year}-${String(month).padStart(2, "0")}`;
+  const monthStr = String(month);
+
+  const { data: contracts } = await c
+    .from("contracts")
+    .select("id, client_name, contract_no, contract_date, price_uzs, price_usd, sales_manager, company")
+    .or(`and(year.eq.${year},month.eq.${monthStr}),and(year.is.null,contract_date.gte.${ymStr}-01,contract_date.lt.${ymStr}-32)`)
+    .order("contract_date", { ascending: true });
+
+  const list = contracts || [];
+  if (list.length === 0) {
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: `📄 *${MONTHS_UZ[month - 1]} ${year}*\n\nShu oyda shartnoma yo'q.`,
+      parse_mode: "Markdown",
+    });
+    return;
+  }
+
+  const ids = list.map((r: any) => r.id);
+  const { data: pays } = await c
+    .from("contract_payments")
+    .select("contract_id, amount, currency, paid_at")
+    .in("contract_id", ids);
+  const { data: rates } = await c.from("usd_rates").select("year, month, rate");
+
+  const rateMap = new Map<string, number>();
+  (rates || []).forEach((r: any) => rateMap.set(`${r.year}-${String(r.month).padStart(2, "0")}`, Number(r.rate)));
+  const allRates = (rates || []).map((r: any) => Number(r.rate)).filter((n: number) => n > 0);
+  const fallbackRate = allRates.length ? allRates[allRates.length - 1] : 12700;
+  const getRate = (ym: string) => rateMap.get(ym) || fallbackRate;
+
+  const paidByContract = new Map<string, number>();
+  (pays || []).forEach((p: any) => {
+    const amt = Number(p.amount || 0);
+    let usd = 0;
+    if ((p.currency || "").toUpperCase() === "USD") usd = amt;
+    else {
+      const ym = (p.paid_at || "").slice(0, 7);
+      const r = getRate(ym);
+      usd = r > 0 ? amt / r : 0;
+    }
+    paidByContract.set(p.contract_id, (paidByContract.get(p.contract_id) || 0) + usd);
+  });
+
+  let totalUsd = 0, totalPaid = 0, totalDebt = 0;
+  const lines: string[] = [];
+  const debtors: string[] = [];
+
+  list.forEach((row: any, i: number) => {
+    const priceUsd = Number(row.price_usd || 0);
+    const priceUzs = Number(row.price_uzs || 0);
+    const total = priceUsd > 0 ? priceUsd : (priceUzs > 0 ? priceUzs / getRate(ymStr) : 0);
+    const paid = paidByContract.get(row.id) || 0;
+    const debt = Math.max(0, total - paid);
+    totalUsd += total; totalPaid += paid; totalDebt += debt;
+
+    const status = total <= 0 ? "—" : (paid + 0.01 >= total ? "✅ To'langan" : (paid > 0 ? `⚠️ Qisman (${fmt(debt)}$ qarz)` : `❌ To'lanmagan (${fmt(debt)}$)`));
+    lines.push(`${i + 1}. *${row.client_name || "—"}* ${row.contract_no ? `(№${row.contract_no})` : ""}\n   💵 ${fmt(total)}$ · ${status}${row.sales_manager ? ` · ${row.sales_manager}` : ""}`);
+    if (debt > 0.01) debtors.push(`• ${row.client_name || "—"} — ${fmt(debt)}$`);
+  });
+
+  const header = `📄 *Shartnomalar — ${MONTHS_UZ[month - 1]} ${year}*\n👥 Jami: ${list.length} ta\n💵 Umumiy: ${fmt(totalUsd)}$\n✅ To'langan: ${fmt(totalPaid)}$\n❌ Qarzdorlik: ${fmt(totalDebt)}$\n`;
+
+  // Chunk to avoid Telegram 4096 char limit
+  const chunks: string[] = [];
+  let cur = header + "\n";
+  for (const l of lines) {
+    if (cur.length + l.length + 2 > 3800) { chunks.push(cur); cur = ""; }
+    cur += l + "\n\n";
+  }
+  if (cur.trim()) chunks.push(cur);
+
+  if (debtors.length) {
+    let d = `\n💸 *Qarzdorlar (${debtors.length})*\n` + debtors.join("\n");
+    if (d.length > 3800) d = d.slice(0, 3800) + "\n…";
+    chunks.push(d);
+  }
+
+  for (const ch of chunks) {
+    await tg("sendMessage", { chat_id: chatId, text: ch, parse_mode: "Markdown" });
+  }
+}
+
+
 async function handleCheckIn(chatId: number, telegramId: number) {
   const c = sb();
+
   const { data: link } = await c
     .from("employee_telegram")
     .select("employee_id")
@@ -319,9 +445,10 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
             // Load current state + link
             const { data: tgRow } = await sb()
               .from("employee_telegram")
-              .select("employee_id, bot_state")
+              .select("employee_id, bot_state, bot_role")
               .eq("telegram_id", tgId)
               .maybeSingle();
+            const MKB = mainKb(tgRow?.bot_role);
             const state: any = tgRow?.bot_state || null;
 
             const resetState = async () => {
@@ -512,11 +639,28 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                 }
               }
             } else if (text.startsWith("/start")) {
+              const extra = (CONTRACTS_ROLES as readonly string[]).includes(tgRow?.bot_role || "")
+                ? "\n📄 Shartnomalar — oylik shartnomalar va qarzdorlar"
+                : "";
               await tg("sendMessage", {
                 chat_id: chatId,
-                text: `Assalomu alaykum${from.first_name ? ", " + from.first_name : ""}! 👋\n\n🟢 Keldim — kelganingizni belgilang\n💰 Avans so'rash — avans uchun ariza\n📅 Javob so'rash — kela olmasangiz javob so'rash\n📋 Bajarilgan ishlar — bugungi ishlar hisoboti`,
-                reply_markup: MAIN_KB,
+                text: `Assalomu alaykum${from.first_name ? ", " + from.first_name : ""}! 👋\n\n🟢 Keldim — kelganingizni belgilang\n💰 Avans so'rash — avans uchun ariza\n📅 Javob so'rash — kela olmasangiz javob so'rash\n📋 Bajarilgan ishlar — bugungi ishlar hisoboti${extra}`,
+                reply_markup: MKB,
               });
+            } else if (text === "📄 Shartnomalar" || text.toLowerCase() === "shartnomalar" || text.startsWith("/shartnomalar")) {
+              if (!(CONTRACTS_ROLES as readonly string[]).includes(tgRow?.bot_role || "")) {
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "❌ Sizda ruxsat yo'q. Bu bo'lim faqat direktor, owner va financier uchun.",
+                  reply_markup: MKB,
+                });
+              } else {
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "📄 Qaysi oylikni ko'rmoqchisiz?",
+                  reply_markup: contractsMonthsKb(),
+                });
+              }
             } else if (text.startsWith("/dam_olish") || text.startsWith("/javob") || text === "📅 Javob so'rash" || text === "📅 Dam olish" || text.toLowerCase() === "javob so'rash" || text.toLowerCase() === "dam olish") {
               if (!tgRow?.employee_id) {
                 await tg("sendMessage", {
@@ -609,6 +753,19 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
               });
             } else if (data === "face_yes") {
               await handleCheckIn(chatId, tgId);
+            } else if (data.startsWith("ctr_")) {
+              const { data: actor } = await sb()
+                .from("employee_telegram").select("bot_role").eq("telegram_id", tgId).maybeSingle();
+              if (!actor || !(CONTRACTS_ROLES as readonly string[]).includes(actor.bot_role || "")) {
+                await tg("answerCallbackQuery", { callback_query_id: cq.id, text: "❌ Ruxsat yo'q", show_alert: true });
+              } else {
+                const parts = data.split("_"); // ctr_YYYY_MM
+                const y = Number(parts[1]);
+                const m = Number(parts[2]);
+                if (y && m) {
+                  await sendContractsForMonth(chatId, y, m);
+                }
+              }
             } else if (data.startsWith("lv_")) {
               // Director CEO-stage leave decisions: lv_ac_<id>, lv_an_<id>, lv_rj_<id>
               const c = sb();
