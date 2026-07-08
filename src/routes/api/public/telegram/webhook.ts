@@ -227,7 +227,8 @@ async function sendContractsForMonth(chatId: number, year: number, month: number
   const { data: contracts } = await c
     .from("contracts")
     .select("id, client_name, contract_no, contract_date, price_uzs, price_usd, sales_manager, company")
-    .or(`and(year.eq.${year},month.eq.${monthStr}),and(year.is.null,contract_date.gte.${ymStr}-01,contract_date.lt.${ymStr}-32)`)
+    .eq("year", String(year))
+    .eq("month", monthStr)
     .order("contract_date", { ascending: true });
 
   const list = contracts || [];
