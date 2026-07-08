@@ -249,7 +249,7 @@ async function sendContractsForMonth(chatId: number, year: number, month: number
 
   const rateMap = new Map<string, number>();
   (rates || []).forEach((r: any) => rateMap.set(`${r.year}-${String(r.month).padStart(2, "0")}`, Number(r.rate)));
-  const allRates = (rates || []).map((r: any) => Number(r.rate)).filter((n) => n > 0);
+  const allRates = (rates || []).map((r: any) => Number(r.rate)).filter((n: number) => n > 0);
   const fallbackRate = allRates.length ? allRates[allRates.length - 1] : 12700;
   const getRate = (ym: string) => rateMap.get(ym) || fallbackRate;
 
