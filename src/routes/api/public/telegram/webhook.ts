@@ -56,6 +56,24 @@ const MAIN_KB = {
   resize_keyboard: true,
 };
 
+const CONTRACTS_ROLES = ["owner", "ceo", "director", "financier"] as const;
+
+function mainKb(role?: string | null) {
+  if (role && (CONTRACTS_ROLES as readonly string[]).includes(role)) {
+    return {
+      keyboard: [
+        [{ text: "🟢 Keldim" }],
+        [{ text: "💰 Avans so'rash" }, { text: "📅 Javob so'rash" }],
+        [{ text: "📋 Bajarilgan ishlar" }],
+        [{ text: "📄 Shartnomalar" }],
+      ],
+      resize_keyboard: true,
+    };
+  }
+  return MAIN_KB;
+}
+
+
 const ABSENCE_FINE_UZS = 120000;
 
 const CANCEL_KB = {
