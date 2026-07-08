@@ -639,11 +639,28 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                 }
               }
             } else if (text.startsWith("/start")) {
+              const extra = (CONTRACTS_ROLES as readonly string[]).includes(tgRow?.bot_role || "")
+                ? "\n📄 Shartnomalar — oylik shartnomalar va qarzdorlar"
+                : "";
               await tg("sendMessage", {
                 chat_id: chatId,
-                text: `Assalomu alaykum${from.first_name ? ", " + from.first_name : ""}! 👋\n\n🟢 Keldim — kelganingizni belgilang\n💰 Avans so'rash — avans uchun ariza\n📅 Javob so'rash — kela olmasangiz javob so'rash\n📋 Bajarilgan ishlar — bugungi ishlar hisoboti`,
-                reply_markup: MAIN_KB,
+                text: `Assalomu alaykum${from.first_name ? ", " + from.first_name : ""}! 👋\n\n🟢 Keldim — kelganingizni belgilang\n💰 Avans so'rash — avans uchun ariza\n📅 Javob so'rash — kela olmasangiz javob so'rash\n📋 Bajarilgan ishlar — bugungi ishlar hisoboti${extra}`,
+                reply_markup: MKB,
               });
+            } else if (text === "📄 Shartnomalar" || text.toLowerCase() === "shartnomalar" || text.startsWith("/shartnomalar")) {
+              if (!(CONTRACTS_ROLES as readonly string[]).includes(tgRow?.bot_role || "")) {
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "❌ Sizda ruxsat yo'q. Bu bo'lim faqat direktor, owner va financier uchun.",
+                  reply_markup: MKB,
+                });
+              } else {
+                await tg("sendMessage", {
+                  chat_id: chatId,
+                  text: "📄 Qaysi oylikni ko'rmoqchisiz?",
+                  reply_markup: contractsMonthsKb(),
+                });
+              }
             } else if (text.startsWith("/dam_olish") || text.startsWith("/javob") || text === "📅 Javob so'rash" || text === "📅 Dam olish" || text.toLowerCase() === "javob so'rash" || text.toLowerCase() === "dam olish") {
               if (!tgRow?.employee_id) {
                 await tg("sendMessage", {
