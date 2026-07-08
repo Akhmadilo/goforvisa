@@ -306,7 +306,9 @@ async function sendContractsForMonth(chatId: number, year: number, month: number
 }
 
 
+async function handleCheckIn(chatId: number, telegramId: number) {
   const c = sb();
+
   const { data: link } = await c
     .from("employee_telegram")
     .select("employee_id")
