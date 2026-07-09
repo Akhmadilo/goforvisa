@@ -1182,11 +1182,11 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
     let count = 0;
     for (let d = 1; d <= days; d++) {
       const wd = new Date(year, month - 1, d).getDay();
-      const sched = schedByWd.get(wd);
-      if (!sched || sched.is_working !== false) count++;
+      // Yakshanba (0) — hamma uchun dam olish kuni. Qolgan kunlar ish kuni.
+      if (wd !== 0) count++;
     }
     return count;
-  }, [days, year, month, schedByWd]);
+  }, [days, year, month]);
 
 
   const openEdit = (dateStr: string, att?: any, fine?: any) => {
