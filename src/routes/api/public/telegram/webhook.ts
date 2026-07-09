@@ -306,6 +306,100 @@ async function sendContractsForMonth(chatId: number, year: number, month: number
 }
 
 
+function monthsKb(prefix: string, count = 12) {
+  const now = nowInTashkent();
+  const rows: Array<Array<{ text: string; callback_data: string }>> = [];
+  let row: Array<{ text: string; callback_data: string }> = [];
+  for (let i = 0; i < count; i++) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    const y = d.getUTCFullYear();
+    const m = d.getUTCMonth() + 1;
+    row.push({ text: `${MONTHS_UZ[m - 1]} ${y}`, callback_data: `${prefix}_${y}_${m}` });
+    if (row.length === 2) { rows.push(row); row = []; }
+  }
+  if (row.length) rows.push(row);
+  return { inline_keyboard: rows };
+}
+
+async function sendMySalary(chatId: number, employeeId: string, year: number, month: number) {
+  const c = sb();
+  const { data: emp } = await c.from("employees").select("full_name").eq("id", employeeId).maybeSingle();
+  if (!emp?.full_name) {
+    await tg("sendMessage", { chat_id: chatId, text: "❗️ Ishchi ma'lumoti topilmadi." });
+    return;
+  }
+  const { data: sal } = await c
+    .from("salaries")
+    .select("id, fixed_amount, kpi_amount, penalty_amount, advance_amount, note")
+    .eq("employee_name", emp.full_name)
+    .eq("year", year)
+    .eq("month", month)
+    .maybeSingle();
+
+  const title = `💵 *Oyligim — ${MONTHS_UZ[month - 1]} ${year}*\n👤 ${emp.full_name}\n`;
+  if (!sal) {
+    await tg("sendMessage", { chat_id: chatId, text: title + "\nBu oyga oylik hali kiritilmagan.", parse_mode: "Markdown" });
+    return;
+  }
+  const fixed = Number(sal.fixed_amount || 0);
+  const kpi = Number(sal.kpi_amount || 0);
+  const penalty = Number(sal.penalty_amount || 0);
+  const advance = Number(sal.advance_amount || 0);
+  const total = fixed + kpi - penalty;
+  const remaining = total - advance;
+
+  // Paid so far
+  const { data: pays } = await c
+    .from("salary_payments").select("amount").eq("salary_id", sal.id);
+  const paid = (pays || []).reduce((s: number, p: any) => s + Number(p.amount || 0), 0);
+
+  const text =
+    `${title}\n` +
+    `➕ Fiks: ${fmt(fixed)} so'm\n` +
+    `🎯 KPI: ${fmt(kpi)} so'm\n` +
+    `➖ Jarima: ${fmt(penalty)} so'm\n` +
+    `💰 Avans: ${fmt(advance)} so'm\n` +
+    `─────────\n` +
+    `💵 *Jami: ${fmt(total)} so'm*\n` +
+    `✅ To'langan: ${fmt(paid)} so'm\n` +
+    `🧾 Qoldiq: ${fmt(Math.max(0, total - paid))} so'm` +
+    (sal.note ? `\n📝 ${sal.note}` : "");
+
+  await tg("sendMessage", { chat_id: chatId, text, parse_mode: "Markdown" });
+}
+
+async function sendMyFines(chatId: number, employeeId: string, year: number, month: number) {
+  const c = sb();
+  const start = `${year}-${String(month).padStart(2, "0")}-01`;
+  const endDate = new Date(Date.UTC(year, month, 1));
+  const end = endDate.toISOString().slice(0, 10);
+  const { data: fines } = await c
+    .from("fines")
+    .select("date, minutes_late, amount_uzs, reason, note")
+    .eq("employee_id", employeeId)
+    .gte("date", start)
+    .lt("date", end)
+    .order("date", { ascending: true });
+
+  const list = fines || [];
+  const title = `⚠️ *Jarimalarim — ${MONTHS_UZ[month - 1]} ${year}*\n`;
+  if (list.length === 0) {
+    await tg("sendMessage", { chat_id: chatId, text: title + "\n🎉 Bu oyda jarima yo'q!", parse_mode: "Markdown" });
+    return;
+  }
+  const reasonLabel = (r: string) => r === "late" ? "Kechikish" : r === "absent" ? "Kelmagan" : r === "no_face_id" ? "FACE ID yo'q" : r === "manual" ? "Qo'lda" : r;
+  let total = 0;
+  const lines = list.map((f: any, i: number) => {
+    const amt = Number(f.amount_uzs || 0);
+    total += amt;
+    const extra = f.reason === "late" && f.minutes_late ? ` (${f.minutes_late} daq)` : "";
+    return `${i + 1}. 📆 ${f.date} — ${reasonLabel(f.reason)}${extra} — *${fmt(amt)} so'm*${f.note ? `\n   📝 ${f.note}` : ""}`;
+  });
+  const text = `${title}\n${lines.join("\n")}\n\n─────────\n💸 *Jami: ${fmt(total)} so'm*`;
+  await tg("sendMessage", { chat_id: chatId, text: text.slice(0, 3900), parse_mode: "Markdown" });
+}
+
+
 async function handleCheckIn(chatId: number, telegramId: number) {
   const c = sb();
 
