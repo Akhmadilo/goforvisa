@@ -52,6 +52,7 @@ const MAIN_KB = {
     [{ text: "🟢 Keldim" }],
     [{ text: "💰 Avans so'rash" }, { text: "📅 Javob so'rash" }],
     [{ text: "📋 Bajarilgan ishlar" }],
+    [{ text: "💵 Oyligim" }, { text: "⚠️ Jarimalarim" }],
   ],
   resize_keyboard: true,
 };
@@ -59,18 +60,16 @@ const MAIN_KB = {
 const CONTRACTS_ROLES = ["owner", "ceo", "director", "financier"] as const;
 
 function mainKb(role?: string | null) {
+  const rows: Array<Array<{ text: string }>> = [
+    [{ text: "🟢 Keldim" }],
+    [{ text: "💰 Avans so'rash" }, { text: "📅 Javob so'rash" }],
+    [{ text: "📋 Bajarilgan ishlar" }],
+    [{ text: "💵 Oyligim" }, { text: "⚠️ Jarimalarim" }],
+  ];
   if (role && (CONTRACTS_ROLES as readonly string[]).includes(role)) {
-    return {
-      keyboard: [
-        [{ text: "🟢 Keldim" }],
-        [{ text: "💰 Avans so'rash" }, { text: "📅 Javob so'rash" }],
-        [{ text: "📋 Bajarilgan ishlar" }],
-        [{ text: "📄 Shartnomalar" }],
-      ],
-      resize_keyboard: true,
-    };
+    rows.push([{ text: "📄 Shartnomalar" }]);
   }
-  return MAIN_KB;
+  return { keyboard: rows, resize_keyboard: true };
 }
 
 
