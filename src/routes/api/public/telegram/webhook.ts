@@ -872,6 +872,20 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                   await sendContractsForMonth(chatId, y, m);
                 }
               }
+            } else if (data.startsWith("sal_") || data.startsWith("fine_")) {
+              const { data: link } = await sb()
+                .from("employee_telegram").select("employee_id").eq("telegram_id", tgId).maybeSingle();
+              if (!link?.employee_id) {
+                await tg("answerCallbackQuery", { callback_query_id: cq.id, text: "❌ Akkauntingiz bog'lanmagan", show_alert: true });
+              } else {
+                const parts = data.split("_");
+                const y = Number(parts[1]);
+                const m = Number(parts[2]);
+                if (y && m) {
+                  if (data.startsWith("sal_")) await sendMySalary(chatId, link.employee_id, y, m);
+                  else await sendMyFines(chatId, link.employee_id, y, m);
+                }
+              }
             } else if (data.startsWith("lv_")) {
               // Director CEO-stage leave decisions: lv_ac_<id>, lv_an_<id>, lv_rj_<id>
               const c = sb();
