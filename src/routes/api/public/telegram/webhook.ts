@@ -755,6 +755,18 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                   reply_markup: contractsMonthsKb(),
                 });
               }
+            } else if (text === "💵 Oyligim" || text.toLowerCase() === "oyligim" || text.startsWith("/oyligim")) {
+              if (!tgRow?.employee_id) {
+                await tg("sendMessage", { chat_id: chatId, text: "⚠️ Akkauntingiz hali ishchiga bog'lanmagan.", reply_markup: MKB });
+              } else {
+                await tg("sendMessage", { chat_id: chatId, text: "💵 Qaysi oy uchun oyligingizni ko'rmoqchisiz?", reply_markup: monthsKb("sal") });
+              }
+            } else if (text === "⚠️ Jarimalarim" || text.toLowerCase() === "jarimalarim" || text.startsWith("/jarimalarim")) {
+              if (!tgRow?.employee_id) {
+                await tg("sendMessage", { chat_id: chatId, text: "⚠️ Akkauntingiz hali ishchiga bog'lanmagan.", reply_markup: MKB });
+              } else {
+                await tg("sendMessage", { chat_id: chatId, text: "⚠️ Qaysi oy jarimalarini ko'rmoqchisiz?", reply_markup: monthsKb("fine") });
+              }
             } else if (text.startsWith("/dam_olish") || text.startsWith("/javob") || text === "📅 Javob so'rash" || text === "📅 Dam olish" || text.toLowerCase() === "javob so'rash" || text.toLowerCase() === "dam olish") {
               if (!tgRow?.employee_id) {
                 await tg("sendMessage", {
