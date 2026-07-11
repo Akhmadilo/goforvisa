@@ -1815,6 +1815,41 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
         </DialogContent>
       </Dialog>
 
+      {/* Change deduction month dialog */}
+      <Dialog open={!!editDeduct} onOpenChange={(o) => !o && setEditDeduct(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ushlash oyini o'zgartirish</DialogTitle>
+          </DialogHeader>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Qaysi oylikdan ushlansin?</label>
+            {editDeduct && (
+              <Select
+                value={`${editDeduct.y}-${editDeduct.m}`}
+                onValueChange={(v) => {
+                  const [y, m] = v.split("-").map(Number);
+                  setEditDeduct({ ...editDeduct, y, m });
+                }}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {monthOptions.map(o => (
+                    <SelectItem key={`${o.y}-${o.m}`} value={`${o.y}-${o.m}`}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <p className="text-[11px] text-muted-foreground mt-2">
+              Eski oyning avans ushlanmasi kamayadi, yangi oyga qo'shiladi.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDeduct(null)}>Bekor</Button>
+            <Button onClick={submitChangeDeduct}>Saqlash</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Manual create */}
       <Dialog open={openCreate} onOpenChange={setOpenCreate}>
         <DialogContent>
