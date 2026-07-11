@@ -28,7 +28,7 @@ import {
 import { Pencil } from "lucide-react";
 import {
   listAdvances, ceoDecideAdvance, financeDecideAdvance, markAdvancePaid, adminFinalizeAdvance,
-  createAdvanceManual, getEmployeeMonth, type AdvanceRequest, type AdvanceStatus,
+  createAdvanceManual, getEmployeeMonth, changeAdvanceDeductMonth, type AdvanceRequest, type AdvanceStatus,
 } from "@/lib/advances.functions";
 import { useRoles } from "@/hooks/use-roles";
 import { Textarea } from "@/components/ui/textarea";
