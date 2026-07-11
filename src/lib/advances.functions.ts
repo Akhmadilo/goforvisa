@@ -325,6 +325,79 @@ export const adminFinalizeAdvance = createServerFn({ method: "POST" })
       .eq("month", month)
       .maybeSingle();
 
+// ---- Change deduction month for an already-paid advance (admin) ----
+export const changeAdvanceDeductMonth = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string; deductYear: number; deductMonth: number }) =>
+    z.object({
+      id: z.string().uuid(),
+      deductYear: z.number().int().min(2020).max(2100),
+      deductMonth: z.number().int().min(1).max(12),
+    }).parse(d)
+  )
+  .handler(async ({ data, context }) => {
+    const c = context.supabase;
+    const { data: isAdmin } = await c.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Faqat admin o'zgartira oladi");
+
+    const { data: row, error: e1 } = await c
+      .from("advance_requests").select("*").eq("id", data.id).maybeSingle();
+    if (e1 || !row) throw new Error(e1?.message || "So'rov topilmadi");
+    if (row.status !== "paid") throw new Error("Faqat berilgan avanslarni o'zgartirish mumkin");
+    if (!row.employee_id) throw new Error("Xodim bog'lanmagan");
+
+    const advance = Number(row.amount_uzs);
+    const empName = await getEmployeeName(c, row.employee_id);
+
+    // Revert old salary row (if exists)
+    if (row.deducted_in_salary_id) {
+      const { data: oldSal } = await c.from("salaries")
+        .select("id, advance_amount, year, month")
+        .eq("id", row.deducted_in_salary_id).maybeSingle();
+      if (oldSal) {
+        if (oldSal.year === data.deductYear && oldSal.month === data.deductMonth) {
+          return { ok: true }; // same month, nothing to do
+        }
+        const newAmt = Math.max(0, Number(oldSal.advance_amount || 0) - advance);
+        await c.from("salaries").update({ advance_amount: newAmt }).eq("id", oldSal.id);
+      }
+    }
+
+    // Apply to new month
+    const { data: existingSalary } = await c
+      .from("salaries").select("id, advance_amount")
+      .eq("employee_name", empName)
+      .eq("year", data.deductYear)
+      .eq("month", data.deductMonth)
+      .maybeSingle();
+
+    let salaryId: string;
+    if (existingSalary) {
+      const newAmt = Number(existingSalary.advance_amount || 0) + advance;
+      const { error } = await c.from("salaries")
+        .update({ advance_amount: newAmt }).eq("id", existingSalary.id);
+      if (error) throw new Error(error.message);
+      salaryId = existingSalary.id as string;
+    } else {
+      const { data: ins, error } = await c.from("salaries").insert({
+        employee_name: empName,
+        year: data.deductYear, month: data.deductMonth,
+        fixed_amount: 0, kpi_amount: 0, penalty_amount: 0,
+        advance_amount: advance,
+        note: "Avtomatik: avans ushlanmasi (ko'chirildi)",
+        created_by: context.userId,
+      }).select("id").maybeSingle();
+      if (error || !ins) throw new Error(error?.message || "Oylik yarata olmadim");
+      salaryId = ins.id as string;
+    }
+
+    const { error: eUp } = await c.from("advance_requests")
+      .update({ deducted_in_salary_id: salaryId }).eq("id", data.id);
+    if (eUp) throw new Error(eUp.message);
+
+    return { ok: true };
+  });
+
     let salaryId: string;
     if (existingSalary) {
       const newAmt = Number(existingSalary.advance_amount || 0) + advance;
