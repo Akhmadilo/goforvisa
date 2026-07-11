@@ -70,8 +70,21 @@ export const listAdvances = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) throw new Error(error.message);
-    return (data ?? []) as AdvanceRequest[];
+    const rows = (data ?? []) as AdvanceRequest[];
+    const salaryIds = Array.from(new Set(rows.map(r => r.deducted_in_salary_id).filter(Boolean))) as string[];
+    let salMap = new Map<string, { year: number; month: number }>();
+    if (salaryIds.length) {
+      const { data: sals } = await context.supabase
+        .from("salaries").select("id, year, month").in("id", salaryIds);
+      (sals ?? []).forEach((s: any) => salMap.set(s.id, { year: s.year, month: s.month }));
+    }
+    return rows.map(r => ({
+      ...r,
+      deducted_year: r.deducted_in_salary_id ? salMap.get(r.deducted_in_salary_id)?.year ?? null : null,
+      deducted_month: r.deducted_in_salary_id ? salMap.get(r.deducted_in_salary_id)?.month ?? null : null,
+    })) as (AdvanceRequest & { deducted_year: number | null; deducted_month: number | null })[];
   });
+
 
 // ---- Create manually (admin/CEO/finance) ----
 export const createAdvanceManual = createServerFn({ method: "POST" })
