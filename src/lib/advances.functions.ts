@@ -296,10 +296,11 @@ export const adminFinalizeAdvance = createServerFn({ method: "POST" })
 
     if (!row.employee_id) throw new Error("Xodim bog'lanmagan");
 
-    // Approve: deduct from current month salary, mark paid.
+    // Approve: deduct from selected month salary (default = current Tashkent month), mark paid.
     const now = new Date(Date.now() + 5 * 3600 * 1000);
-    const year = now.getUTCFullYear();
-    const month = now.getUTCMonth() + 1;
+    const year = data.deductYear ?? now.getUTCFullYear();
+    const month = data.deductMonth ?? (now.getUTCMonth() + 1);
+
     const empName = await getEmployeeName(c, row.employee_id);
     const advance = Number(row.amount_uzs);
 
