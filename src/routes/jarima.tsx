@@ -1574,6 +1574,23 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
 
   const [decision, setDecision] = useState<{ id: string; approve: boolean; role: "ceo" | "admin" } | null>(null);
   const [note, setNote] = useState("");
+  const nowTash = new Date(Date.now() + 5 * 3600 * 1000);
+  const [deductYear, setDeductYear] = useState<number>(nowTash.getUTCFullYear());
+  const [deductMonth, setDeductMonth] = useState<number>(nowTash.getUTCMonth() + 1);
+
+  const monthOptions = useMemo(() => {
+    const arr: { y: number; m: number; label: string }[] = [];
+    const base = new Date(Date.UTC(nowTash.getUTCFullYear(), nowTash.getUTCMonth(), 1));
+    for (let i = -3; i <= 6; i++) {
+      const d = new Date(base);
+      d.setUTCMonth(d.getUTCMonth() + i);
+      const y = d.getUTCFullYear();
+      const m = d.getUTCMonth() + 1;
+      const names = ["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentyabr","Oktyabr","Noyabr","Dekabr"];
+      arr.push({ y, m, label: `${names[m-1]} ${y}${i===0 ? " (joriy)" : ""}` });
+    }
+    return arr;
+  }, []);
 
   const submitDecision = async () => {
     if (!decision) return;
@@ -1581,7 +1598,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
       if (decision.role === "ceo") {
         await ceoFn({ data: { id: decision.id, approve: decision.approve, note: note || undefined } });
       } else {
-        await adminFn({ data: { id: decision.id, approve: decision.approve, note: note || undefined } });
+        await adminFn({ data: { id: decision.id, approve: decision.approve, note: note || undefined, deductYear, deductMonth } });
       }
       toast.success(decision.approve ? "Tasdiqlandi" : "Rad etildi");
       setDecision(null);
@@ -1591,6 +1608,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
       toast.error(e?.message || "Xatolik");
     }
   };
+
 
   // Manual create
   const [openCreate, setOpenCreate] = useState(false);
@@ -1699,7 +1717,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
         awaitingAdmin,
         (r) => isAdm ? (
           <div className="flex gap-2 justify-end">
-            <Button size="sm" variant="default" onClick={() => { setNote(""); setDecision({ id: r.id, approve: true, role: "admin" }); }}>Tasdiq + Ber</Button>
+            <Button size="sm" variant="default" onClick={() => { setNote(""); setDeductYear(nowTash.getUTCFullYear()); setDeductMonth(nowTash.getUTCMonth()+1); setDecision({ id: r.id, approve: true, role: "admin" }); }}>Tasdiq + Ber</Button>
             <Button size="sm" variant="outline" onClick={() => { setNote(""); setDecision({ id: r.id, approve: false, role: "admin" }); }}>Rad</Button>
           </div>
         ) : <span className="text-xs text-muted-foreground">Faqat admin</span>,
@@ -1723,7 +1741,29 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
               placeholder={decision?.approve ? "Ixtiyoriy" : "Sababini yozing"}
               maxLength={500}
             />
+            {decision?.role === "admin" && decision?.approve && (
+              <div className="mt-3">
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  Qaysi oylikdan ushlansin?
+                </label>
+                <Select
+                  value={`${deductYear}-${deductMonth}`}
+                  onValueChange={(v) => {
+                    const [y, m] = v.split("-").map(Number);
+                    setDeductYear(y); setDeductMonth(m);
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {monthOptions.map(o => (
+                      <SelectItem key={`${o.y}-${o.m}`} value={`${o.y}-${o.m}`}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setDecision(null)}>Bekor</Button>
             <Button
