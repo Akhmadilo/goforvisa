@@ -1662,9 +1662,20 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
         <div className="flex flex-col gap-1">
           {statusBadge(r.status)}
           {r.status === "paid" && r.deducted_month && r.deducted_year && (
-            <span className="text-[11px] text-muted-foreground">
-              📅 {monthNames[r.deducted_month - 1]} {r.deducted_year} oyligidan
-            </span>
+            isAdm ? (
+              <button
+                type="button"
+                onClick={() => setEditDeduct({ id: r.id, y: r.deducted_year, m: r.deducted_month })}
+                className="text-[11px] text-muted-foreground hover:text-foreground hover:underline text-left"
+                title="Bosing — qaysi oylikdan ushlanishini o'zgartirish"
+              >
+                📅 {monthNames[r.deducted_month - 1]} {r.deducted_year} oyligidan ✏️
+              </button>
+            ) : (
+              <span className="text-[11px] text-muted-foreground">
+                📅 {monthNames[r.deducted_month - 1]} {r.deducted_year} oyligidan
+              </span>
+            )
           )}
         </div>
       </TableCell>
