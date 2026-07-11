@@ -1636,18 +1636,29 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
   const awaitingAdmin = list.filter(r => r.status === "ceo_approved");
   const done = list.filter(r => r.status === "paid" || r.status === "approved" || r.status === "rejected");
 
-  const renderRow = (r: AdvanceRequest, actions?: React.ReactNode) => (
+  const monthNames = ["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentyabr","Oktyabr","Noyabr","Dekabr"];
+  const renderRow = (r: any, actions?: React.ReactNode) => (
     <TableRow key={r.id}>
       <TableCell>{r.employee_id ? (empMap.get(r.employee_id) || "—") : "—"}</TableCell>
       <TableCell className="text-right tabular-nums font-semibold">{fmt(r.amount_uzs)}</TableCell>
       <TableCell className="max-w-[280px]"><div className="truncate" title={r.purpose}>{r.purpose}</div></TableCell>
-      <TableCell>{statusBadge(r.status)}</TableCell>
+      <TableCell>
+        <div className="flex flex-col gap-1">
+          {statusBadge(r.status)}
+          {r.status === "paid" && r.deducted_month && r.deducted_year && (
+            <span className="text-[11px] text-muted-foreground">
+              📅 {monthNames[r.deducted_month - 1]} {r.deducted_year} oyligidan
+            </span>
+          )}
+        </div>
+      </TableCell>
       <TableCell className="text-xs text-muted-foreground tabular-nums">
         {new Date(r.created_at).toLocaleDateString("uz-UZ")}
       </TableCell>
       <TableCell className="text-right">{actions}</TableCell>
     </TableRow>
   );
+
 
   const section = (
     title: string,
