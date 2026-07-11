@@ -1610,6 +1610,21 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
     }
   };
 
+  // Change deduction month for an already-paid advance
+  const [editDeduct, setEditDeduct] = useState<{ id: string; y: number; m: number } | null>(null);
+  const submitChangeDeduct = async () => {
+    if (!editDeduct) return;
+    try {
+      await changeDeductFn({ data: { id: editDeduct.id, deductYear: editDeduct.y, deductMonth: editDeduct.m } });
+      toast.success("Oylik o'zgartirildi");
+      setEditDeduct(null);
+      invalidate();
+    } catch (e: any) {
+      toast.error(e?.message || "Xatolik");
+    }
+  };
+
+
 
   // Manual create
   const [openCreate, setOpenCreate] = useState(false);
