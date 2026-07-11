@@ -259,13 +259,16 @@ export const markAdvancePaid = createServerFn({ method: "POST" })
 // ---- Admin final decision: approve+pay or reject in one step ----
 export const adminFinalizeAdvance = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { id: string; approve: boolean; note?: string }) =>
+  .inputValidator((d: { id: string; approve: boolean; note?: string; deductYear?: number; deductMonth?: number }) =>
     z.object({
       id: z.string().uuid(),
       approve: z.boolean(),
       note: z.string().max(500).optional(),
+      deductYear: z.number().int().min(2020).max(2100).optional(),
+      deductMonth: z.number().int().min(1).max(12).optional(),
     }).parse(d)
   )
+
   .handler(async ({ data, context }) => {
     const c = context.supabase;
     const { data: isAdmin } = await c.rpc("has_role", { _user_id: context.userId, _role: "admin" });
