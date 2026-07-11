@@ -1717,7 +1717,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
         awaitingAdmin,
         (r) => isAdm ? (
           <div className="flex gap-2 justify-end">
-            <Button size="sm" variant="default" onClick={() => { setNote(""); setDecision({ id: r.id, approve: true, role: "admin" }); }}>Tasdiq + Ber</Button>
+            <Button size="sm" variant="default" onClick={() => { setNote(""); setDeductYear(nowTash.getUTCFullYear()); setDeductMonth(nowTash.getUTCMonth()+1); setDecision({ id: r.id, approve: true, role: "admin" }); }}>Tasdiq + Ber</Button>
             <Button size="sm" variant="outline" onClick={() => { setNote(""); setDecision({ id: r.id, approve: false, role: "admin" }); }}>Rad</Button>
           </div>
         ) : <span className="text-xs text-muted-foreground">Faqat admin</span>,
