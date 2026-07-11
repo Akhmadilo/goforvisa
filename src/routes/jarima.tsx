@@ -28,7 +28,7 @@ import {
 import { Pencil } from "lucide-react";
 import {
   listAdvances, ceoDecideAdvance, financeDecideAdvance, markAdvancePaid, adminFinalizeAdvance,
-  createAdvanceManual, getEmployeeMonth, type AdvanceRequest, type AdvanceStatus,
+  createAdvanceManual, getEmployeeMonth, changeAdvanceDeductMonth, type AdvanceRequest, type AdvanceStatus,
 } from "@/lib/advances.functions";
 import { useRoles } from "@/hooks/use-roles";
 import { Textarea } from "@/components/ui/textarea";
@@ -1563,6 +1563,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
   const listFn = useServerFn(listAdvances);
   const ceoFn = useServerFn(ceoDecideAdvance);
   const adminFn = useServerFn(adminFinalizeAdvance);
+  const changeDeductFn = useServerFn(changeAdvanceDeductMonth);
   const createFn = useServerFn(createAdvanceManual);
 
   const { data: list = [], isLoading } = useQuery({
@@ -1609,6 +1610,21 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
     }
   };
 
+  // Change deduction month for an already-paid advance
+  const [editDeduct, setEditDeduct] = useState<{ id: string; y: number; m: number } | null>(null);
+  const submitChangeDeduct = async () => {
+    if (!editDeduct) return;
+    try {
+      await changeDeductFn({ data: { id: editDeduct.id, deductYear: editDeduct.y, deductMonth: editDeduct.m } });
+      toast.success("Oylik o'zgartirildi");
+      setEditDeduct(null);
+      invalidate();
+    } catch (e: any) {
+      toast.error(e?.message || "Xatolik");
+    }
+  };
+
+
 
   // Manual create
   const [openCreate, setOpenCreate] = useState(false);
@@ -1646,9 +1662,20 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
         <div className="flex flex-col gap-1">
           {statusBadge(r.status)}
           {r.status === "paid" && r.deducted_month && r.deducted_year && (
-            <span className="text-[11px] text-muted-foreground">
-              📅 {monthNames[r.deducted_month - 1]} {r.deducted_year} oyligidan
-            </span>
+            isAdm ? (
+              <button
+                type="button"
+                onClick={() => setEditDeduct({ id: r.id, y: r.deducted_year, m: r.deducted_month })}
+                className="text-[11px] text-muted-foreground hover:text-foreground hover:underline text-left"
+                title="Bosing — qaysi oylikdan ushlanishini o'zgartirish"
+              >
+                📅 {monthNames[r.deducted_month - 1]} {r.deducted_year} oyligidan ✏️
+              </button>
+            ) : (
+              <span className="text-[11px] text-muted-foreground">
+                📅 {monthNames[r.deducted_month - 1]} {r.deducted_year} oyligidan
+              </span>
+            )
           )}
         </div>
       </TableCell>
@@ -1784,6 +1811,41 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
             >
               {decision?.approve ? "Tasdiq" : "Rad etish"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change deduction month dialog */}
+      <Dialog open={!!editDeduct} onOpenChange={(o) => !o && setEditDeduct(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ushlash oyini o'zgartirish</DialogTitle>
+          </DialogHeader>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Qaysi oylikdan ushlansin?</label>
+            {editDeduct && (
+              <Select
+                value={`${editDeduct.y}-${editDeduct.m}`}
+                onValueChange={(v) => {
+                  const [y, m] = v.split("-").map(Number);
+                  setEditDeduct({ ...editDeduct, y, m });
+                }}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {monthOptions.map(o => (
+                    <SelectItem key={`${o.y}-${o.m}`} value={`${o.y}-${o.m}`}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            <p className="text-[11px] text-muted-foreground mt-2">
+              Eski oyning avans ushlanmasi kamayadi, yangi oyga qo'shiladi.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDeduct(null)}>Bekor</Button>
+            <Button onClick={submitChangeDeduct}>Saqlash</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
