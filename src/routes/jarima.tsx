@@ -1741,7 +1741,29 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
               placeholder={decision?.approve ? "Ixtiyoriy" : "Sababini yozing"}
               maxLength={500}
             />
+            {decision?.role === "admin" && decision?.approve && (
+              <div className="mt-3">
+                <label className="text-xs text-muted-foreground mb-1 block">
+                  Qaysi oylikdan ushlansin?
+                </label>
+                <Select
+                  value={`${deductYear}-${deductMonth}`}
+                  onValueChange={(v) => {
+                    const [y, m] = v.split("-").map(Number);
+                    setDeductYear(y); setDeductMonth(m);
+                  }}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {monthOptions.map(o => (
+                      <SelectItem key={`${o.y}-${o.m}`} value={`${o.y}-${o.m}`}>{o.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setDecision(null)}>Bekor</Button>
             <Button
