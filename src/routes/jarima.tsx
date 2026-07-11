@@ -1563,6 +1563,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
   const listFn = useServerFn(listAdvances);
   const ceoFn = useServerFn(ceoDecideAdvance);
   const adminFn = useServerFn(adminFinalizeAdvance);
+  const changeDeductFn = useServerFn(changeAdvanceDeductMonth);
   const createFn = useServerFn(createAdvanceManual);
 
   const { data: list = [], isLoading } = useQuery({
