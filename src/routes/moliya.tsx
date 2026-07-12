@@ -677,6 +677,102 @@ function FinancePage() {
             />
           </div>
 
+          {/* Advanced KPIs */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <KpiCard
+              label="O'rtacha oylik daromad"
+              value={fmt(extras.avgRev)}
+              icon={<Activity className="h-4 w-4" />}
+              sub={`${allMonths.length} oy asosida`}
+            />
+            <KpiCard
+              label="Burn rate (o'rt. xarajat/oy)"
+              value={fmt(extras.burn)}
+              icon={<Wallet className="h-4 w-4" />}
+              tone="red"
+              sub={extras.bufferMonths !== null ? `Zaxira: ${extras.bufferMonths.toFixed(1)} oy` : "Foyda musbat"}
+            />
+            <KpiCard
+              label="Eng yaxshi oy"
+              value={extras.bestKey ? `${MONTHS[Number(extras.bestKey.split("-")[1]) - 1].slice(0,3)} ${extras.bestKey.split("-")[0].slice(2)}` : "—"}
+              icon={<Award className="h-4 w-4" />}
+              tone="green"
+              sub={extras.bestVal > -Infinity ? fmt(extras.bestVal) : ""}
+            />
+            <KpiCard
+              label="YoY daromad o'sishi"
+              value={extras.yoyRevGrowth === null ? "—" : `${extras.yoyRevGrowth >= 0 ? "+" : ""}${extras.yoyRevGrowth.toFixed(1)}%`}
+              icon={extras.yoyRevGrowth !== null && extras.yoyRevGrowth >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+              tone={extras.yoyRevGrowth === null ? undefined : extras.yoyRevGrowth >= 0 ? "green" : "red"}
+              sub={extras.yoyRevPrev > 0 ? `O'tgan yil: ${fmt(extras.yoyRevPrev)}` : "O'tgan yil ma'lumot yo'q"}
+            />
+          </div>
+
+          <Card className="p-4">
+            <div className="text-sm font-semibold mb-3">Daromad, xarajat va sof foyda</div>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.08} vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="currentColor" opacity={0.5} />
+                  <YAxis tick={{ fontSize: 11 }} stroke="currentColor" opacity={0.5} tickFormatter={fmtShort} />
+                  <Tooltip
+                    formatter={(v: number) => fmt(v)}
+                    contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <ReferenceLine y={0} stroke="currentColor" opacity={0.3} />
+                  <Bar dataKey="revenue" name="Daromad" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="expense" name="Xarajat" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                  <Line type="monotone" dataKey="profit" name="Sof foyda" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 3 }} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+
+          {/* YoY comparison */}
+          {(extras.yoyRevPrev > 0 || extras.yoyExpPrev > 0) && (
+            <Card className="p-4">
+              <div className="text-sm font-semibold mb-3">Yildan-yilga taqqoslash (tanlangan oylar)</div>
+              <div className="overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ko'rsatkich</TableHead>
+                      <TableHead className="text-right">O'tgan yil</TableHead>
+                      <TableHead className="text-right">Joriy</TableHead>
+                      <TableHead className="text-right">Farq</TableHead>
+                      <TableHead className="text-right">O'sish %</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {[
+                      { label: "Daromad", prev: extras.yoyRevPrev, cur: extras.yoyRevCur },
+                      { label: "Xarajat", prev: extras.yoyExpPrev, cur: extras.yoyExpCur, invert: true },
+                      { label: "Sof foyda", prev: extras.yoyProfitPrev, cur: extras.yoyProfitCur, bold: true },
+                    ].map((r) => {
+                      const diff = r.cur - r.prev;
+                      const pct = r.prev !== 0 ? (diff / Math.abs(r.prev)) * 100 : null;
+                      const good = r.invert ? diff < 0 : diff >= 0;
+                      return (
+                        <TableRow key={r.label}>
+                          <TableCell className={cn(r.bold && "font-semibold")}>{r.label}</TableCell>
+                          <TableCell className="text-right tabular-nums text-muted-foreground">{fmt(r.prev)}</TableCell>
+                          <TableCell className="text-right tabular-nums font-medium">{fmt(r.cur)}</TableCell>
+                          <TableCell className={cn("text-right tabular-nums", good ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>
+                            {diff >= 0 ? "+" : ""}{fmt(diff)}
+                          </TableCell>
+                          <TableCell className={cn("text-right tabular-nums font-medium", good ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>
+                            {pct === null ? "—" : `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          )}
 
           <Card className="p-4">
             <div className="text-sm font-semibold mb-3">{t("finance.profitTrend")}</div>
@@ -690,11 +786,13 @@ function FinancePage() {
                     formatter={(v: number) => fmt(v)}
                     contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
                   />
+                  <ReferenceLine y={0} stroke="currentColor" opacity={0.3} />
                   <Line type="monotone" dataKey="profit" stroke="#6366f1" strokeWidth={2} dot={{ r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </Card>
+
 
           <ForecastCard
             contracts={contracts}
