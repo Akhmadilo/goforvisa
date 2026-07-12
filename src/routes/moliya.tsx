@@ -558,7 +558,7 @@ function FinancePage() {
                 <p className="text-[11px] md:text-xs text-muted-foreground">{t("finance.subtitle")}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 print:hidden">
               <button
                 onClick={exportExcel}
                 className="h-9 px-2 md:px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-1.5 text-xs font-medium"
@@ -567,11 +567,25 @@ function FinancePage() {
                 <FileSpreadsheet className="h-4 w-4" /> <span className="hidden sm:inline">Excel</span>
               </button>
               <button
+                onClick={exportCsv}
+                className="h-9 px-2 md:px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-1.5 text-xs font-medium"
+                title="CSV"
+              >
+                <Download className="h-4 w-4" /> <span className="hidden sm:inline">CSV</span>
+              </button>
+              <button
                 onClick={exportPdf}
                 className="h-9 px-2 md:px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-1.5 text-xs font-medium"
                 title="PDF"
               >
                 <FileText className="h-4 w-4" /> <span className="hidden sm:inline">PDF</span>
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="h-9 px-2 md:px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-1.5 text-xs font-medium"
+                title="Print"
+              >
+                <Printer className="h-4 w-4" /> <span className="hidden sm:inline">Print</span>
               </button>
               {isAdmin && (
                 <Link to="/admin" className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary flex items-center justify-center" title={t("nav.admin")}>
