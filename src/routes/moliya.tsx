@@ -975,31 +975,54 @@ function FinancePage() {
 
           <Card className="p-4">
             <div className="text-sm font-semibold mb-3">{t("finance.topCategories")}</div>
-            <div className="overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("finance.category")}</TableHead>
-                    <TableHead className="text-right">{t("common.amount")}</TableHead>
-                    <TableHead className="text-right">{t("finance.percent")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {topExpenses.length === 0 ? (
-                    <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">{t("common.noData")}</TableCell></TableRow>
-                  ) : topExpenses.map((c) => (
-                    <TableRow key={c.name}>
-                      <TableCell><Badge variant="outline">{c.name}</Badge></TableCell>
-                      <TableCell className="text-right tabular-nums">{fmt(c.total)}</TableCell>
-                      <TableCell className="text-right tabular-nums text-muted-foreground">
-                        {totals.expense > 0 ? ((c.total / totals.expense) * 100).toFixed(1) : "0.0"}%
-                      </TableCell>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {topExpenses.length > 0 && (
+                <div className="h-[280px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={topExpenses} dataKey="total" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={100} paddingAngle={2}>
+                        {topExpenses.map((_, i) => (
+                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+              <div className="overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t("finance.category")}</TableHead>
+                      <TableHead className="text-right">{t("common.amount")}</TableHead>
+                      <TableHead className="text-right">{t("finance.percent")}</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {topExpenses.length === 0 ? (
+                      <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">{t("common.noData")}</TableCell></TableRow>
+                    ) : topExpenses.map((c, i) => (
+                      <TableRow key={c.name}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="h-2.5 w-2.5 rounded-sm inline-block" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                            <Badge variant="outline">{c.name}</Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{fmt(c.total)}</TableCell>
+                        <TableCell className="text-right tabular-nums text-muted-foreground">
+                          {totals.expense > 0 ? ((c.total / totals.expense) * 100).toFixed(1) : "0.0"}%
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           </Card>
+
 
           <div className="text-xs text-muted-foreground text-center pb-4">
             {basis === "accrual" ? t("finance.note.accrual") : t("finance.note.cash")}
