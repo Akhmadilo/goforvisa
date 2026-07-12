@@ -16,8 +16,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import {
   ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line, Legend, ReferenceLine,
+  ComposedChart, Bar, Area, PieChart, Pie, Cell,
 } from "recharts";
-import { LineChart as LineChartIcon, LogOut, Shield, ChevronDown, TrendingUp, TrendingDown, DollarSign, Receipt, FileSpreadsheet, FileText, Sparkles } from "lucide-react";
+import { LineChart as LineChartIcon, LogOut, Shield, ChevronDown, TrendingUp, TrendingDown, DollarSign, Receipt, FileSpreadsheet, FileText, Sparkles, Printer, Download, Wallet, Award, Activity } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -358,8 +359,88 @@ function FinancePage() {
 
   const topExpenses = expenseCategories.slice(0, 10);
 
+  // ---------- Extra KPIs & YoY comparison ----------
+  const extras = useMemo(() => {
+    const n = allMonths.length || 1;
+    const avgRev = totals.revenue / n;
+    const burn = totals.expense / n; // avg monthly opex
+    const avgProfit = totals.profit / n;
+    // Best month by net profit
+    let bestKey = ""; let bestVal = -Infinity;
+    for (const k of allMonths) {
+      const r = pick(revenueByMonth.get(k));
+      const d = pick(docCostsByMonth.get(k));
+      const e = pick(expenseByMonth.get(k));
+      const np = r - d - e;
+      if (np > bestVal) { bestVal = np; bestKey = k; }
+    }
+    // Runway (months) — if profit negative, cash/burn (we don't have cash balance, so use last-12 profit as proxy buffer)
+    const bufferMonths = burn > 0 && avgProfit < 0 ? Math.abs(totals.profit) / burn : null;
+    // YoY: sum current filtered vs same months previous year (from full history without year filter)
+    const prevRev = new Map<string, number>();
+    const prevExp = new Map<string, number>();
+    // rebuild simple prev-year aggregates from source data
+    for (const c of contracts) {
+      const p = dashboardPeriod(c);
+      if (!p) continue;
+      if (basis === "cash" && !isFullyPaid(c)) continue;
+      const gross = contractGrossUsd(c, getRate, p.key);
+      const val = currency === "USD" ? gross : gross * getRate(p.key);
+      prevRev.set(p.key, (prevRev.get(p.key) ?? 0) + val);
+    }
+    for (const e of expenses) {
+      const key = e.expense_date.slice(0, 7);
+      const rate = getRate(key);
+      const raw = Number(e.total_amount);
+      const val = currency === "USD"
+        ? (e.currency === "USD" ? raw : raw / rate)
+        : (e.currency === "USD" ? raw * rate : raw);
+      prevExp.set(key, (prevExp.get(key) ?? 0) + val);
+    }
+    let yoyRevPrev = 0, yoyExpPrev = 0, yoyRevCur = 0, yoyExpCur = 0;
+    for (const k of allMonths) {
+      const [y, mm] = k.split("-");
+      const prevK = `${Number(y) - 1}-${mm}`;
+      yoyRevCur += prevRev.get(k) ?? 0;
+      yoyExpCur += prevExp.get(k) ?? 0;
+      yoyRevPrev += prevRev.get(prevK) ?? 0;
+      yoyExpPrev += prevExp.get(prevK) ?? 0;
+    }
+    const yoyRevGrowth = yoyRevPrev > 0 ? ((yoyRevCur - yoyRevPrev) / yoyRevPrev) * 100 : null;
+    const yoyProfitPrev = yoyRevPrev - yoyExpPrev;
+    const yoyProfitCur = yoyRevCur - yoyExpCur;
+    const yoyProfitGrowth = yoyProfitPrev !== 0 ? ((yoyProfitCur - yoyProfitPrev) / Math.abs(yoyProfitPrev)) * 100 : null;
+    return {
+      avgRev, burn, avgProfit,
+      bestKey, bestVal,
+      bufferMonths,
+      yoyRevPrev, yoyRevCur, yoyRevGrowth,
+      yoyExpPrev, yoyExpCur,
+      yoyProfitPrev, yoyProfitCur, yoyProfitGrowth,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allMonths, totals, contracts, expenses, basis, currency, getRate]);
+
+  const PIE_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899", "#84cc16", "#f97316", "#0ea5e9"];
+
+  const exportCsv = () => {
+    const { head, rows } = buildReportRows();
+    const esc = (v: string | number) => {
+      const s = String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = [head.map(esc).join(","), ...rows.map(r => r.map(esc).join(","))];
+    const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `moliya-${basis}-${currency}-${year}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const periodLabel = `${year === "all" ? t("common.allYears") : year}${months.length ? " · " + months.map(m => MONTHS[m-1]).join(", ") : ""}`;
   const basisLabel = basis === "accrual" ? t("finance.basis.accrual") : t("finance.basis.cash");
+
 
   function buildReportRows() {
     const head = ["", ...allMonths.map(k => {
@@ -477,7 +558,7 @@ function FinancePage() {
                 <p className="text-[11px] md:text-xs text-muted-foreground">{t("finance.subtitle")}</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 print:hidden">
               <button
                 onClick={exportExcel}
                 className="h-9 px-2 md:px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-1.5 text-xs font-medium"
@@ -486,11 +567,25 @@ function FinancePage() {
                 <FileSpreadsheet className="h-4 w-4" /> <span className="hidden sm:inline">Excel</span>
               </button>
               <button
+                onClick={exportCsv}
+                className="h-9 px-2 md:px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-1.5 text-xs font-medium"
+                title="CSV"
+              >
+                <Download className="h-4 w-4" /> <span className="hidden sm:inline">CSV</span>
+              </button>
+              <button
                 onClick={exportPdf}
                 className="h-9 px-2 md:px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-1.5 text-xs font-medium"
                 title="PDF"
               >
                 <FileText className="h-4 w-4" /> <span className="hidden sm:inline">PDF</span>
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="h-9 px-2 md:px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-1.5 text-xs font-medium"
+                title="Print"
+              >
+                <Printer className="h-4 w-4" /> <span className="hidden sm:inline">Print</span>
               </button>
               {isAdmin && (
                 <Link to="/admin" className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary flex items-center justify-center" title={t("nav.admin")}>
@@ -582,6 +677,102 @@ function FinancePage() {
             />
           </div>
 
+          {/* Advanced KPIs */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <KpiCard
+              label="O'rtacha oylik daromad"
+              value={fmt(extras.avgRev)}
+              icon={<Activity className="h-4 w-4" />}
+              sub={`${allMonths.length} oy asosida`}
+            />
+            <KpiCard
+              label="Burn rate (o'rt. xarajat/oy)"
+              value={fmt(extras.burn)}
+              icon={<Wallet className="h-4 w-4" />}
+              tone="red"
+              sub={extras.bufferMonths !== null ? `Zaxira: ${extras.bufferMonths.toFixed(1)} oy` : "Foyda musbat"}
+            />
+            <KpiCard
+              label="Eng yaxshi oy"
+              value={extras.bestKey ? `${MONTHS[Number(extras.bestKey.split("-")[1]) - 1].slice(0,3)} ${extras.bestKey.split("-")[0].slice(2)}` : "—"}
+              icon={<Award className="h-4 w-4" />}
+              tone="green"
+              sub={extras.bestVal > -Infinity ? fmt(extras.bestVal) : ""}
+            />
+            <KpiCard
+              label="YoY daromad o'sishi"
+              value={extras.yoyRevGrowth === null ? "—" : `${extras.yoyRevGrowth >= 0 ? "+" : ""}${extras.yoyRevGrowth.toFixed(1)}%`}
+              icon={extras.yoyRevGrowth !== null && extras.yoyRevGrowth >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+              tone={extras.yoyRevGrowth === null ? undefined : extras.yoyRevGrowth >= 0 ? "green" : "red"}
+              sub={extras.yoyRevPrev > 0 ? `O'tgan yil: ${fmt(extras.yoyRevPrev)}` : "O'tgan yil ma'lumot yo'q"}
+            />
+          </div>
+
+          <Card className="p-4">
+            <div className="text-sm font-semibold mb-3">Daromad, xarajat va sof foyda</div>
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.08} vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="currentColor" opacity={0.5} />
+                  <YAxis tick={{ fontSize: 11 }} stroke="currentColor" opacity={0.5} tickFormatter={fmtShort} />
+                  <Tooltip
+                    formatter={(v: number) => fmt(v)}
+                    contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <ReferenceLine y={0} stroke="currentColor" opacity={0.3} />
+                  <Bar dataKey="revenue" name="Daromad" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="expense" name="Xarajat" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                  <Line type="monotone" dataKey="profit" name="Sof foyda" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 3 }} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+
+          {/* YoY comparison */}
+          {(extras.yoyRevPrev > 0 || extras.yoyExpPrev > 0) && (
+            <Card className="p-4">
+              <div className="text-sm font-semibold mb-3">Yildan-yilga taqqoslash (tanlangan oylar)</div>
+              <div className="overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ko'rsatkich</TableHead>
+                      <TableHead className="text-right">O'tgan yil</TableHead>
+                      <TableHead className="text-right">Joriy</TableHead>
+                      <TableHead className="text-right">Farq</TableHead>
+                      <TableHead className="text-right">O'sish %</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {[
+                      { label: "Daromad", prev: extras.yoyRevPrev, cur: extras.yoyRevCur },
+                      { label: "Xarajat", prev: extras.yoyExpPrev, cur: extras.yoyExpCur, invert: true },
+                      { label: "Sof foyda", prev: extras.yoyProfitPrev, cur: extras.yoyProfitCur, bold: true },
+                    ].map((r) => {
+                      const diff = r.cur - r.prev;
+                      const pct = r.prev !== 0 ? (diff / Math.abs(r.prev)) * 100 : null;
+                      const good = r.invert ? diff < 0 : diff >= 0;
+                      return (
+                        <TableRow key={r.label}>
+                          <TableCell className={cn(r.bold && "font-semibold")}>{r.label}</TableCell>
+                          <TableCell className="text-right tabular-nums text-muted-foreground">{fmt(r.prev)}</TableCell>
+                          <TableCell className="text-right tabular-nums font-medium">{fmt(r.cur)}</TableCell>
+                          <TableCell className={cn("text-right tabular-nums", good ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>
+                            {diff >= 0 ? "+" : ""}{fmt(diff)}
+                          </TableCell>
+                          <TableCell className={cn("text-right tabular-nums font-medium", good ? "text-emerald-600 dark:text-emerald-400" : "text-destructive")}>
+                            {pct === null ? "—" : `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}%`}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          )}
 
           <Card className="p-4">
             <div className="text-sm font-semibold mb-3">{t("finance.profitTrend")}</div>
@@ -595,11 +786,13 @@ function FinancePage() {
                     formatter={(v: number) => fmt(v)}
                     contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
                   />
+                  <ReferenceLine y={0} stroke="currentColor" opacity={0.3} />
                   <Line type="monotone" dataKey="profit" stroke="#6366f1" strokeWidth={2} dot={{ r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
           </Card>
+
 
           <ForecastCard
             contracts={contracts}
@@ -782,31 +975,54 @@ function FinancePage() {
 
           <Card className="p-4">
             <div className="text-sm font-semibold mb-3">{t("finance.topCategories")}</div>
-            <div className="overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t("finance.category")}</TableHead>
-                    <TableHead className="text-right">{t("common.amount")}</TableHead>
-                    <TableHead className="text-right">{t("finance.percent")}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {topExpenses.length === 0 ? (
-                    <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">{t("common.noData")}</TableCell></TableRow>
-                  ) : topExpenses.map((c) => (
-                    <TableRow key={c.name}>
-                      <TableCell><Badge variant="outline">{c.name}</Badge></TableCell>
-                      <TableCell className="text-right tabular-nums">{fmt(c.total)}</TableCell>
-                      <TableCell className="text-right tabular-nums text-muted-foreground">
-                        {totals.expense > 0 ? ((c.total / totals.expense) * 100).toFixed(1) : "0.0"}%
-                      </TableCell>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {topExpenses.length > 0 && (
+                <div className="h-[280px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={topExpenses} dataKey="total" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={100} paddingAngle={2}>
+                        {topExpenses.map((_, i) => (
+                          <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+                      <Legend wrapperStyle={{ fontSize: 11 }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+              <div className="overflow-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t("finance.category")}</TableHead>
+                      <TableHead className="text-right">{t("common.amount")}</TableHead>
+                      <TableHead className="text-right">{t("finance.percent")}</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {topExpenses.length === 0 ? (
+                      <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-6">{t("common.noData")}</TableCell></TableRow>
+                    ) : topExpenses.map((c, i) => (
+                      <TableRow key={c.name}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="h-2.5 w-2.5 rounded-sm inline-block" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                            <Badge variant="outline">{c.name}</Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{fmt(c.total)}</TableCell>
+                        <TableCell className="text-right tabular-nums text-muted-foreground">
+                          {totals.expense > 0 ? ((c.total / totals.expense) * 100).toFixed(1) : "0.0"}%
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           </Card>
+
 
           <div className="text-xs text-muted-foreground text-center pb-4">
             {basis === "accrual" ? t("finance.note.accrual") : t("finance.note.cash")}
