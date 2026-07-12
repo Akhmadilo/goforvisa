@@ -16,8 +16,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import {
   ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line, Legend, ReferenceLine,
+  ComposedChart, Bar, Area, PieChart, Pie, Cell,
 } from "recharts";
-import { LineChart as LineChartIcon, LogOut, Shield, ChevronDown, TrendingUp, TrendingDown, DollarSign, Receipt, FileSpreadsheet, FileText, Sparkles } from "lucide-react";
+import { LineChart as LineChartIcon, LogOut, Shield, ChevronDown, TrendingUp, TrendingDown, DollarSign, Receipt, FileSpreadsheet, FileText, Sparkles, Printer, Download, Wallet, Award, Activity } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
