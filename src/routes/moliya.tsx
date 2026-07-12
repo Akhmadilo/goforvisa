@@ -359,8 +359,88 @@ function FinancePage() {
 
   const topExpenses = expenseCategories.slice(0, 10);
 
+  // ---------- Extra KPIs & YoY comparison ----------
+  const extras = useMemo(() => {
+    const n = allMonths.length || 1;
+    const avgRev = totals.revenue / n;
+    const burn = totals.expense / n; // avg monthly opex
+    const avgProfit = totals.profit / n;
+    // Best month by net profit
+    let bestKey = ""; let bestVal = -Infinity;
+    for (const k of allMonths) {
+      const r = pick(revenueByMonth.get(k));
+      const d = pick(docCostsByMonth.get(k));
+      const e = pick(expenseByMonth.get(k));
+      const np = r - d - e;
+      if (np > bestVal) { bestVal = np; bestKey = k; }
+    }
+    // Runway (months) — if profit negative, cash/burn (we don't have cash balance, so use last-12 profit as proxy buffer)
+    const bufferMonths = burn > 0 && avgProfit < 0 ? Math.abs(totals.profit) / burn : null;
+    // YoY: sum current filtered vs same months previous year (from full history without year filter)
+    const prevRev = new Map<string, number>();
+    const prevExp = new Map<string, number>();
+    // rebuild simple prev-year aggregates from source data
+    for (const c of contracts) {
+      const p = dashboardPeriod(c);
+      if (!p) continue;
+      if (basis === "cash" && !isFullyPaid(c)) continue;
+      const gross = contractGrossUsd(c, getRate, p.key);
+      const val = currency === "USD" ? gross : gross * getRate(p.key);
+      prevRev.set(p.key, (prevRev.get(p.key) ?? 0) + val);
+    }
+    for (const e of expenses) {
+      const key = e.expense_date.slice(0, 7);
+      const rate = getRate(key);
+      const raw = Number(e.total_amount);
+      const val = currency === "USD"
+        ? (e.currency === "USD" ? raw : raw / rate)
+        : (e.currency === "USD" ? raw * rate : raw);
+      prevExp.set(key, (prevExp.get(key) ?? 0) + val);
+    }
+    let yoyRevPrev = 0, yoyExpPrev = 0, yoyRevCur = 0, yoyExpCur = 0;
+    for (const k of allMonths) {
+      const [y, mm] = k.split("-");
+      const prevK = `${Number(y) - 1}-${mm}`;
+      yoyRevCur += prevRev.get(k) ?? 0;
+      yoyExpCur += prevExp.get(k) ?? 0;
+      yoyRevPrev += prevRev.get(prevK) ?? 0;
+      yoyExpPrev += prevExp.get(prevK) ?? 0;
+    }
+    const yoyRevGrowth = yoyRevPrev > 0 ? ((yoyRevCur - yoyRevPrev) / yoyRevPrev) * 100 : null;
+    const yoyProfitPrev = yoyRevPrev - yoyExpPrev;
+    const yoyProfitCur = yoyRevCur - yoyExpCur;
+    const yoyProfitGrowth = yoyProfitPrev !== 0 ? ((yoyProfitCur - yoyProfitPrev) / Math.abs(yoyProfitPrev)) * 100 : null;
+    return {
+      avgRev, burn, avgProfit,
+      bestKey, bestVal,
+      bufferMonths,
+      yoyRevPrev, yoyRevCur, yoyRevGrowth,
+      yoyExpPrev, yoyExpCur,
+      yoyProfitPrev, yoyProfitCur, yoyProfitGrowth,
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allMonths, totals, contracts, expenses, basis, currency, getRate]);
+
+  const PIE_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899", "#84cc16", "#f97316", "#0ea5e9"];
+
+  const exportCsv = () => {
+    const { head, rows } = buildReportRows();
+    const esc = (v: string | number) => {
+      const s = String(v);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = [head.map(esc).join(","), ...rows.map(r => r.map(esc).join(","))];
+    const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `moliya-${basis}-${currency}-${year}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const periodLabel = `${year === "all" ? t("common.allYears") : year}${months.length ? " · " + months.map(m => MONTHS[m-1]).join(", ") : ""}`;
   const basisLabel = basis === "accrual" ? t("finance.basis.accrual") : t("finance.basis.cash");
+
 
   function buildReportRows() {
     const head = ["", ...allMonths.map(k => {
