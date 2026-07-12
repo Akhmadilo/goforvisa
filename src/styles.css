@@ -144,3 +144,11 @@
     color: var(--color-foreground);
   }
 }
+
+@media print {
+  aside, nav, header button { display: none !important; }
+  header { position: static !important; border: none !important; }
+  .md\:pl-56 { padding-left: 0 !important; }
+  body { background: white !important; color: black !important; }
+  .rounded-xl, .rounded-lg, .rounded-md { break-inside: avoid; }
+}
