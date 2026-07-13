@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -22,7 +22,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
+
 
 import { supabase } from "@/integrations/supabase/client";
 import {
