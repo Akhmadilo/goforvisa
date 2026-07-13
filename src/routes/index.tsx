@@ -182,10 +182,7 @@ function Dashboard() {
   const { data, isLoading, isFetching, error, dataUpdatedAt, refetch } = useQuery({
     queryKey: ["contracts"],
     queryFn: () => fetchContracts(),
-    refetchInterval: 30_000, // auto-refresh every 30s
-    refetchIntervalInBackground: true,
-    refetchOnWindowFocus: true,
-    staleTime: 15_000,
+    staleTime: 60_000,
   });
 
   // Dynamic monthly USD rate — same source as Moliyaviy hisobot, so totals match.
