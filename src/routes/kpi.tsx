@@ -1,4 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
+
 import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -1023,6 +1025,15 @@ function VisaBonusKpi() {
 
 function KpiPage() {
   const { t } = useT();
+  const { user, loading: authLoading } = useAuth();
+  const { can, loading: permsLoading } = useWidgetPermissions();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!authLoading && !permsLoading && user && !can("kpi_section")) {
+      navigate({ to: "/" });
+    }
+  }, [authLoading, permsLoading, user, can, navigate]);
+
   return (
     <div className="min-h-screen bg-background">
       <AppSidebar />

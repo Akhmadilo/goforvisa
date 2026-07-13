@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AppSidebar } from "@/components/app-sidebar";
@@ -20,6 +20,10 @@ import { AlertTriangle, Link2, Trash2, Plus, FileText } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
+import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
+import { useNavigate } from "@tanstack/react-router";
+
+
 import { supabase } from "@/integrations/supabase/client";
 import {
   getJarimaData, linkTelegramToEmployee, saveSchedule, saveFineRule, deleteFineRule,
@@ -423,10 +427,18 @@ async function generateEmployeeCalendarPdf(
 
 function JarimaPage() {
   const { t } = useT();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const isAdmin = useIsAdmin();
   const { isCeo, isFinance } = useRoles();
   const canSeeAll = isAdmin || isCeo || isFinance;
+  const { can, loading: permsLoading } = useWidgetPermissions();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!authLoading && !permsLoading && user && !can("fines_section")) {
+      navigate({ to: "/" });
+    }
+  }, [authLoading, permsLoading, user, can, navigate]);
+
 
   const fetchData = useServerFn(getJarimaData);
   const linkFn = useServerFn(linkTelegramToEmployee);

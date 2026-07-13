@@ -11,6 +11,9 @@ export const WIDGET_GROUPS: { key: WidgetGroup; label: string }[] = [
   { key: "fines", label: "Jarima bo'limi" },
 ];
 
+// Only widgets that are actually gated in the UI. Adding entries here
+// that aren't wired to a `can("...")` check makes the admin toggle
+// look broken (nothing hides), so keep this list in sync with usage.
 export const WIDGETS = [
   // Dashboard
   { key: "kpi", group: "dashboard", label: "KPI ko'rsatkichlari (yuqori panel)" },
@@ -25,19 +28,14 @@ export const WIDGETS = [
   { key: "backoffice_monthly", group: "dashboard", label: "Back office · oylik hujjatlar" },
   { key: "companies_monthly", group: "dashboard", label: "Kompaniyalar · oylik sotuvlar" },
   { key: "debtors", group: "dashboard", label: "Qarzdorlar ro'yxati" },
-  { key: "contracts_table", group: "dashboard", label: "Shartnomalar ro'yxati (jadval)" },
   // Salaries
   { key: "salaries_section", group: "salaries", label: "Bo'limga kirish (sahifa)" },
   { key: "salaries_totals", group: "salaries", label: "Umumiy kartalar" },
   { key: "salaries_pivot", group: "salaries", label: "Pivot jadval (oylar × ishchilar)" },
   { key: "salaries_table", group: "salaries", label: "To'liq jadval" },
   { key: "salaries_create", group: "salaries", label: "Oylik yaratish" },
-  { key: "salaries_edit", group: "salaries", label: "Oylik tahrirlash" },
-  { key: "salaries_delete", group: "salaries", label: "Oylik o'chirish" },
   // Expenses
   { key: "expenses_section", group: "expenses", label: "Bo'limga kirish (sahifa)" },
-  { key: "expenses_totals", group: "expenses", label: "Umumiy kartalar" },
-  { key: "expenses_table", group: "expenses", label: "Xarajatlar jadvali" },
   { key: "expenses_create", group: "expenses", label: "Xarajat yaratish" },
   { key: "expenses_edit", group: "expenses", label: "Xarajat tahrirlash" },
   { key: "expenses_delete", group: "expenses", label: "Xarajat o'chirish" },
@@ -60,3 +58,4 @@ export const WIDGETS = [
 ] as const;
 
 export type WidgetKey = (typeof WIDGETS)[number]["key"];
+
