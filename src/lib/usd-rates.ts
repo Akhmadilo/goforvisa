@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -22,15 +23,20 @@ export function useUsdRates() {
         rate: Number(r.rate),
       }));
     },
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
   });
 
-  const map = new Map<string, number>();
-  for (const r of data) {
-    map.set(`${r.year}-${String(r.month).padStart(2, "0")}`, r.rate);
-  }
+  const map = useMemo(() => {
+    const next = new Map<string, number>();
+    for (const r of data) {
+      next.set(`${r.year}-${String(r.month).padStart(2, "0")}`, r.rate);
+    }
+    return next;
+  }, [data]);
 
   /** Get rate for a "YYYY-MM" key. Falls back to most recent past month, then default. */
-  const getRate = (ym: string): number => {
+  const getRate = useMemo(() => (ym: string): number => {
     if (map.has(ym)) return map.get(ym)!;
     let bestKey = "";
     let bestVal: number | null = null;
@@ -44,7 +50,7 @@ export function useUsdRates() {
     // fallback: any rate (earliest) if no past rate exists
     const first = data[0];
     return first ? first.rate : DEFAULT_USD_RATE;
-  };
+  }, [data, map]);
 
   return { rates: data, map, getRate };
 }

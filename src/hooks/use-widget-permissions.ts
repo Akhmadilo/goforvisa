@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdminStatus } from "@/hooks/use-is-admin";
@@ -29,7 +29,14 @@ export function useWidgetPermissions() {
       return;
     }
     if (isAdmin) {
-      setKeys(new Set(["*"]));
+      const adminKeys = new Set(["*"]);
+      setKeys(adminKeys);
+      setLoading(false);
+      return;
+    }
+    const cached = widgetPermissionCache.get(user.id);
+    if (cached) {
+      setKeys(cached);
       setLoading(false);
       return;
     }
@@ -40,7 +47,9 @@ export function useWidgetPermissions() {
       .eq("user_id", user.id)
       .then(({ data }) => {
         if (!mounted) return;
-        setKeys(new Set((data ?? []).map((r: any) => r.widget_key)));
+        const nextKeys = new Set((data ?? []).map((r: any) => r.widget_key));
+        widgetPermissionCache.set(user.id, nextKeys);
+        setKeys(nextKeys);
         setLoading(false);
       });
     return () => {
@@ -48,6 +57,8 @@ export function useWidgetPermissions() {
     };
   }, [user, isAdmin, authLoading, adminLoading]);
 
-  const can = (key: string) => keys.has("*") || keys.has(key);
+  const can = useCallback((key: string) => keys.has("*") || keys.has(key), [keys]);
   return { can, loading, isAdmin };
 }
+
+const widgetPermissionCache = new Map<string, Set<string>>();

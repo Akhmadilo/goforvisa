@@ -123,6 +123,7 @@ function ExpensesPage() {
   const canDelete = can("expenses_delete");
   const canPay = can("expenses_pay");
   const canAnyAction = canCreate || canEdit || canDelete || canPay;
+  const canAccessExpenses = !!user && !permsLoading && can("expenses_section");
 
   // Filters
   const [status, setStatus] = useState<"all" | "unpaid" | "partial" | "paid">("all");
@@ -137,12 +138,12 @@ function ExpensesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("expenses")
-        .select("*")
+        .select("id, title, category, total_amount, currency, vendor, notes, status, expense_date, created_at, created_by")
         .order("expense_date", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Expense[];
     },
-    enabled: !!user,
+    enabled: canAccessExpenses,
   });
 
   const { data: payments = [] } = useQuery({
@@ -150,12 +151,12 @@ function ExpensesPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("expense_payments")
-        .select("*")
+        .select("id, expense_id, amount, payment_method, paid_at, note, created_at")
         .order("paid_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Payment[];
     },
-    enabled: !!user,
+    enabled: canAccessExpenses,
   });
 
   const { data: categories = [] } = useQuery({
@@ -168,7 +169,7 @@ function ExpensesPage() {
       if (error) throw error;
       return (data ?? []).map((r: any) => r.name as string);
     },
-    enabled: !!user,
+    enabled: canAccessExpenses,
   });
 
   // Profiles for creator names
@@ -183,7 +184,7 @@ function ExpensesPage() {
       for (const r of data ?? []) m.set((r as any).id, (r as any).display_name ?? "—");
       return m;
     },
-    enabled: !!user,
+    enabled: canAccessExpenses,
   });
 
   // Salaries — included as synthetic "Oyliklar" expenses for stats/dashboard/pivot
@@ -209,7 +210,7 @@ function ExpensesPage() {
         created_by: s.created_by,
       }));
     },
-    enabled: !!user,
+    enabled: canAccessExpenses,
   });
 
   const { getRate } = useUsdRates();
@@ -221,7 +222,7 @@ function ExpensesPage() {
 
   // Realtime subscriptions
   useEffect(() => {
-    if (!user) return;
+    if (!canAccessExpenses) return;
     const ch = supabase
       .channel("expenses-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "expenses" }, () => {
@@ -238,7 +239,7 @@ function ExpensesPage() {
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [user, qc]);
+  }, [canAccessExpenses, qc]);
 
 
   // Aggregated paid totals per expense

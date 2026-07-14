@@ -168,7 +168,7 @@ function daysBetween(a: Date, b: Date): number {
 function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const isAdmin = useIsAdmin();
-  const { can } = useWidgetPermissions();
+  const { can, loading: permsLoading } = useWidgetPermissions();
   const navigate = Route.useNavigate();
   const { t, lang } = useT();
 
@@ -178,11 +178,27 @@ function Dashboard() {
     }
   }, [authLoading, user, navigate]);
 
+  const hasDashboardDataWidget = [
+    "kpi",
+    "monthly_revenue",
+    "visa_results",
+    "managers_revenue",
+    "contract_types",
+    "managers_clients",
+    "companies_sales_pie",
+    "companies_revenue",
+    "sales_monthly",
+    "backoffice_monthly",
+    "companies_monthly",
+    "debtors",
+  ].some(can);
+
   const fetchContracts = useServerFn(getContracts);
   const { data, isLoading, isFetching, error, dataUpdatedAt, refetch } = useQuery({
     queryKey: ["contracts"],
     queryFn: () => fetchContracts(),
     staleTime: 60_000,
+    enabled: !!user && !permsLoading && hasDashboardDataWidget,
   });
 
   // Dynamic monthly USD rate — same source as Moliyaviy hisobot, so totals match.

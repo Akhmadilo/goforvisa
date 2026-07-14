@@ -145,12 +145,13 @@ function FinancePage() {
   const [months, setMonths] = useState<number[]>([]);
   const [currency, setCurrency] = useState<"UZS" | "USD">("UZS");
   const fmt = useMemo(() => makeFmt(currency), [currency]);
+  const canAccessFinance = !!user && !permsLoading && can("finance_section");
 
   const fetchContracts = useServerFn(getContracts);
   const { data: contracts = [] } = useQuery({
     queryKey: ["contracts"],
     queryFn: () => fetchContracts(),
-    enabled: !!user,
+    enabled: canAccessFinance,
   });
 
   const { data: expenses = [] } = useQuery({
@@ -161,7 +162,7 @@ function FinancePage() {
       if (error) throw error;
       return (data ?? []) as Expense[];
     },
-    enabled: !!user,
+    enabled: canAccessFinance,
   });
 
   const { data: payments = [] } = useQuery({
@@ -172,7 +173,7 @@ function FinancePage() {
       if (error) throw error;
       return (data ?? []) as Payment[];
     },
-    enabled: !!user,
+    enabled: canAccessFinance,
   });
 
   const { data: salaries = [] } = useQuery({
@@ -184,7 +185,7 @@ function FinancePage() {
       if (error) throw error;
       return (data ?? []) as Salary[];
     },
-    enabled: !!user,
+    enabled: canAccessFinance,
   });
 
   const { getRate } = useUsdRates();
