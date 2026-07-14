@@ -34,12 +34,6 @@ export function useWidgetPermissions() {
       setLoading(false);
       return;
     }
-    const cached = widgetPermissionCache.get(user.id);
-    if (cached) {
-      setKeys(cached);
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     supabase
       .from("widget_permissions")
@@ -47,9 +41,7 @@ export function useWidgetPermissions() {
       .eq("user_id", user.id)
       .then(({ data }) => {
         if (!mounted) return;
-        const nextKeys = new Set((data ?? []).map((r: any) => r.widget_key));
-        widgetPermissionCache.set(user.id, nextKeys);
-        setKeys(nextKeys);
+        setKeys(new Set((data ?? []).map((r: any) => r.widget_key)));
         setLoading(false);
       });
     return () => {
@@ -60,5 +52,3 @@ export function useWidgetPermissions() {
   const can = useCallback((key: string) => keys.has("*") || keys.has(key), [keys]);
   return { can, loading, isAdmin };
 }
-
-const widgetPermissionCache = new Map<string, Set<string>>();
