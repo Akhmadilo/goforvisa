@@ -2,15 +2,23 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 
+const adminCache = new Map<string, boolean>();
+
 export function useIsAdmin() {
   const { user, loading: authLoading } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(() => (user ? adminCache.get(user.id) ?? false : false));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
     if (authLoading) return;
     if (!user) {
       setIsAdmin(false);
+      setLoading(false);
+      return;
+    }
+    if (adminCache.has(user.id)) {
+      setIsAdmin(adminCache.get(user.id) ?? false);
       setLoading(false);
       return;
     }
@@ -22,9 +30,14 @@ export function useIsAdmin() {
       .eq("role", "admin")
       .maybeSingle()
       .then(({ data }) => {
+        if (!mounted) return;
+        adminCache.set(user.id, !!data);
         setIsAdmin(!!data);
         setLoading(false);
       });
+    return () => {
+      mounted = false;
+    };
   }, [user, authLoading]);
 
   // Backward-compatible: returns boolean when used directly, but also exposes loading.
@@ -35,13 +48,19 @@ export function useIsAdmin() {
 
 export function useIsAdminStatus() {
   const { user, loading: authLoading } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(() => (user ? adminCache.get(user.id) ?? false : false));
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
     if (authLoading) return;
     if (!user) {
       setIsAdmin(false);
+      setLoading(false);
+      return;
+    }
+    if (adminCache.has(user.id)) {
+      setIsAdmin(adminCache.get(user.id) ?? false);
       setLoading(false);
       return;
     }
@@ -53,9 +72,14 @@ export function useIsAdminStatus() {
       .eq("role", "admin")
       .maybeSingle()
       .then(({ data }) => {
+        if (!mounted) return;
+        adminCache.set(user.id, !!data);
         setIsAdmin(!!data);
         setLoading(false);
       });
+    return () => {
+      mounted = false;
+    };
   }, [user, authLoading]);
 
   return { isAdmin, loading };

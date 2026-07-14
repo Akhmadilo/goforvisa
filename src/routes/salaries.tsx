@@ -79,6 +79,7 @@ function SalariesPage() {
   const canPivot = can("salaries_pivot");
   const canTable = can("salaries_table");
   const canCreate = isAdmin || can("salaries_create");
+  const canAccessSalaries = !!user && !permsLoading && can("salaries_section");
 
   // Fetch salaries
   const { data: rowsAll = [], isLoading } = useQuery({
@@ -86,14 +87,14 @@ function SalariesPage() {
     queryFn: async (): Promise<SalaryRow[]> => {
       const { data, error } = await supabase
         .from("salaries")
-        .select("*")
+        .select("id, employee_name, month, year, fixed_amount, kpi_amount, penalty_amount, note, created_by, created_at, advance_amount")
         .order("year", { ascending: true })
         .order("month", { ascending: true })
         .order("employee_name", { ascending: true });
       if (error) throw error;
       return (data ?? []) as SalaryRow[];
     },
-    enabled: !!user,
+    enabled: canAccessSalaries,
   });
 
   // Fetch payments (all) so we can show paid / remaining per salary
@@ -106,7 +107,7 @@ function SalariesPage() {
       if (error) throw error;
       return data ?? [];
     },
-    enabled: !!user,
+    enabled: canAccessSalaries,
   });
   const paidBySalary = useMemo(() => {
     const m = new Map<string, number>();
@@ -132,7 +133,7 @@ function SalariesPage() {
       if (error) throw error;
       return data ?? [];
     },
-    enabled: creatorIds.length > 0,
+    enabled: canAccessSalaries && creatorIds.length > 0,
   });
   const creatorMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -142,7 +143,7 @@ function SalariesPage() {
 
   // Realtime
   useEffect(() => {
-    if (!user) return;
+    if (!canAccessSalaries) return;
     const ch = supabase
       .channel("salaries-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "salaries" }, () => {
@@ -153,7 +154,7 @@ function SalariesPage() {
       })
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user, qc]);
+  }, [canAccessSalaries, qc]);
 
   const [payFor, setPayFor] = useState<{ id: string; name: string; gross: number; paid: number } | null>(null);
 

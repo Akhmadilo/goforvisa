@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdminStatus } from "@/hooks/use-is-admin";
@@ -29,7 +29,8 @@ export function useWidgetPermissions() {
       return;
     }
     if (isAdmin) {
-      setKeys(new Set(["*"]));
+      const adminKeys = new Set(["*"]);
+      setKeys(adminKeys);
       setLoading(false);
       return;
     }
@@ -48,6 +49,6 @@ export function useWidgetPermissions() {
     };
   }, [user, isAdmin, authLoading, adminLoading]);
 
-  const can = (key: string) => keys.has("*") || keys.has(key);
+  const can = useCallback((key: string) => keys.has("*") || keys.has(key), [keys]);
   return { can, loading, isAdmin };
 }

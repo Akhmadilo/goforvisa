@@ -153,13 +153,14 @@ function ShartnomalarPage() {
   const canEdit = can("contracts_edit");
   const canDelete = can("contracts_delete");
   const canPay = can("contracts_pay");
+  const canAccessContracts = !!user && !permLoading && can("contracts_section");
 
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["contracts-db"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contracts")
-        .select("*")
+        .select("id, year, month, client_name, contract_no, contract_date, price_uzs, price_usd, docs_usd, commission, people, note, contract_type, phone, call_centre, sales_manager, back_office_manager, company, visa_result, visa_taken_date, client_photo_url, contract_pdf_url, created_at")
         .order("created_at", { ascending: true });
       if (error) throw error;
       const rows = (data ?? []) as unknown as ContractRow[];
@@ -175,15 +176,17 @@ function ShartnomalarPage() {
       });
       return rows;
     },
+    enabled: canAccessContracts,
   });
 
   const { data: payments } = useQuery({
     queryKey: ["contract-payments"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("contract_payments").select("*");
+      const { data, error } = await supabase.from("contract_payments").select("id, contract_id, amount, currency, paid_at, method, note, created_by");
       if (error) throw error;
       return (data ?? []) as PaymentRow[];
     },
+    enabled: canAccessContracts,
   });
 
   const { data: operators } = useQuery({
@@ -196,6 +199,7 @@ function ShartnomalarPage() {
       if (error) throw error;
       return (data ?? []) as { id: string; kind: string; name: string }[];
     },
+    enabled: canAccessContracts,
   });
   const opByKind = (k: string) =>
     (operators ?? []).filter((o) => o.kind === k).map((o) => o.name);
@@ -210,6 +214,7 @@ function ShartnomalarPage() {
       if (error) throw error;
       return (data ?? []).map((r: { name: string }) => r.name) as string[];
     },
+    enabled: canAccessContracts,
   });
   const { data: companies } = useQuery({
     queryKey: ["companies"],
@@ -218,6 +223,7 @@ function ShartnomalarPage() {
       if (error) throw error;
       return (data ?? []).map((r: { name: string }) => r.name) as string[];
     },
+    enabled: canAccessContracts,
   });
   const contractTypeOptions = contractTypes ?? [];
   const companyOptions = companies ?? [];
@@ -1183,7 +1189,7 @@ function PaymentsDialog({
       if (!contract) return [];
       const { data, error } = await supabase
         .from("contract_payments")
-        .select("*")
+        .select("id, contract_id, amount, currency, paid_at, method, note, created_by")
         .eq("contract_id", contract.id)
         .order("paid_at", { ascending: false });
       if (error) throw error;
