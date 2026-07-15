@@ -28,6 +28,10 @@ export const WIDGETS = [
   { key: "backoffice_monthly", group: "dashboard", label: "Back office · oylik hujjatlar" },
   { key: "companies_monthly", group: "dashboard", label: "Kompaniyalar · oylik sotuvlar" },
   { key: "debtors", group: "dashboard", label: "Qarzdorlar ro'yxati" },
+  { key: "cumulative_revenue", group: "dashboard", label: "Kumulyativ daromad (o'sish)" },
+  { key: "payment_status", group: "dashboard", label: "To'lov holati (to'langan · qoldiq)" },
+  { key: "top_clients", group: "dashboard", label: "Eng katta mijozlar (Top 10)" },
+  { key: "yoy_comparison", group: "dashboard", label: "Yil bo'yicha taqqoslash (YoY)" },
   // Salaries
   { key: "salaries_section", group: "salaries", label: "Bo'limga kirish (sahifa)" },
   { key: "salaries_totals", group: "salaries", label: "Umumiy kartalar" },
