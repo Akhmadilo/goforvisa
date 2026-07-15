@@ -132,12 +132,16 @@ function CallCentreKpi() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contracts")
-        .select("id, call_centre, year, month, visa_result")
+        .select("call_centre, visa_result")
         .eq("year", year)
-        .eq("month", month);
+        .eq("month", month)
+        .not("call_centre", "is", null);
       if (error) throw error;
       return data ?? [];
     },
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
+    placeholderData: (prev) => prev,
   });
 
   const allRows = useMemo(() => {
@@ -291,16 +295,25 @@ function CommissionKpi({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contracts")
-        .select(`id, client_name, contract_no, ${managerField}, price_usd, commission, visa_result`);
+        .select(`id, client_name, contract_no, ${managerField}, price_usd, commission, visa_result`)
+        .not(managerField, "is", null)
+        .gt("price_usd", 0)
+        .gt("commission", 0);
       if (error) throw error;
       return data ?? [];
     },
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
   });
 
+  const contractIdsKey = useMemo(
+    () => (contracts ?? []).map((c: any) => c.id).sort().join(","),
+    [contracts],
+  );
   const contractIds = useMemo(() => (contracts ?? []).map((c: any) => c.id), [contracts]);
 
   const { data: payments } = useQuery({
-    queryKey: ["kpi-commission-payments", role, contractIds.length],
+    queryKey: ["kpi-commission-payments", role, contractIdsKey],
     enabled: contractIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -311,6 +324,8 @@ function CommissionKpi({
       if (error) throw error;
       return data ?? [];
     },
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
   });
 
   const { data: rates } = useQuery({
@@ -318,11 +333,13 @@ function CommissionKpi({
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("sales_kpi_rates")
-        .select("*")
+        .select("manager_name, rate_per_usd")
         .eq("role", role);
       if (error) throw error;
       return (data ?? []) as { manager_name: string; rate_per_usd: number }[];
     },
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
   });
 
   const { data: approvals } = useQuery({
@@ -330,11 +347,13 @@ function CommissionKpi({
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("sales_kpi_approvals")
-        .select("*")
+        .select("contract_id, approved_year, approved_month, bonus_uzs, status")
         .eq("role", role);
       if (error) throw error;
       return (data ?? []) as { contract_id: string; approved_year: number; approved_month: number; bonus_uzs: number; status: "approved" | "rejected" }[];
     },
+    staleTime: 2 * 60_000,
+    gcTime: 10 * 60_000,
   });
 
   const rateFor = (name: string): number => {
@@ -790,28 +809,36 @@ function VisaBonusKpi() {
       const { data, error } = await supabase
         .from("contracts")
         .select("id, client_name, contract_no, back_office_manager, commission, visa_result, visa_taken_date" as unknown as "*")
-        .eq("visa_result", "Olindi");
+        .eq("visa_result", "Olindi")
+        .not("back_office_manager", "is", null)
+        .gt("commission", 0);
       if (error) throw error;
       return data ?? [];
     },
+    staleTime: 5 * 60_000,
+    gcTime: 10 * 60_000,
   });
 
   const { data: rates } = useQuery({
     queryKey: ["sales_kpi_rates", role],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("sales_kpi_rates").select("*").eq("role", role);
+      const { data, error } = await (supabase as any).from("sales_kpi_rates").select("manager_name, rate_per_usd").eq("role", role);
       if (error) throw error;
       return (data ?? []) as { manager_name: string; rate_per_usd: number }[];
     },
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
   });
 
   const { data: approvals } = useQuery({
     queryKey: ["sales_kpi_approvals", role],
     queryFn: async () => {
-      const { data, error } = await (supabase as any).from("sales_kpi_approvals").select("*").eq("role", role);
+      const { data, error } = await (supabase as any).from("sales_kpi_approvals").select("contract_id, approved_year, approved_month, bonus_uzs, status").eq("role", role);
       if (error) throw error;
       return (data ?? []) as { contract_id: string; approved_year: number; approved_month: number; bonus_uzs: number; status: "approved" | "rejected" }[];
     },
+    staleTime: 2 * 60_000,
+    gcTime: 10 * 60_000,
   });
 
   const rateFor = (name: string): number => {
