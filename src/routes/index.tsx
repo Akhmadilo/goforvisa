@@ -10,6 +10,9 @@ import {
   Cell,
   LineChart,
   Line,
+  AreaChart,
+  Area,
+  ComposedChart,
   XAxis,
   YAxis,
   Tooltip,
@@ -191,6 +194,10 @@ function Dashboard() {
     "backoffice_monthly",
     "companies_monthly",
     "debtors",
+    "cumulative_revenue",
+    "payment_status",
+    "top_clients",
+    "yoy_comparison",
   ].some(can);
 
   const fetchContracts = useServerFn(getContracts);
@@ -397,6 +404,67 @@ function Dashboard() {
     for (const row of rows) for (const k of top) if (row[k] == null) row[k] = 0;
     return { rows, keys: top };
   }
+
+  // Cumulative revenue & net profit over time (chronological)
+  const cumulativeData = useMemo(() => {
+    let cumRev = 0;
+    let cumNet = 0;
+    return monthlyData.map((m) => {
+      cumRev += m.revenue;
+      cumNet += m.commission;
+      return { name: m.name, revenue: cumRev, commission: cumNet };
+    });
+  }, [monthlyData]);
+
+  // Payment status donut — paid vs remaining across filtered contracts
+  const paymentStatusData = useMemo(() => {
+    let paid = 0;
+    let remaining = 0;
+    for (const c of filtered) {
+      paid += c.paidUsd || 0;
+      remaining += c.remainingUsd || 0;
+    }
+    return { paid, remaining };
+  }, [filtered]);
+
+  // Top 10 clients by revenue
+  const topClientsData = useMemo(() => {
+    return [...filtered]
+      .map((c) => ({
+        name: c.name || c.contractNo || "—",
+        revenue: toUsd(c, getRate),
+        commission: c.commission || 0,
+      }))
+      .filter((c) => c.revenue > 0)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10);
+  }, [filtered]);
+
+  // Year-over-year — grouped monthly revenue by year
+  const yoyData = useMemo(() => {
+    const yearsSet = new Set<string>();
+    const map = new Map<string, Record<string, number | string>>();
+    for (const c of filtered) {
+      if (!c.year || !c.month) continue;
+      yearsSet.add(c.year);
+      const row = map.get(c.month) ?? { name: c.month };
+      row[c.year] = ((row[c.year] as number) ?? 0) + toUsd(c, getRate);
+      map.set(c.month, row);
+    }
+    const years = Array.from(yearsSet).sort();
+    const rows = Array.from(map.values())
+      .map((r) => {
+        for (const y of years) if (r[y] == null) r[y] = 0;
+        return r;
+      })
+      .sort(
+        (a, b) =>
+          MONTH_ORDER.indexOf(a.name as string) -
+          MONTH_ORDER.indexOf(b.name as string),
+      );
+    return { rows, years };
+  }, [filtered]);
+
 
   const salesMonthly = useMemo(
     () => buildMonthlySeries(filtered, (c) => c.salesManager, () => 1),
@@ -913,6 +981,179 @@ function Dashboard() {
           colors={PIE_COLORS}
         />
         )}
+
+        {/* Cumulative growth (area) + Payment status (donut) */}
+        {(can("cumulative_revenue") || can("payment_status")) && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {can("cumulative_revenue") && (
+          <Card className="p-4 md:p-5 lg:col-span-2 shadow-[var(--shadow-card)]">
+            <div className="flex items-center justify-between mb-3 md:mb-4">
+              <h3 className="font-semibold text-sm md:text-base">{t("dash.chart.cumulative")}</h3>
+              <Badge variant="secondary">{t("dash.chart.cumulativeSub")}</Badge>
+            </div>
+            <div className="h-[220px] md:h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={cumulativeData}>
+                  <defs>
+                    <linearGradient id="gradRev" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--color-chart-1)" stopOpacity={0.55} />
+                      <stop offset="95%" stopColor="var(--color-chart-1)" stopOpacity={0.05} />
+                    </linearGradient>
+                    <linearGradient id="gradNet" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--color-chart-3)" stopOpacity={0.55} />
+                      <stop offset="95%" stopColor="var(--color-chart-3)" stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+                  <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} />
+                  <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--color-card)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "8px",
+                    }}
+                    formatter={(v: number) => fmtUsd(v)}
+                  />
+                  <Legend />
+                  <Area
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="var(--color-chart-1)"
+                    strokeWidth={2.5}
+                    fill="url(#gradRev)"
+                    name={t("dash.chart.revenueUsd")}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="commission"
+                    stroke="var(--color-chart-3)"
+                    strokeWidth={2.5}
+                    fill="url(#gradNet)"
+                    name={t("dash.chart.netUsd")}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+          )}
+
+          {can("payment_status") && (
+          <Card className="p-4 md:p-5 shadow-[var(--shadow-card)]">
+            <h3 className="font-semibold text-sm md:text-base mb-3 md:mb-4">{t("dash.chart.paymentStatus")}</h3>
+            <div className="h-[220px] md:h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: t("dash.chart.paid"), value: Math.max(0, paymentStatusData.paid) },
+                      { name: t("dash.chart.remaining"), value: Math.max(0, paymentStatusData.remaining) },
+                    ]}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={55}
+                    outerRadius={85}
+                    paddingAngle={3}
+                  >
+                    <Cell fill="var(--color-chart-3)" />
+                    <Cell fill="var(--color-chart-5)" />
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--color-card)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "8px",
+                    }}
+                    formatter={(v: number) => fmtUsd(v)}
+                  />
+                  <Legend wrapperStyle={{ fontSize: "12px" }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+              <div className="rounded-md border border-border bg-secondary/40 px-3 py-2">
+                <div className="text-muted-foreground">{t("dash.chart.paid")}</div>
+                <div className="font-semibold">{fmtUsd(paymentStatusData.paid)}</div>
+              </div>
+              <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2">
+                <div className="text-muted-foreground">{t("dash.chart.remaining")}</div>
+                <div className="font-semibold text-destructive">{fmtUsd(paymentStatusData.remaining)}</div>
+              </div>
+            </div>
+          </Card>
+          )}
+        </div>
+        )}
+
+        {can("top_clients") && topClientsData.length > 0 && (
+        <Card className="p-4 md:p-5 shadow-[var(--shadow-card)]">
+          <h3 className="font-semibold text-sm md:text-base mb-3 md:mb-4">{t("dash.chart.topClients")}</h3>
+          <div className="h-[280px] md:h-[360px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={topClientsData} layout="vertical" margin={{ left: 20 }}>
+                <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+                <XAxis type="number" stroke="var(--color-muted-foreground)" fontSize={11} />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  stroke="var(--color-muted-foreground)"
+                  fontSize={11}
+                  width={140}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--color-card)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: "8px",
+                  }}
+                  formatter={(v: number) => fmtUsd(v)}
+                />
+                <Legend wrapperStyle={{ fontSize: "12px" }} />
+                <Bar dataKey="revenue" fill="var(--color-chart-1)" name={t("dash.chart.revenueUsd")} radius={[0, 4, 4, 0]} />
+                <Bar dataKey="commission" fill="var(--color-chart-3)" name={t("dash.chart.netUsd")} radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+        )}
+
+        {can("yoy_comparison") && yoyData.years.length > 0 && (
+        <Card className="p-4 md:p-5 shadow-[var(--shadow-card)]">
+          <div className="flex items-center justify-between mb-3 md:mb-4">
+            <h3 className="font-semibold text-sm md:text-base">{t("dash.chart.yoy")}</h3>
+            <Badge variant="secondary">{yoyData.years.length}</Badge>
+          </div>
+          <div className="h-[240px] md:h-[320px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={yoyData.rows}>
+                <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+                <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} />
+                <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
+                <Tooltip
+                  contentStyle={{
+                    background: "var(--color-card)",
+                    border: "1px solid var(--color-border)",
+                    borderRadius: "8px",
+                  }}
+                  formatter={(v: number) => fmtUsd(v)}
+                />
+                <Legend wrapperStyle={{ fontSize: "12px" }} />
+                {yoyData.years.map((y, i) => (
+                  <Bar
+                    key={y}
+                    dataKey={y}
+                    fill={PIE_COLORS[i % PIE_COLORS.length]}
+                    name={y}
+                    radius={[4, 4, 0, 0]}
+                  />
+                ))}
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+        )}
+
+
 
         {can("debtors") && (
         <Card className="shadow-[var(--shadow-card)] overflow-hidden border-destructive/30">
