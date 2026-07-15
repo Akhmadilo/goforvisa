@@ -405,6 +405,67 @@ function Dashboard() {
     return { rows, keys: top };
   }
 
+  // Cumulative revenue & net profit over time (chronological)
+  const cumulativeData = useMemo(() => {
+    let cumRev = 0;
+    let cumNet = 0;
+    return monthlyData.map((m) => {
+      cumRev += m.revenue;
+      cumNet += m.commission;
+      return { name: m.name, revenue: cumRev, commission: cumNet };
+    });
+  }, [monthlyData]);
+
+  // Payment status donut — paid vs remaining across filtered contracts
+  const paymentStatusData = useMemo(() => {
+    let paid = 0;
+    let remaining = 0;
+    for (const c of filtered) {
+      paid += c.paidUsd || 0;
+      remaining += c.remainingUsd || 0;
+    }
+    return { paid, remaining };
+  }, [filtered]);
+
+  // Top 10 clients by revenue
+  const topClientsData = useMemo(() => {
+    return [...filtered]
+      .map((c) => ({
+        name: c.name || c.contractNo || "—",
+        revenue: toUsd(c, getRate),
+        commission: c.commission || 0,
+      }))
+      .filter((c) => c.revenue > 0)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10);
+  }, [filtered]);
+
+  // Year-over-year — grouped monthly revenue by year
+  const yoyData = useMemo(() => {
+    const yearsSet = new Set<string>();
+    const map = new Map<string, Record<string, number | string>>();
+    for (const c of filtered) {
+      if (!c.year || !c.month) continue;
+      yearsSet.add(c.year);
+      const row = map.get(c.month) ?? { name: c.month };
+      row[c.year] = ((row[c.year] as number) ?? 0) + toUsd(c, getRate);
+      map.set(c.month, row);
+    }
+    const years = Array.from(yearsSet).sort();
+    const rows = Array.from(map.values())
+      .map((r) => {
+        for (const y of years) if (r[y] == null) r[y] = 0;
+        return r;
+      })
+      .sort(
+        (a, b) =>
+          MONTH_ORDER.indexOf(a.name as string) -
+          MONTH_ORDER.indexOf(b.name as string),
+      );
+    return { rows, years };
+  }, [filtered]);
+
+
   const salesMonthly = useMemo(
     () => buildMonthlySeries(filtered, (c) => c.salesManager, () => 1),
     [filtered],
