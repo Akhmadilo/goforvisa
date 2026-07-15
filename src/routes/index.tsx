@@ -10,6 +10,9 @@ import {
   Cell,
   LineChart,
   Line,
+  AreaChart,
+  Area,
+  ComposedChart,
   XAxis,
   YAxis,
   Tooltip,
@@ -191,6 +194,10 @@ function Dashboard() {
     "backoffice_monthly",
     "companies_monthly",
     "debtors",
+    "cumulative_revenue",
+    "payment_status",
+    "top_clients",
+    "yoy_comparison",
   ].some(can);
 
   const fetchContracts = useServerFn(getContracts);
