@@ -809,8 +809,8 @@ function Dashboard() {
                     outerRadius={75}
                     paddingAngle={3}
                   >
-                    {visaData.map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    {visaData.map((d, i) => (
+                      <Cell key={i} fill={d.color} />
                     ))}
                   </Pie>
                   <Tooltip
