@@ -338,15 +338,15 @@ function ShartnomalarPage() {
       return;
     }
     const head = [
-      "#", t("contracts.col.date") ?? "Sana", t("common.year") ?? "Yil", t("common.month") ?? "Oy",
-      t("contracts.col.no") ?? "Shartnoma №", t("contracts.col.client") ?? "Mijoz",
-      t("contracts.col.phone") ?? "Telefon", t("contracts.col.company") ?? "Kompaniya",
-      t("contracts.col.type") ?? "Turi", t("contracts.col.sales") ?? "Sotuvchi",
-      t("contracts.col.back") ?? "Back-office", t("contracts.col.call") ?? "Call",
+      "#", "Sana", "Yil", "Oy",
+      "Shartnoma №", "Mijoz",
+      "Telefon", "Kompaniya",
+      "Turi", "Sotuvchi",
+      "Back-office", "Call centre",
       "Price UZS", "Price USD", "Docs USD", "Commission USD",
       "Paid USD", "Remaining USD",
-      t("contracts.col.people") ?? "Odam", t("contracts.col.visa") ?? "Visa",
-      t("contracts.col.note") ?? "Izoh",
+      "Odam", "Visa natijasi",
+      "Izoh",
     ];
     const body = filtered.map((c, i) => {
       const total = Number(c.price_usd || 0);
