@@ -332,8 +332,14 @@ function Dashboard() {
       const key = c.visaResult || "Unknown";
       map.set(key, (map.get(key) ?? 0) + 1);
     }
-    return Array.from(map.entries()).map(([name, value]) => ({ name: visaLabel(name, t), value }));
+    return Array.from(map.entries()).map(([name, value]) => ({
+      name: visaLabel(name, t),
+      raw: name,
+      value,
+      color: visaColor(name),
+    }));
   }, [filtered, lang]);
+
 
   const managerData = useMemo(() => {
     const map = new Map<
