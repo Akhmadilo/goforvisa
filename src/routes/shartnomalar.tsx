@@ -600,6 +600,10 @@ function ShartnomalarPage() {
               <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
                 <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
               </Button>
+              <Button variant="outline" size="sm" onClick={exportExcel} title="Excel">
+                <FileSpreadsheet className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Excel</span>
+              </Button>
               {canCreate && (
                 <Button size="sm" onClick={openCreate}>
                   <Plus className="h-4 w-4 mr-1" /> {t("common.add")}
