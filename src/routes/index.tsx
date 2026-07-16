@@ -156,6 +156,21 @@ function visaLabel(value: string | null | undefined, t: (k: any) => string) {
   return key ? t(key) : value;
 }
 
+// Semantic colors for visa/status categories — green=success, red=fail, amber=in-progress, gray=cancelled
+const VISA_COLOR: Record<string, string> = {
+  "visa.Olindi": "#10b981",       // emerald
+  "visa.RadEtildi": "#ef4444",    // red
+  "visa.Jarayonda": "#f59e0b",    // amber
+  "visa.Topshirildi": "#3b82f6",  // blue (submitted)
+  "visa.BekorQilindi": "#94a3b8", // slate (cancelled)
+};
+
+function visaColor(value: string | null | undefined): string {
+  if (!value) return "#94a3b8";
+  const key = VISA_I18N_KEY[value];
+  return (key && VISA_COLOR[key]) || "#6366f1";
+}
+
 function parseContractDate(s: string): Date | null {
   if (!s) return null;
   // Format: "10 June 2025"
@@ -317,8 +332,14 @@ function Dashboard() {
       const key = c.visaResult || "Unknown";
       map.set(key, (map.get(key) ?? 0) + 1);
     }
-    return Array.from(map.entries()).map(([name, value]) => ({ name: visaLabel(name, t), value }));
+    return Array.from(map.entries()).map(([name, value]) => ({
+      name: visaLabel(name, t),
+      raw: name,
+      value,
+      color: visaColor(name),
+    }));
   }, [filtered, lang]);
+
 
   const managerData = useMemo(() => {
     const map = new Map<
@@ -788,8 +809,8 @@ function Dashboard() {
                     outerRadius={75}
                     paddingAngle={3}
                   >
-                    {visaData.map((_, i) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                    {visaData.map((d, i) => (
+                      <Cell key={i} fill={d.color} />
                     ))}
                   </Pie>
                   <Tooltip

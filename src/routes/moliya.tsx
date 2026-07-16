@@ -22,6 +22,7 @@ import { LineChart as LineChartIcon, LogOut, Shield, ChevronDown, TrendingUp, Tr
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import logoUrl from "@/assets/logo.png";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
@@ -499,15 +500,83 @@ function FinancePage() {
     XLSX.writeFile(wb, `moliya-${basis}-${currency}-${year}.xlsx`);
   };
 
-  const exportPdf = () => {
-    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
-    doc.setFontSize(14);
-    doc.text(t("finance.title"), 40, 40);
-    doc.setFontSize(10);
-    doc.text(`${basisLabel} · ${currency} · ${periodLabel}`, 40, 58);
+  const loadLogoDataUrl = async (): Promise<string | null> => {
+    try {
+      const res = await fetch(logoUrl);
+      const blob = await res.blob();
+      return await new Promise<string>((resolve, reject) => {
+        const fr = new FileReader();
+        fr.onload = () => resolve(fr.result as string);
+        fr.onerror = reject;
+        fr.readAsDataURL(blob);
+      });
+    } catch { return null; }
+  };
 
+  const exportPdf = async () => {
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+
+    // ---- Cover header band ----
+    const brand: [number, number, number] = [99, 102, 241]; // indigo
+    const brandDark: [number, number, number] = [67, 56, 202];
+    doc.setFillColor(...brand);
+    doc.rect(0, 0, pageW, 90, "F");
+    doc.setFillColor(...brandDark);
+    doc.rect(0, 82, pageW, 8, "F");
+
+    const logoData = await loadLogoDataUrl();
+    if (logoData) {
+      try { doc.addImage(logoData, "PNG", 32, 20, 50, 50); } catch { /* ignore */ }
+    }
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.text("GoForVisa", 96, 42);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "normal");
+    doc.text(t("finance.title"), 96, 62);
+    doc.setFontSize(9);
+    doc.text(`${basisLabel}  ·  ${currency}  ·  ${periodLabel}`, 96, 78);
+
+    const genStr = new Date().toLocaleString();
+    doc.setFontSize(8);
+    doc.text(genStr, pageW - 32, 78, { align: "right" });
+
+    // ---- Summary KPI cards ----
+    doc.setTextColor(30, 30, 30);
+    const kpis: Array<{ label: string; value: string; color: [number, number, number] }> = [
+      { label: t("finance.revenue"), value: fmt(totals.revenue), color: [16, 185, 129] },
+      { label: t("finance.pnl.docCosts"), value: fmt(totals.docCosts), color: [245, 158, 11] },
+      { label: t("finance.expense"), value: fmt(totals.expense), color: [239, 68, 68] },
+      { label: t("finance.profit"), value: fmt(totals.profit), color: totals.profit >= 0 ? [16, 185, 129] : [239, 68, 68] },
+      { label: t("finance.margin"), value: `${totals.margin.toFixed(1)}%`, color: [99, 102, 241] },
+    ];
+    const kpiTop = 110;
+    const kpiGap = 12;
+    const kpiW = (pageW - 64 - kpiGap * (kpis.length - 1)) / kpis.length;
+    kpis.forEach((k, i) => {
+      const x = 32 + i * (kpiW + kpiGap);
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(x, kpiTop, kpiW, 60, 6, 6, "F");
+      doc.setFillColor(...k.color);
+      doc.rect(x, kpiTop, 4, 60, "F");
+      doc.setTextColor(100, 116, 139);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.text(k.label.toUpperCase(), x + 12, kpiTop + 18);
+      doc.setTextColor(15, 23, 42);
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.text(k.value, x + 12, kpiTop + 42);
+    });
+
+    // ---- P&L table ----
+    const pnlStart = kpiTop + 78;
     autoTable(doc, {
-      startY: 75,
+      startY: pnlStart,
+      margin: { left: 32, right: 32 },
       head: [[t("finance.pnl.line"), t("common.amount"), "%"]],
       body: [
         [t("finance.pnl.revenue"), fmt(totals.revenue), "100.0%"],
@@ -516,29 +585,162 @@ function FinancePage() {
         [t("finance.pnl.expensesBreakdown"), fmt(totals.expense), totals.revenue > 0 ? `${((totals.expense/totals.revenue)*100).toFixed(1)}%` : "0.0%"],
         [t("finance.pnl.netProfit"), fmt(totals.profit), `${totals.margin.toFixed(1)}%`],
       ],
-      styles: { fontSize: 9 },
-      headStyles: { fillColor: [99, 102, 241] },
+      styles: { fontSize: 10, cellPadding: 6 },
+      headStyles: { fillColor: brand, textColor: 255, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: {
+        0: { fontStyle: "bold" },
+        1: { halign: "right" },
+        2: { halign: "right" },
+      },
+      didParseCell: (data) => {
+        if (data.section === "body" && data.row.index === 4) {
+          data.cell.styles.fillColor = totals.profit >= 0 ? [220, 252, 231] : [254, 226, 226];
+          data.cell.styles.textColor = totals.profit >= 0 ? [6, 95, 70] : [153, 27, 27];
+          data.cell.styles.fontStyle = "bold";
+        }
+      },
     });
 
-    const { head, rows } = buildReportRows();
+    // ---- Monthly bar chart (revenue vs expense vs net profit) ----
+    const { head: mHead, rows: mRows } = buildReportRows();
+    // Extract series
+    const monthLabels = mHead.slice(1, -1) as string[];
+    const revSeries = (mRows[0].slice(1, -1) as number[]);
+    const expSeries = (mRows[4].slice(1, -1) as number[]);
+    const npSeries = (mRows[5].slice(1, -1) as number[]);
+
+    const afterPnl = (doc as any).lastAutoTable.finalY + 20;
+    let chartY = afterPnl;
+    const chartH = 180;
+    if (chartY + chartH > pageH - 40) { doc.addPage(); chartY = 40; }
+    const chartX = 32;
+    const chartW = pageW - 64;
+
+    // Chart title
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text(t("finance.pnl.revenue") + " · " + t("finance.pnl.expensesBreakdown") + " · " + t("finance.pnl.netProfit"), chartX, chartY - 6);
+
+    // Chart bg
+    doc.setFillColor(250, 250, 252);
+    doc.roundedRect(chartX, chartY, chartW, chartH, 6, 6, "F");
+
+    const padL = 48, padR = 12, padT = 20, padB = 30;
+    const plotX = chartX + padL, plotY = chartY + padT;
+    const plotW = chartW - padL - padR, plotH = chartH - padT - padB;
+
+    const allVals = [...revSeries, ...expSeries, ...npSeries, 0];
+    const maxV = Math.max(...allVals);
+    const minV = Math.min(...allVals);
+    const range = maxV - minV || 1;
+    const yFor = (v: number) => plotY + plotH - ((v - minV) / range) * plotH;
+
+    // Y axis grid + labels
+    doc.setDrawColor(226, 232, 240);
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    for (let i = 0; i <= 4; i++) {
+      const v = minV + (range * i) / 4;
+      const y = yFor(v);
+      doc.line(plotX, y, plotX + plotW, y);
+      doc.text(fmtShort(v), plotX - 4, y + 3, { align: "right" });
+    }
+
+    // Baseline
+    const zeroY = yFor(0);
+    doc.setDrawColor(148, 163, 184);
+    doc.line(plotX, zeroY, plotX + plotW, zeroY);
+
+    // Bars
+    const n = monthLabels.length;
+    if (n > 0) {
+      const groupW = plotW / n;
+      const barW = Math.min(14, (groupW - 6) / 3);
+      const colorRev: [number, number, number] = [16, 185, 129];
+      const colorExp: [number, number, number] = [239, 68, 68];
+      const colorNp: [number, number, number] = [99, 102, 241];
+
+      for (let i = 0; i < n; i++) {
+        const gx = plotX + i * groupW + (groupW - barW * 3) / 2;
+        const drawBar = (v: number, x: number, color: [number, number, number]) => {
+          const y1 = yFor(v);
+          const y0 = yFor(0);
+          const top = Math.min(y0, y1);
+          const h = Math.abs(y1 - y0);
+          doc.setFillColor(...color);
+          doc.rect(x, top, barW, Math.max(1, h), "F");
+        };
+        drawBar(revSeries[i], gx, colorRev);
+        drawBar(expSeries[i], gx + barW, colorExp);
+        drawBar(npSeries[i], gx + barW * 2, colorNp);
+      }
+      // X labels
+      doc.setTextColor(71, 85, 105);
+      doc.setFontSize(7);
+      for (let i = 0; i < n; i++) {
+        const cx = plotX + i * groupW + groupW / 2;
+        doc.text(monthLabels[i], cx, plotY + plotH + 14, { align: "center" });
+      }
+      // Legend
+      const legY = chartY + chartH - 12;
+      const legItems: Array<[string, [number, number, number]]> = [
+        [t("finance.pnl.revenue"), [16, 185, 129]],
+        [t("finance.pnl.expensesBreakdown"), [239, 68, 68]],
+        [t("finance.pnl.netProfit"), [99, 102, 241]],
+      ];
+      let lx = plotX;
+      doc.setFontSize(8);
+      for (const [label, c] of legItems) {
+        doc.setFillColor(...c);
+        doc.rect(lx, legY - 6, 8, 8, "F");
+        doc.setTextColor(51, 65, 85);
+        doc.text(label, lx + 12, legY);
+        lx += doc.getTextWidth(label) + 30;
+      }
+    }
+
+    // ---- Monthly detail table ----
     autoTable(doc, {
-      head: [head],
-      body: rows.map(r => r.map((c, i) => i === 0 ? String(c) : (typeof c === "number" ? fmtShort(c) : String(c)))),
-      styles: { fontSize: 7 },
-      headStyles: { fillColor: [99, 102, 241] },
+      startY: chartY + chartH + 20,
+      margin: { left: 32, right: 32 },
+      head: [mHead as string[]],
+      body: mRows.map(r => r.map((c, i) => i === 0 ? String(c) : (typeof c === "number" ? fmtShort(c) : String(c)))),
+      styles: { fontSize: 8, cellPadding: 4 },
+      headStyles: { fillColor: brand, textColor: 255 },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      columnStyles: { 0: { fontStyle: "bold", cellWidth: 100 } },
     });
 
+    // ---- Category breakdown ----
     if (expenseCategories.length) {
       autoTable(doc, {
+        margin: { left: 32, right: 32 },
         head: [[t("finance.category"), t("common.amount"), "%"]],
         body: expenseCategories.map(c => [c.name, fmt(c.total), totals.expense > 0 ? `${((c.total/totals.expense)*100).toFixed(1)}%` : "0.0%"]),
-        styles: { fontSize: 9 },
-        headStyles: { fillColor: [99, 102, 241] },
+        styles: { fontSize: 9, cellPadding: 5 },
+        headStyles: { fillColor: brand, textColor: 255 },
+        alternateRowStyles: { fillColor: [248, 250, 252] },
+        columnStyles: { 1: { halign: "right" }, 2: { halign: "right" } },
       });
+    }
+
+    // ---- Footer on every page ----
+    const pages = doc.getNumberOfPages();
+    for (let p = 1; p <= pages; p++) {
+      doc.setPage(p);
+      doc.setDrawColor(226, 232, 240);
+      doc.line(32, pageH - 24, pageW - 32, pageH - 24);
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text("GoForVisa — " + t("finance.title"), 32, pageH - 12);
+      doc.text(`${p} / ${pages}`, pageW - 32, pageH - 12, { align: "right" });
     }
 
     doc.save(`moliya-${basis}-${currency}-${year}.pdf`);
   };
+
 
 
   return (

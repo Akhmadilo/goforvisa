@@ -36,10 +36,11 @@ import { useAuth } from "@/hooks/use-auth";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { useT, localeOf, getMonthNames } from "@/lib/i18n";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, RefreshCw, Upload, FileText, Wallet } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, RefreshCw, Upload, FileText, Wallet, FileSpreadsheet } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUsdRates } from "@/lib/usd-rates";
 import { cn } from "@/lib/utils";
+import * as XLSX from "xlsx";
 
 const VISA_RESULTS = ["Olindi", "Rad etildi", "Jarayonda", "Bekor qilindi"] as const;
 
@@ -331,6 +332,65 @@ function ShartnomalarPage() {
   const fmt = (n: number | null | undefined) =>
     n ? Number(n).toLocaleString(localeOf(lang), { maximumFractionDigits: 2 }) : "—";
 
+  const exportExcel = () => {
+    if (!filtered.length) {
+      toast.error(t("common.noData") ?? "No data");
+      return;
+    }
+    const head = [
+      "#", "Sana", "Yil", "Oy",
+      "Shartnoma №", "Mijoz",
+      "Telefon", "Kompaniya",
+      "Turi", "Sotuvchi",
+      "Back-office", "Call centre",
+      "Price UZS", "Price USD", "Docs USD", "Commission USD",
+      "Paid USD", "Remaining USD",
+      "Odam", "Visa natijasi",
+      "Izoh",
+    ];
+    const body = filtered.map((c, i) => {
+      const total = Number(c.price_usd || 0);
+      const paid = paidUsdByContract.get(c.id) ?? 0;
+      const remaining = Math.max(0, total - paid);
+      return [
+        i + 1,
+        c.contract_date ?? "",
+        c.year ?? "", c.month ?? "",
+        c.contract_no ?? "", c.client_name,
+        c.phone ?? "", c.company ?? "", c.contract_type ?? "",
+        c.sales_manager ?? "", c.back_office_manager ?? "", c.call_centre ?? "",
+        Number(c.price_uzs || 0), Number(c.price_usd || 0),
+        Number(c.docs_usd || 0), Number(c.commission || 0),
+        Math.round(paid * 100) / 100, Math.round(remaining * 100) / 100,
+        Number(c.people || 1), c.visa_result ?? "", c.note ?? "",
+      ];
+    });
+    const totalsRow = [
+      "", "", "", "", "", `${filtered.length} ${t("common.records") ?? "records"}`,
+      "", "", "", "", "", "",
+      filtered.reduce((s, c) => s + Number(c.price_uzs || 0), 0),
+      filtered.reduce((s, c) => s + Number(c.price_usd || 0), 0),
+      filtered.reduce((s, c) => s + Number(c.docs_usd || 0), 0),
+      filtered.reduce((s, c) => s + Number(c.commission || 0), 0),
+      Math.round(filtered.reduce((s, c) => s + (paidUsdByContract.get(c.id) ?? 0), 0) * 100) / 100,
+      Math.round(filtered.reduce((s, c) => {
+        const t2 = Number(c.price_usd || 0);
+        const p = paidUsdByContract.get(c.id) ?? 0;
+        return s + Math.max(0, t2 - p);
+      }, 0) * 100) / 100,
+      filtered.reduce((s, c) => s + Number(c.people || 1), 0),
+      "", "",
+    ];
+    const ws = XLSX.utils.aoa_to_sheet([head, ...body, totalsRow]);
+    ws["!cols"] = head.map((_, i) => ({ wch: i === 5 ? 24 : i === 20 ? 30 : 14 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Contracts");
+    const stamp = new Date().toISOString().slice(0, 10);
+    XLSX.writeFile(wb, `shartnomalar-${stamp}.xlsx`);
+    toast.success("Excel");
+  };
+
+
   // Form dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<ContractRow | null>(null);
@@ -539,6 +599,10 @@ function ShartnomalarPage() {
               </div>
               <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isFetching}>
                 <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
+              </Button>
+              <Button variant="outline" size="sm" onClick={exportExcel} title="Excel">
+                <FileSpreadsheet className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Excel</span>
               </Button>
               {canCreate && (
                 <Button size="sm" onClick={openCreate}>
