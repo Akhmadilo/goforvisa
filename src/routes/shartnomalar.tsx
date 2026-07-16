@@ -36,10 +36,11 @@ import { useAuth } from "@/hooks/use-auth";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { useT, localeOf, getMonthNames } from "@/lib/i18n";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Search, RefreshCw, Upload, FileText, Wallet } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, RefreshCw, Upload, FileText, Wallet, FileSpreadsheet } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUsdRates } from "@/lib/usd-rates";
 import { cn } from "@/lib/utils";
+import * as XLSX from "xlsx";
 
 const VISA_RESULTS = ["Olindi", "Rad etildi", "Jarayonda", "Bekor qilindi"] as const;
 
