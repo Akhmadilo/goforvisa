@@ -22,6 +22,7 @@ import { LineChart as LineChartIcon, LogOut, Shield, ChevronDown, TrendingUp, Tr
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import logoUrl from "@/assets/logo.png";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
