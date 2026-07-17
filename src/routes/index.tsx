@@ -277,21 +277,24 @@ function Dashboard() {
   const filteredForCompanies = useMemo(() => all.filter((c) => matches(c, "company")), deps);
 
   const kpis = useMemo(() => {
+    const isTaken = (v: string) => v === "Olindi" || v === "Taken" || v === "Approved";
+    const isRejected = (v: string) => v === "Rad etildi" || v === "Rejected";
+    const isInProcess = (v: string) =>
+      v === "Jarayonda" || v === "In process" || v === "In Process" ||
+      v === "Topshirildi" || v === "Submitted";
+
     const totalUsd = filtered.reduce((s, c) => s + toUsd(c, getRate), 0);
     const docsTotal = filtered.reduce((s, c) => s + (c.docsUsd || 0), 0);
     const commission = filtered.reduce((s, c) => s + (c.commission || 0), 0);
     const marginPct = totalUsd > 0 ? (commission / totalUsd) * 100 : 0;
     const clients = filtered.length;
     const avgComm = clients > 0 ? commission / clients : 0;
-    const visaTaken = filtered.filter((c) => c.visaResult === "Taken").length;
-    const visaRejected = filtered.filter(
-      (c) => c.visaResult === "Rejected",
-    ).length;
-    const visaInProcess = filtered.filter(
-      (c) => c.visaResult === "In process" || c.visaResult === "In Process",
-    ).length;
-    const successRate =
-      filtered.length > 0 ? (visaTaken / filtered.length) * 100 : 0;
+    const visaTaken = filtered.filter((c) => isTaken(c.visaResult)).length;
+    const visaRejected = filtered.filter((c) => isRejected(c.visaResult)).length;
+    const visaInProcess = filtered.filter((c) => isInProcess(c.visaResult)).length;
+    // Success rate = taken / decided (taken + rejected). Exclude cancelled and in-process.
+    const decided = visaTaken + visaRejected;
+    const successRate = decided > 0 ? (visaTaken / decided) * 100 : 0;
     return {
       totalUsd,
       docsTotal,
@@ -437,13 +440,21 @@ function Dashboard() {
     });
   }, [monthlyData]);
 
-  // Payment status donut — paid vs remaining across filtered contracts
+  // Cancelled/stopped contracts do not count toward client debt.
+  const isCancelledVisa = (v: string | null | undefined) => {
+    const s = (v ?? "").trim();
+    return s === "Bekor qilindi" || s === "Cancelled" || s === "To'xtatildi";
+  };
+
+  // Payment status donut — paid vs remaining across filtered contracts (excluding cancelled)
   const paymentStatusData = useMemo(() => {
     let paid = 0;
     let remaining = 0;
     for (const c of filtered) {
       paid += c.paidUsd || 0;
-      remaining += c.remainingUsd || 0;
+      if (!isCancelledVisa(c.visaResult)) {
+        remaining += c.remainingUsd || 0;
+      }
     }
     return { paid, remaining };
   }, [filtered]);
@@ -505,7 +516,7 @@ function Dashboard() {
     const today = new Date();
     return filtered
       .filter((c) => (c.remainingUsd || 0) > 0.5)
-      .filter((c) => (c.visaResult ?? "").trim() !== "To'xtatildi")
+      .filter((c) => !isCancelledVisa(c.visaResult))
       .map((c) => {
         const date = parseContractDate(c.contractDate);
         const days = date ? daysBetween(today, date) : 0;
