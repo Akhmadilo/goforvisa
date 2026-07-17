@@ -277,21 +277,24 @@ function Dashboard() {
   const filteredForCompanies = useMemo(() => all.filter((c) => matches(c, "company")), deps);
 
   const kpis = useMemo(() => {
+    const isTaken = (v: string) => v === "Olindi" || v === "Taken" || v === "Approved";
+    const isRejected = (v: string) => v === "Rad etildi" || v === "Rejected";
+    const isInProcess = (v: string) =>
+      v === "Jarayonda" || v === "In process" || v === "In Process" ||
+      v === "Topshirildi" || v === "Submitted";
+
     const totalUsd = filtered.reduce((s, c) => s + toUsd(c, getRate), 0);
     const docsTotal = filtered.reduce((s, c) => s + (c.docsUsd || 0), 0);
     const commission = filtered.reduce((s, c) => s + (c.commission || 0), 0);
     const marginPct = totalUsd > 0 ? (commission / totalUsd) * 100 : 0;
     const clients = filtered.length;
     const avgComm = clients > 0 ? commission / clients : 0;
-    const visaTaken = filtered.filter((c) => c.visaResult === "Taken").length;
-    const visaRejected = filtered.filter(
-      (c) => c.visaResult === "Rejected",
-    ).length;
-    const visaInProcess = filtered.filter(
-      (c) => c.visaResult === "In process" || c.visaResult === "In Process",
-    ).length;
-    const successRate =
-      filtered.length > 0 ? (visaTaken / filtered.length) * 100 : 0;
+    const visaTaken = filtered.filter((c) => isTaken(c.visaResult)).length;
+    const visaRejected = filtered.filter((c) => isRejected(c.visaResult)).length;
+    const visaInProcess = filtered.filter((c) => isInProcess(c.visaResult)).length;
+    // Success rate = taken / decided (taken + rejected). Exclude cancelled and in-process.
+    const decided = visaTaken + visaRejected;
+    const successRate = decided > 0 ? (visaTaken / decided) * 100 : 0;
     return {
       totalUsd,
       docsTotal,
