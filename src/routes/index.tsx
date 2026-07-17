@@ -292,9 +292,9 @@ function Dashboard() {
     const visaTaken = filtered.filter((c) => isTaken(c.visaResult)).length;
     const visaRejected = filtered.filter((c) => isRejected(c.visaResult)).length;
     const visaInProcess = filtered.filter((c) => isInProcess(c.visaResult)).length;
-    // Success rate = taken / decided (taken + rejected). Exclude cancelled and in-process.
-    const decided = visaTaken + visaRejected;
-    const successRate = decided > 0 ? (visaTaken / decided) * 100 : 0;
+    // Success rate = taken / all clients (as requested). In-process rate shown separately.
+    const successRate = clients > 0 ? (visaTaken / clients) * 100 : 0;
+    const inProcessRate = clients > 0 ? (visaInProcess / clients) * 100 : 0;
     return {
       totalUsd,
       docsTotal,
@@ -306,6 +306,7 @@ function Dashboard() {
       visaRejected,
       visaInProcess,
       successRate,
+      inProcessRate,
     };
   }, [filtered]);
 
@@ -717,7 +718,7 @@ function Dashboard() {
 
         {/* KPIs */}
         {can("kpi") && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3 md:gap-4">
           <Kpi
             icon={<DollarSign className="h-3 w-3 md:h-4 md:w-4" />}
             label={t("dash.kpi.totalContracts")}
@@ -749,7 +750,15 @@ function Dashboard() {
             icon={<CheckCircle2 className="h-3 w-3 md:h-4 md:w-4" />}
             label={t("dash.kpi.visaSuccess")}
             value={kpis.successRate.toFixed(1) + "%"}
-            sub={`${kpis.visaTaken} / ${kpis.clients} · ${kpis.visaRejected} ${t("dash.kpi.rejected")} · ${kpis.visaInProcess} ${t("dash.kpi.inProcess")}`}
+            sub={`${kpis.visaTaken} / ${kpis.clients} · ${kpis.visaRejected} ${t("dash.kpi.rejected")}`}
+            tone="primary"
+          />
+          <Kpi
+            icon={<Clock className="h-3 w-3 md:h-4 md:w-4" />}
+            label={t("dash.kpi.visaInProcessRate")}
+            value={kpis.inProcessRate.toFixed(1) + "%"}
+            sub={`${kpis.visaInProcess} / ${kpis.clients} · ${t("dash.kpi.inProcess")}`}
+            tone="accent"
           />
           <Kpi
             icon={<AlertTriangle className="h-3 w-3 md:h-4 md:w-4" />}
