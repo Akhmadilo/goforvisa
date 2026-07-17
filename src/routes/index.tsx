@@ -440,13 +440,21 @@ function Dashboard() {
     });
   }, [monthlyData]);
 
-  // Payment status donut — paid vs remaining across filtered contracts
+  // Cancelled/stopped contracts do not count toward client debt.
+  const isCancelledVisa = (v: string | null | undefined) => {
+    const s = (v ?? "").trim();
+    return s === "Bekor qilindi" || s === "Cancelled" || s === "To'xtatildi";
+  };
+
+  // Payment status donut — paid vs remaining across filtered contracts (excluding cancelled)
   const paymentStatusData = useMemo(() => {
     let paid = 0;
     let remaining = 0;
     for (const c of filtered) {
       paid += c.paidUsd || 0;
-      remaining += c.remainingUsd || 0;
+      if (!isCancelledVisa(c.visaResult)) {
+        remaining += c.remainingUsd || 0;
+      }
     }
     return { paid, remaining };
   }, [filtered]);
@@ -508,7 +516,7 @@ function Dashboard() {
     const today = new Date();
     return filtered
       .filter((c) => (c.remainingUsd || 0) > 0.5)
-      .filter((c) => (c.visaResult ?? "").trim() !== "To'xtatildi")
+      .filter((c) => !isCancelledVisa(c.visaResult))
       .map((c) => {
         const date = parseContractDate(c.contractDate);
         const days = date ? daysBetween(today, date) : 0;
