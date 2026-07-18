@@ -1226,10 +1226,12 @@ function FinancePage() {
             </div>
           </Card>
 
+          <AgedReceivablesCard contracts={contracts} t={t} />
 
           <div className="text-xs text-muted-foreground text-center pb-4">
             {basis === "accrual" ? t("finance.note.accrual") : t("finance.note.cash")}
           </div>
+
         </main>
       </div>
     </div>
@@ -1569,6 +1571,118 @@ function ForecastCard({
       <div className="text-[11px] text-muted-foreground mt-3">
         Prognoz oxirgi 3 oy vaznli o'rtachasi + trend{history.length >= 12 ? " + mavsumiy koeffitsient" : ""} asosida hisoblanadi. Yangi shartnoma kiritilsa, prognoz avtomatik yangilanadi.
       </div>
+    </Card>
+  );
+}
+
+// ============================================================
+// Aged Receivables — buckets by days overdue
+// ============================================================
+function AgedReceivablesCard({ contracts, t }: { contracts: Contract[]; t: (k: string) => string }) {
+  const isCancelled = (v: string | null | undefined) => {
+    const s = (v || "").trim().toLowerCase();
+    return s === "bekor qilindi" || s === "cancelled" || s === "canceled" || s === "to'xtatildi" || s === "toxtatildi";
+  };
+  const today = new Date();
+  const rows = useMemo(() => {
+    return contracts
+      .filter((c) => (c.remainingUsd || 0) > 0.5 && !isCancelled(c.visaResult))
+      .map((c) => {
+        const d = parseContractDate(c.contractDate);
+        const days = d ? Math.max(0, Math.floor((today.getTime() - d.getTime()) / 86400000)) : 0;
+        let bucket: "0-30" | "31-60" | "61-90" | "90+";
+        if (days <= 30) bucket = "0-30";
+        else if (days <= 60) bucket = "31-60";
+        else if (days <= 90) bucket = "61-90";
+        else bucket = "90+";
+        return { c, days, bucket };
+      })
+      .sort((a, b) => b.days - a.days);
+  }, [contracts]);
+
+  const buckets = [
+    { key: "0-30" as const, label: "0–30 kun", tone: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10" },
+    { key: "31-60" as const, label: "31–60 kun", tone: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10" },
+    { key: "61-90" as const, label: "61–90 kun", tone: "text-orange-600 dark:text-orange-400", bg: "bg-orange-500/10" },
+    { key: "90+" as const, label: "90+ kun", tone: "text-destructive", bg: "bg-destructive/10" },
+  ];
+  const summary = buckets.map((b) => {
+    const items = rows.filter((r) => r.bucket === b.key);
+    return { ...b, count: items.length, total: items.reduce((s, r) => s + (r.c.remainingUsd || 0), 0) };
+  });
+  const grand = rows.reduce((s, r) => s + (r.c.remainingUsd || 0), 0);
+  const fmtUsd = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
+
+  const [activeBucket, setActiveBucket] = useState<string>("all");
+  const shown = activeBucket === "all" ? rows : rows.filter((r) => r.bucket === activeBucket);
+
+  return (
+    <Card className="p-5 space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h3 className="text-base font-semibold">Aged Receivables (Qarzdorlar yoshi)</h3>
+          <p className="text-xs text-muted-foreground">
+            Qarzdorlar shartnoma sanasiga qarab guruhlangan. Jami qarzdorlik: <span className="font-semibold text-foreground">{fmtUsd(grand)}</span> ({rows.length} ta)
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <button
+          onClick={() => setActiveBucket("all")}
+          className={cn("rounded-lg border p-3 text-left transition", activeBucket === "all" ? "border-primary ring-1 ring-primary/40" : "hover:bg-accent/30")}
+        >
+          <div className="text-xs text-muted-foreground">Barchasi</div>
+          <div className="text-lg font-bold tabular-nums">{fmtUsd(grand)}</div>
+          <div className="text-[11px] text-muted-foreground">{rows.length} ta</div>
+        </button>
+        {summary.map((b) => (
+          <button
+            key={b.key}
+            onClick={() => setActiveBucket(b.key)}
+            className={cn("rounded-lg border p-3 text-left transition", b.bg, activeBucket === b.key ? "border-primary ring-1 ring-primary/40" : "hover:opacity-90")}
+          >
+            <div className={cn("text-xs font-medium", b.tone)}>{b.label}</div>
+            <div className="text-lg font-bold tabular-nums">{fmtUsd(b.total)}</div>
+            <div className="text-[11px] text-muted-foreground">{b.count} ta</div>
+          </button>
+        ))}
+      </div>
+
+      <div className="rounded-lg border overflow-x-auto max-h-[420px]">
+        <Table>
+          <TableHeader className="sticky top-0 bg-background z-10">
+            <TableRow>
+              <TableHead>Mijoz</TableHead>
+              <TableHead>Shartnoma</TableHead>
+              <TableHead>Sana</TableHead>
+              <TableHead className="text-right">Kun</TableHead>
+              <TableHead>Guruh</TableHead>
+              <TableHead className="text-right">Qoldiq</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {shown.length === 0 ? (
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-6">{t("common.noData")}</TableCell></TableRow>
+            ) : shown.slice(0, 200).map((r, i) => {
+              const b = buckets.find((x) => x.key === r.bucket)!;
+              return (
+                <TableRow key={`${r.c.contractNo}-${i}`}>
+                  <TableCell className="font-medium">{r.c.name || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs">{r.c.contractNo || "—"}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs">{r.c.contractDate?.slice(0, 10) || "—"}</TableCell>
+                  <TableCell className="text-right tabular-nums">{r.days}</TableCell>
+                  <TableCell><Badge variant="outline" className={b.tone}>{b.label}</Badge></TableCell>
+                  <TableCell className="text-right tabular-nums font-semibold text-destructive">{fmtUsd(r.c.remainingUsd || 0)}</TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </div>
+      {shown.length > 200 && (
+        <div className="text-[11px] text-muted-foreground text-center">Ko'rsatilyapti: 200 / {shown.length}</div>
+      )}
     </Card>
   );
 }
