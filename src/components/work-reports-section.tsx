@@ -87,6 +87,26 @@ export function WorkReportsSection() {
     return () => { supabase.removeChannel(ch); };
   }, [user, canAccess, qc]);
 
+  // === Hisobot yozmagan → 20 000 so'm jarima ===
+  const now = new Date();
+  const [fineYear, setFineYear] = useState(now.getFullYear());
+  const [fineMonth, setFineMonth] = useState(now.getMonth() + 1);
+  const syncFn = useServerFn(syncMissingReportFines);
+  const previewQ = useQuery({
+    queryKey: ["missing-report-fines", fineYear, fineMonth],
+    queryFn: () => syncFn({ data: { year: fineYear, month: fineMonth, persist: false } }),
+    enabled: !!user && canAccess && isAdmin,
+  });
+  const applyMut = useMutation({
+    mutationFn: () => syncFn({ data: { year: fineYear, month: fineMonth, persist: true } }),
+    onSuccess: (r) => {
+      toast.success(`${r.inserted} ta jarima qo'shildi`);
+      qc.invalidateQueries({ queryKey: ["missing-report-fines"] });
+      qc.invalidateQueries({ queryKey: ["jarima-data"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
+
   const empMap = useMemo(() => Object.fromEntries(employees.map((e) => [e.id, e.full_name])), [employees]);
 
   const handleDelete = async (id: string) => {
