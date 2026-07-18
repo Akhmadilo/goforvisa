@@ -1578,7 +1578,7 @@ function ForecastCard({
 // ============================================================
 // Aged Receivables — buckets by days overdue
 // ============================================================
-function AgedReceivablesCard({ contracts, t }: { contracts: Contract[]; t: (k: string) => string }) {
+function AgedReceivablesCard({ contracts, t }: { contracts: Contract[]; t: ReturnType<typeof useT>["t"] }) {
   const isCancelled = (v: string | null | undefined) => {
     const s = (v || "").trim().toLowerCase();
     return s === "bekor qilindi" || s === "cancelled" || s === "canceled" || s === "to'xtatildi" || s === "toxtatildi";
