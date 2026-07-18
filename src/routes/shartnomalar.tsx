@@ -794,7 +794,8 @@ function ShartnomalarPage() {
                               ${fmt(paidUsd)}
                             </TableCell>
                             <TableCell className="text-right tabular-nums font-medium text-destructive">
-                              {c.visa_result === "To'xtatildi" ? <span className="text-muted-foreground">—</span> : `$${fmt(remainingUsd)}`}
+                              {c.visa_result === "To'xtatildi" || c.visa_result === "Bekor qilindi" || c.visa_result === "Cancelled" ? <span className="text-muted-foreground">—</span> : `$${fmt(remainingUsd)}`}
+
                             </TableCell>
                             <TableCell>
                               <Badge variant={variant as "default" | "secondary" | "destructive" | "outline"}>{status}</Badge>
@@ -858,7 +859,7 @@ function ShartnomalarPage() {
                          (a, c) => {
                            const paid = paidUsdByContract.get(c.id) ?? 0;
                            const price = Number(c.price_usd || 0);
-                           const isStopped = c.visa_result === "To'xtatildi";
+                           const isStopped = c.visa_result === "To'xtatildi" || c.visa_result === "Bekor qilindi" || c.visa_result === "Cancelled";
                            a.price += price;
                            a.commission += Number(c.commission || 0);
                            a.paid += paid;
