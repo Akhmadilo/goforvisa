@@ -859,7 +859,7 @@ function ShartnomalarPage() {
                          (a, c) => {
                            const paid = paidUsdByContract.get(c.id) ?? 0;
                            const price = Number(c.price_usd || 0);
-                           const isStopped = c.visa_result === "To'xtatildi";
+                           const isStopped = c.visa_result === "To'xtatildi" || c.visa_result === "Bekor qilindi" || c.visa_result === "Cancelled";
                            a.price += price;
                            a.commission += Number(c.commission || 0);
                            a.paid += paid;
