@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,11 +8,12 @@ import { Input } from "@/components/ui/input";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Trash2, FileText } from "lucide-react";
+import { Trash2, FileText, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { supabase } from "@/integrations/supabase/client";
+import { syncMissingReportFines } from "@/lib/jarima.functions";
 
 type WorkReport = {
   id: string;
@@ -85,6 +87,26 @@ export function WorkReportsSection() {
     return () => { supabase.removeChannel(ch); };
   }, [user, canAccess, qc]);
 
+  // === Hisobot yozmagan → 20 000 so'm jarima ===
+  const now = new Date();
+  const [fineYear, setFineYear] = useState(now.getFullYear());
+  const [fineMonth, setFineMonth] = useState(now.getMonth() + 1);
+  const syncFn = useServerFn(syncMissingReportFines);
+  const previewQ = useQuery({
+    queryKey: ["missing-report-fines", fineYear, fineMonth],
+    queryFn: () => syncFn({ data: { year: fineYear, month: fineMonth, persist: false } }),
+    enabled: !!user && canAccess && isAdmin,
+  });
+  const applyMut = useMutation({
+    mutationFn: () => syncFn({ data: { year: fineYear, month: fineMonth, persist: true } }),
+    onSuccess: (r) => {
+      toast.success(`${r.inserted} ta jarima qo'shildi`);
+      qc.invalidateQueries({ queryKey: ["missing-report-fines"] });
+      qc.invalidateQueries({ queryKey: ["jarima-data"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
+
   const empMap = useMemo(() => Object.fromEntries(employees.map((e) => [e.id, e.full_name])), [employees]);
 
   const handleDelete = async (id: string) => {
@@ -123,6 +145,83 @@ export function WorkReportsSection() {
           </div>
         </div>
       </Card>
+
+      {isAdmin && (
+        <Card className="p-4 border-amber-300/60 bg-amber-50/50 dark:bg-amber-950/20">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle className="h-4 w-4 text-amber-600" />
+            <span className="font-medium text-sm md:text-base">Hisobot yozmaganlar uchun jarima</span>
+            <Badge variant="outline" className="ml-auto">20 000 so'm / kun</Badge>
+          </div>
+          <div className="flex flex-wrap items-end gap-3 mb-3">
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Yil</label>
+              <Input type="number" className="w-24" value={fineYear} onChange={(e) => setFineYear(Number(e.target.value) || now.getFullYear())} />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground mb-1 block">Oy</label>
+              <Select value={String(fineMonth)} onValueChange={(v) => setFineMonth(Number(v))}>
+                <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentyabr","Oktyabr","Noyabr","Dekabr"].map((n, i) => (
+                    <SelectItem key={i} value={String(i + 1)}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-sm">
+              <div className="text-muted-foreground">Aniqlangan kunlar</div>
+              <div className="font-semibold text-base">
+                {previewQ.data?.missing.length ?? 0}{" "}
+                <span className="text-xs text-muted-foreground">
+                  ({previewQ.data?.pending ?? 0} yangi)
+                </span>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              disabled={applyMut.isPending || (previewQ.data?.pending ?? 0) === 0}
+              onClick={() => {
+                if (!confirm(`${previewQ.data?.pending ?? 0} ta jarima qo'shilsinmi? Har biri 20 000 so'm.`)) return;
+                applyMut.mutate();
+              }}
+            >
+              {applyMut.isPending ? "Qo'shilmoqda..." : "Jarimalarni qo'shish"}
+            </Button>
+          </div>
+          {previewQ.data && previewQ.data.missing.length > 0 && (
+            <div className="max-h-64 overflow-y-auto rounded border bg-background">
+              <table className="w-full text-sm">
+                <thead className="sticky top-0 bg-muted/60">
+                  <tr>
+                    <th className="text-left px-3 py-2">Ishchi</th>
+                    <th className="text-left px-3 py-2">Sana</th>
+                    <th className="text-right px-3 py-2">Holat</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewQ.data.missing.map((m, i) => (
+                    <tr key={i} className="border-t">
+                      <td className="px-3 py-1.5">{m.employee_name}</td>
+                      <td className="px-3 py-1.5 font-mono text-xs">{m.date}</td>
+                      <td className="px-3 py-1.5 text-right">
+                        {m.already_fined
+                          ? <Badge variant="secondary">Jarima qo'yilgan</Badge>
+                          : <Badge variant="destructive">Kutilmoqda</Badge>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {previewQ.data && previewQ.data.missing.length === 0 && (
+            <div className="text-sm text-muted-foreground">Bu oyda hisobotsiz kun aniqlanmadi 🎉</div>
+          )}
+        </Card>
+      )}
+
+
 
       {reports.length === 0 ? (
         <Card className="p-10 text-center text-muted-foreground">

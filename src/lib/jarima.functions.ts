@@ -71,6 +71,102 @@ export const getJarimaData = createServerFn({ method: "GET" })
     };
   });
 
+const NO_REPORT_REASON = "Hisobot yozmagan";
+const NO_REPORT_AMOUNT = 20000;
+
+export type MissingReportRow = {
+  employee_id: string;
+  employee_name: string;
+  date: string;
+  already_fined: boolean;
+};
+
+// Compute (and optionally persist) fines for working days without a work_report.
+// Rule: 20 000 so'm per missing day, only for past days (today excluded), skipping Sundays and non-working days.
+export const syncMissingReportFines = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { year: number; month: number; persist?: boolean }) =>
+    z.object({
+      year: z.number().int().min(2020).max(2100),
+      month: z.number().int().min(1).max(12),
+      persist: z.boolean().optional(),
+    }).parse(d)
+  )
+  .handler(async ({ data, context }) => {
+    const c = context.supabase;
+    const { year, month, persist } = data;
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const start = `${year}-${pad(month)}-01`;
+    const end = `${year}-${pad(month)}-${pad(daysInMonth)}`;
+
+    // "today" in Tashkent (UTC+5)
+    const nowTk = new Date(Date.now() + 5 * 3600 * 1000);
+    const todayStr = nowTk.toISOString().slice(0, 10);
+
+    const [empRes, schRes, wrRes, fineRes] = await Promise.all([
+      c.from("employees").select("id, full_name, terminated_at, created_at").is("terminated_at", null),
+      c.from("employee_schedules").select("employee_id, weekday, is_working"),
+      c.from("work_reports").select("employee_id, date").gte("date", start).lte("date", end),
+      c.from("fines").select("employee_id, date, reason").eq("reason", NO_REPORT_REASON).gte("date", start).lte("date", end),
+    ]);
+    if (empRes.error) throw new Error(empRes.error.message);
+
+    const employees = (empRes.data || []) as { id: string; full_name: string; created_at: string }[];
+    const schedules = (schRes.data || []) as { employee_id: string; weekday: number; is_working: boolean }[];
+    const reports = (wrRes.data || []) as { employee_id: string; date: string }[];
+    const existing = (fineRes.data || []) as { employee_id: string; date: string }[];
+
+    // schedule lookup: key = `${emp}-${weekday}` (weekday 0=Sun..6=Sat)
+    const schMap = new Map<string, boolean>();
+    for (const s of schedules) schMap.set(`${s.employee_id}-${s.weekday}`, s.is_working);
+    const reportSet = new Set(reports.map(r => `${r.employee_id}-${r.date}`));
+    const existingSet = new Set(existing.map(f => `${f.employee_id}-${f.date}`));
+
+    const missing: MissingReportRow[] = [];
+    const toInsert: { employee_id: string; date: string; amount_uzs: number; minutes_late: number; reason: string }[] = [];
+
+    for (const emp of employees) {
+      const empStart = emp.created_at ? emp.created_at.slice(0, 10) : start;
+      for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${year}-${pad(month)}-${pad(day)}`;
+        if (dateStr >= todayStr) break; // only past days
+        if (dateStr < empStart) continue;
+        const wd = new Date(`${dateStr}T00:00:00`).getDay();
+        if (wd === 0) continue; // Sunday off
+        const schKey = `${emp.id}-${wd}`;
+        if (schMap.has(schKey) && schMap.get(schKey) === false) continue;
+        if (reportSet.has(`${emp.id}-${dateStr}`)) continue;
+        const key = `${emp.id}-${dateStr}`;
+        const already = existingSet.has(key);
+        missing.push({ employee_id: emp.id, employee_name: emp.full_name, date: dateStr, already_fined: already });
+        if (!already) {
+          toInsert.push({
+            employee_id: emp.id,
+            date: dateStr,
+            amount_uzs: NO_REPORT_AMOUNT,
+            minutes_late: 0,
+            reason: NO_REPORT_REASON,
+          });
+        }
+      }
+    }
+
+    let inserted = 0;
+    if (persist && toInsert.length > 0) {
+      const { error, data: ins } = await c.from("fines").insert(toInsert).select("id");
+      if (error) throw new Error(error.message);
+      inserted = ins?.length ?? toInsert.length;
+    }
+
+    return {
+      missing,
+      pending: toInsert.length,
+      inserted,
+      amount_per_day: NO_REPORT_AMOUNT,
+    };
+  });
+
 export const linkTelegramToEmployee = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { telegramRowId: string; employeeId: string | null }) =>
