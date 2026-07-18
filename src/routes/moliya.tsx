@@ -1226,10 +1226,12 @@ function FinancePage() {
             </div>
           </Card>
 
+          <AgedReceivablesCard contracts={contracts} t={t} />
 
           <div className="text-xs text-muted-foreground text-center pb-4">
             {basis === "accrual" ? t("finance.note.accrual") : t("finance.note.cash")}
           </div>
+
         </main>
       </div>
     </div>
