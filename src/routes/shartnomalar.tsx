@@ -794,7 +794,8 @@ function ShartnomalarPage() {
                               ${fmt(paidUsd)}
                             </TableCell>
                             <TableCell className="text-right tabular-nums font-medium text-destructive">
-                              {c.visa_result === "To'xtatildi" ? <span className="text-muted-foreground">—</span> : `$${fmt(remainingUsd)}`}
+                              {c.visa_result === "To'xtatildi" || c.visa_result === "Bekor qilindi" || c.visa_result === "Cancelled" ? <span className="text-muted-foreground">—</span> : `$${fmt(remainingUsd)}`}
+
                             </TableCell>
                             <TableCell>
                               <Badge variant={variant as "default" | "secondary" | "destructive" | "outline"}>{status}</Badge>
