@@ -45,11 +45,11 @@ export function WorkReportsSection() {
   const canAccess = myRoles.includes("admin") || myRoles.includes("financier");
 
   const { data: employees = [] } = useQuery({
-    queryKey: ["employees-min"],
+    queryKey: ["employees-min-rr"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("employees")
-        .select("id, full_name, terminated_at")
+        .select("id, full_name, terminated_at, report_required")
         .order("full_name");
       if (error) throw error;
       return (data ?? []) as Employee[];
