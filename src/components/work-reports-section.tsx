@@ -110,6 +110,26 @@ export function WorkReportsSection() {
     onError: (e: any) => toast.error(e?.message || "Xatolik"),
   });
 
+  const [fineEmpFilter, setFineEmpFilter] = useState<string>("all");
+  const [confirmingRow, setConfirmingRow] = useState<string | null>(null);
+  const addFineForRowFn = useServerFn(addManualFine);
+  const confirmRowMut = useMutation({
+    mutationFn: (v: { employeeId: string; date: string }) =>
+      addFineForRowFn({ data: {
+        employeeId: v.employeeId,
+        date: v.date,
+        amountUzs: 20000,
+        reason: "Hisobot yozmagan",
+        note: null,
+      }}),
+    onSuccess: () => {
+      toast.success("Jarima qo'shildi");
+      qc.invalidateQueries({ queryKey: ["missing-report-fines"] });
+      qc.invalidateQueries({ queryKey: ["jarima-data"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
+
   const setRequiredFn = useServerFn(setReportRequired);
   const setRequiredMut = useMutation({
     mutationFn: (v: { employeeId: string; required: boolean }) => setRequiredFn({ data: v }),
