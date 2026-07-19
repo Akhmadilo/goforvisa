@@ -414,6 +414,7 @@ export type Database = {
           note: string | null
           phone: string | null
           position: string | null
+          report_required: boolean
           terminated_at: string | null
           updated_at: string
           user_id: string | null
@@ -428,6 +429,7 @@ export type Database = {
           note?: string | null
           phone?: string | null
           position?: string | null
+          report_required?: boolean
           terminated_at?: string | null
           updated_at?: string
           user_id?: string | null
@@ -442,6 +444,7 @@ export type Database = {
           note?: string | null
           phone?: string | null
           position?: string | null
+          report_required?: boolean
           terminated_at?: string | null
           updated_at?: string
           user_id?: string | null
