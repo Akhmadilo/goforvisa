@@ -13,7 +13,10 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { supabase } from "@/integrations/supabase/client";
-import { syncMissingReportFines } from "@/lib/jarima.functions";
+import { syncMissingReportFines, setReportRequired, addManualFine } from "@/lib/jarima.functions";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Plus } from "lucide-react";
 
 type WorkReport = {
   id: string;
@@ -23,7 +26,7 @@ type WorkReport = {
   content: string;
   created_at: string;
 };
-type Employee = { id: string; full_name: string; terminated_at: string | null };
+type Employee = { id: string; full_name: string; terminated_at: string | null; report_required?: boolean | null };
 
 export function WorkReportsSection() {
   const { user } = useAuth();
