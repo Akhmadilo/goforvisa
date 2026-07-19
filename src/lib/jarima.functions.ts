@@ -587,3 +587,62 @@ export const clearDay = createServerFn({ method: "POST" })
     await c.from("fines").delete().eq("employee_id", data.employeeId).eq("date", data.date);
     return { ok: true };
   });
+
+// Set employees.report_required (admin/financier)
+export const setReportRequired = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { employeeId: string; required: boolean }) =>
+    z.object({ employeeId: z.string().uuid(), required: z.boolean() }).parse(d)
+  )
+  .handler(async ({ data, context }) => {
+    const c: any = context.supabase;
+    const { data: roles } = await c.from("user_roles").select("role").eq("user_id", context.userId);
+    const set = new Set((roles || []).map((r: any) => r.role));
+    if (!set.has("admin") && !set.has("financier")) throw new Error("Faqat Admin yoki Moliyachi");
+    const { error } = await c.from("employees").update({ report_required: data.required }).eq("id", data.employeeId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Manually add a custom fine (admin/financier)
+export const addManualFine = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { employeeId: string; date: string; amountUzs: number; reason: string; note?: string | null }) =>
+    z.object({
+      employeeId: z.string().uuid(),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      amountUzs: z.number().min(0),
+      reason: z.string().min(1).max(200),
+      note: z.string().nullable().optional(),
+    }).parse(d)
+  )
+  .handler(async ({ data, context }) => {
+    const c: any = context.supabase;
+    const { data: roles } = await c.from("user_roles").select("role").eq("user_id", context.userId);
+    const set = new Set((roles || []).map((r: any) => r.role));
+    if (!set.has("admin") && !set.has("financier")) throw new Error("Faqat Admin yoki Moliyachi");
+    const { error } = await c.from("fines").upsert({
+      employee_id: data.employeeId,
+      date: data.date,
+      minutes_late: 0,
+      amount_uzs: data.amountUzs,
+      reason: data.reason,
+      note: data.note ?? null,
+    }, { onConflict: "employee_id,date,reason" });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Delete a fine by id (admin/financier)
+export const deleteFine = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const c: any = context.supabase;
+    const { data: roles } = await c.from("user_roles").select("role").eq("user_id", context.userId);
+    const set = new Set((roles || []).map((r: any) => r.role));
+    if (!set.has("admin") && !set.has("financier")) throw new Error("Faqat Admin yoki Moliyachi");
+    const { error } = await c.from("fines").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
