@@ -110,6 +110,41 @@ export function WorkReportsSection() {
     onError: (e: any) => toast.error(e?.message || "Xatolik"),
   });
 
+  const setRequiredFn = useServerFn(setReportRequired);
+  const setRequiredMut = useMutation({
+    mutationFn: (v: { employeeId: string; required: boolean }) => setRequiredFn({ data: v }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["employees-min-rr"] });
+      qc.invalidateQueries({ queryKey: ["missing-report-fines"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
+
+  const addFineFn = useServerFn(addManualFine);
+  const [fineOpen, setFineOpen] = useState(false);
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [mfEmp, setMfEmp] = useState<string>("");
+  const [mfDate, setMfDate] = useState<string>(todayStr);
+  const [mfAmount, setMfAmount] = useState<string>("20000");
+  const [mfReason, setMfReason] = useState<string>("");
+  const [mfNote, setMfNote] = useState<string>("");
+  const addFineMut = useMutation({
+    mutationFn: () => addFineFn({ data: {
+      employeeId: mfEmp,
+      date: mfDate,
+      amountUzs: Number(mfAmount) || 0,
+      reason: mfReason.trim() || "Boshqa",
+      note: mfNote.trim() || null,
+    }}),
+    onSuccess: () => {
+      toast.success("Jarima qo'shildi");
+      setFineOpen(false);
+      setMfEmp(""); setMfReason(""); setMfNote(""); setMfAmount("20000");
+      qc.invalidateQueries({ queryKey: ["jarima-data"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
+
   const empMap = useMemo(() => Object.fromEntries(employees.map((e) => [e.id, e.full_name])), [employees]);
 
   const handleDelete = async (id: string) => {
