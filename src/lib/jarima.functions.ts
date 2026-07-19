@@ -105,12 +105,15 @@ export const syncMissingReportFines = createServerFn({ method: "POST" })
     const todayStr = nowTk.toISOString().slice(0, 10);
 
     const [empRes, schRes, wrRes, fineRes] = await Promise.all([
-      c.from("employees").select("id, full_name, terminated_at, created_at").is("terminated_at", null),
+      c.from("employees").select("id, full_name, terminated_at, created_at, report_required").is("terminated_at", null),
       c.from("employee_schedules").select("employee_id, weekday, is_working"),
       c.from("work_reports").select("employee_id, date").gte("date", start).lte("date", end),
       c.from("fines").select("employee_id, date, reason").eq("reason", NO_REPORT_REASON).gte("date", start).lte("date", end),
     ]);
     if (empRes.error) throw new Error(empRes.error.message);
+
+    const employees = ((empRes.data || []) as { id: string; full_name: string; created_at: string; report_required: boolean | null }[])
+      .filter(e => e.report_required !== false);
 
     const employees = (empRes.data || []) as { id: string; full_name: string; created_at: string }[];
     const schedules = (schRes.data || []) as { employee_id: string; weekday: number; is_working: boolean }[];
