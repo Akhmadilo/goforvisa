@@ -110,6 +110,26 @@ export function WorkReportsSection() {
     onError: (e: any) => toast.error(e?.message || "Xatolik"),
   });
 
+  const [fineEmpFilter, setFineEmpFilter] = useState<string>("all");
+  const [confirmingRow, setConfirmingRow] = useState<string | null>(null);
+  const addFineForRowFn = useServerFn(addManualFine);
+  const confirmRowMut = useMutation({
+    mutationFn: (v: { employeeId: string; date: string }) =>
+      addFineForRowFn({ data: {
+        employeeId: v.employeeId,
+        date: v.date,
+        amountUzs: 20000,
+        reason: "Hisobot yozmagan",
+        note: null,
+      }}),
+    onSuccess: () => {
+      toast.success("Jarima qo'shildi");
+      qc.invalidateQueries({ queryKey: ["missing-report-fines"] });
+      qc.invalidateQueries({ queryKey: ["jarima-data"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
+
   const setRequiredFn = useServerFn(setReportRequired);
   const setRequiredMut = useMutation({
     mutationFn: (v: { employeeId: string; required: boolean }) => setRequiredFn({ data: v }),
@@ -184,7 +204,12 @@ export function WorkReportsSection() {
         </div>
       </Card>
 
-      {isAdmin && (
+      {isAdmin && (() => {
+        const filteredMissing = (previewQ.data?.missing ?? []).filter(
+          (m) => fineEmpFilter === "all" || m.employee_id === fineEmpFilter,
+        );
+        const pendingFiltered = filteredMissing.filter((m) => !m.already_fined);
+        return (
         <Card className="p-4 border-amber-300/60 bg-amber-50/50 dark:bg-amber-950/20">
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle className="h-4 w-4 text-amber-600" />
@@ -207,57 +232,95 @@ export function WorkReportsSection() {
                 </SelectContent>
               </Select>
             </div>
+            <div className="min-w-[200px]">
+              <label className="text-xs text-muted-foreground mb-1 block">Xodim</label>
+              <Select value={fineEmpFilter} onValueChange={setFineEmpFilter}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Barcha xodimlar</SelectItem>
+                  {employees.filter(e => !e.terminated_at && e.report_required !== false).map((e) => (
+                    <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="text-sm">
               <div className="text-muted-foreground">Aniqlangan kunlar</div>
               <div className="font-semibold text-base">
-                {previewQ.data?.missing.length ?? 0}{" "}
+                {filteredMissing.length}{" "}
                 <span className="text-xs text-muted-foreground">
-                  ({previewQ.data?.pending ?? 0} yangi)
+                  ({pendingFiltered.length} yangi)
                 </span>
               </div>
             </div>
             <Button
               size="sm"
-              disabled={applyMut.isPending || (previewQ.data?.pending ?? 0) === 0}
+              variant="outline"
+              disabled={applyMut.isPending || pendingFiltered.length === 0 || fineEmpFilter !== "all"}
+              title={fineEmpFilter !== "all" ? "Hammasi bo'yicha qo'shish uchun 'Barcha xodimlar'ni tanlang" : ""}
               onClick={() => {
-                if (!confirm(`${previewQ.data?.pending ?? 0} ta jarima qo'shilsinmi? Har biri 20 000 so'm.`)) return;
+                if (!confirm(`${pendingFiltered.length} ta jarima qo'shilsinmi? Har biri 20 000 so'm.`)) return;
                 applyMut.mutate();
               }}
             >
-              {applyMut.isPending ? "Qo'shilmoqda..." : "Jarimalarni qo'shish"}
+              {applyMut.isPending ? "Qo'shilmoqda..." : "Barchasini qo'shish"}
             </Button>
           </div>
-          {previewQ.data && previewQ.data.missing.length > 0 && (
-            <div className="max-h-64 overflow-y-auto rounded border bg-background">
+          {filteredMissing.length > 0 && (
+            <div className="max-h-80 overflow-y-auto rounded border bg-background">
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-muted/60">
                   <tr>
                     <th className="text-left px-3 py-2">Ishchi</th>
                     <th className="text-left px-3 py-2">Sana</th>
                     <th className="text-right px-3 py-2">Holat</th>
+                    <th className="text-right px-3 py-2 w-32">Amal</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {previewQ.data.missing.map((m, i) => (
-                    <tr key={i} className="border-t">
-                      <td className="px-3 py-1.5">{m.employee_name}</td>
-                      <td className="px-3 py-1.5 font-mono text-xs">{m.date}</td>
-                      <td className="px-3 py-1.5 text-right">
-                        {m.already_fined
-                          ? <Badge variant="secondary">Jarima qo'yilgan</Badge>
-                          : <Badge variant="destructive">Kutilmoqda</Badge>}
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredMissing.map((m, i) => {
+                    const rowKey = `${m.employee_id}-${m.date}`;
+                    const isBusy = confirmingRow === rowKey;
+                    return (
+                      <tr key={i} className="border-t">
+                        <td className="px-3 py-1.5">{m.employee_name}</td>
+                        <td className="px-3 py-1.5 font-mono text-xs">{m.date}</td>
+                        <td className="px-3 py-1.5 text-right">
+                          {m.already_fined
+                            ? <Badge variant="secondary">Jarima qo'yilgan</Badge>
+                            : <Badge variant="destructive">Kutilmoqda</Badge>}
+                        </td>
+                        <td className="px-3 py-1.5 text-right">
+                          {!m.already_fined && (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              disabled={isBusy}
+                              onClick={() => {
+                                setConfirmingRow(rowKey);
+                                confirmRowMut.mutate(
+                                  { employeeId: m.employee_id, date: m.date },
+                                  { onSettled: () => setConfirmingRow(null) },
+                                );
+                              }}
+                            >
+                              {isBusy ? "..." : "Tasdiqlash"}
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
-          {previewQ.data && previewQ.data.missing.length === 0 && (
+          {filteredMissing.length === 0 && (
             <div className="text-sm text-muted-foreground">Bu oyda hisobotsiz kun aniqlanmadi 🎉</div>
           )}
         </Card>
-      )}
+        );
+      })()}
 
       {isAdmin && (
         <Card className="p-4">
