@@ -105,14 +105,17 @@ export const syncMissingReportFines = createServerFn({ method: "POST" })
     const todayStr = nowTk.toISOString().slice(0, 10);
 
     const [empRes, schRes, wrRes, fineRes] = await Promise.all([
-      c.from("employees").select("id, full_name, terminated_at, created_at").is("terminated_at", null),
+      c.from("employees").select("id, full_name, terminated_at, created_at, report_required").is("terminated_at", null),
       c.from("employee_schedules").select("employee_id, weekday, is_working"),
       c.from("work_reports").select("employee_id, date").gte("date", start).lte("date", end),
       c.from("fines").select("employee_id, date, reason").eq("reason", NO_REPORT_REASON).gte("date", start).lte("date", end),
     ]);
     if (empRes.error) throw new Error(empRes.error.message);
 
-    const employees = (empRes.data || []) as { id: string; full_name: string; created_at: string }[];
+    const employees = ((empRes.data || []) as { id: string; full_name: string; created_at: string; report_required: boolean | null }[])
+      .filter(e => e.report_required !== false);
+
+    
     const schedules = (schRes.data || []) as { employee_id: string; weekday: number; is_working: boolean }[];
     const reports = (wrRes.data || []) as { employee_id: string; date: string }[];
     const existing = (fineRes.data || []) as { employee_id: string; date: string }[];
@@ -582,5 +585,64 @@ export const clearDay = createServerFn({ method: "POST" })
     }
     await c.from("attendance").delete().eq("employee_id", data.employeeId).eq("date", data.date);
     await c.from("fines").delete().eq("employee_id", data.employeeId).eq("date", data.date);
+    return { ok: true };
+  });
+
+// Set employees.report_required (admin/financier)
+export const setReportRequired = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { employeeId: string; required: boolean }) =>
+    z.object({ employeeId: z.string().uuid(), required: z.boolean() }).parse(d)
+  )
+  .handler(async ({ data, context }) => {
+    const c: any = context.supabase;
+    const { data: roles } = await c.from("user_roles").select("role").eq("user_id", context.userId);
+    const set = new Set((roles || []).map((r: any) => r.role));
+    if (!set.has("admin") && !set.has("financier")) throw new Error("Faqat Admin yoki Moliyachi");
+    const { error } = await c.from("employees").update({ report_required: data.required }).eq("id", data.employeeId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Manually add a custom fine (admin/financier)
+export const addManualFine = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { employeeId: string; date: string; amountUzs: number; reason: string; note?: string | null }) =>
+    z.object({
+      employeeId: z.string().uuid(),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      amountUzs: z.number().min(0),
+      reason: z.string().min(1).max(200),
+      note: z.string().nullable().optional(),
+    }).parse(d)
+  )
+  .handler(async ({ data, context }) => {
+    const c: any = context.supabase;
+    const { data: roles } = await c.from("user_roles").select("role").eq("user_id", context.userId);
+    const set = new Set((roles || []).map((r: any) => r.role));
+    if (!set.has("admin") && !set.has("financier")) throw new Error("Faqat Admin yoki Moliyachi");
+    const { error } = await c.from("fines").upsert({
+      employee_id: data.employeeId,
+      date: data.date,
+      minutes_late: 0,
+      amount_uzs: data.amountUzs,
+      reason: data.reason,
+      note: data.note ?? null,
+    }, { onConflict: "employee_id,date,reason" });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+// Delete a fine by id (admin/financier)
+export const deleteFine = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const c: any = context.supabase;
+    const { data: roles } = await c.from("user_roles").select("role").eq("user_id", context.userId);
+    const set = new Set((roles || []).map((r: any) => r.role));
+    if (!set.has("admin") && !set.has("financier")) throw new Error("Faqat Admin yoki Moliyachi");
+    const { error } = await c.from("fines").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
     return { ok: true };
   });

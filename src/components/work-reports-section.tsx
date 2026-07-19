@@ -13,7 +13,10 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { supabase } from "@/integrations/supabase/client";
-import { syncMissingReportFines } from "@/lib/jarima.functions";
+import { syncMissingReportFines, setReportRequired, addManualFine } from "@/lib/jarima.functions";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Plus } from "lucide-react";
 
 type WorkReport = {
   id: string;
@@ -23,7 +26,7 @@ type WorkReport = {
   content: string;
   created_at: string;
 };
-type Employee = { id: string; full_name: string; terminated_at: string | null };
+type Employee = { id: string; full_name: string; terminated_at: string | null; report_required?: boolean | null };
 
 export function WorkReportsSection() {
   const { user } = useAuth();
@@ -42,11 +45,11 @@ export function WorkReportsSection() {
   const canAccess = myRoles.includes("admin") || myRoles.includes("financier");
 
   const { data: employees = [] } = useQuery({
-    queryKey: ["employees-min"],
+    queryKey: ["employees-min-rr"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("employees")
-        .select("id, full_name, terminated_at")
+        .select("id, full_name, terminated_at, report_required")
         .order("full_name");
       if (error) throw error;
       return (data ?? []) as Employee[];
@@ -102,6 +105,41 @@ export function WorkReportsSection() {
     onSuccess: (r) => {
       toast.success(`${r.inserted} ta jarima qo'shildi`);
       qc.invalidateQueries({ queryKey: ["missing-report-fines"] });
+      qc.invalidateQueries({ queryKey: ["jarima-data"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
+
+  const setRequiredFn = useServerFn(setReportRequired);
+  const setRequiredMut = useMutation({
+    mutationFn: (v: { employeeId: string; required: boolean }) => setRequiredFn({ data: v }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["employees-min-rr"] });
+      qc.invalidateQueries({ queryKey: ["missing-report-fines"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
+
+  const addFineFn = useServerFn(addManualFine);
+  const [fineOpen, setFineOpen] = useState(false);
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [mfEmp, setMfEmp] = useState<string>("");
+  const [mfDate, setMfDate] = useState<string>(todayStr);
+  const [mfAmount, setMfAmount] = useState<string>("20000");
+  const [mfReason, setMfReason] = useState<string>("");
+  const [mfNote, setMfNote] = useState<string>("");
+  const addFineMut = useMutation({
+    mutationFn: () => addFineFn({ data: {
+      employeeId: mfEmp,
+      date: mfDate,
+      amountUzs: Number(mfAmount) || 0,
+      reason: mfReason.trim() || "Boshqa",
+      note: mfNote.trim() || null,
+    }}),
+    onSuccess: () => {
+      toast.success("Jarima qo'shildi");
+      setFineOpen(false);
+      setMfEmp(""); setMfReason(""); setMfNote(""); setMfAmount("20000");
       qc.invalidateQueries({ queryKey: ["jarima-data"] });
     },
     onError: (e: any) => toast.error(e?.message || "Xatolik"),
@@ -220,6 +258,94 @@ export function WorkReportsSection() {
           )}
         </Card>
       )}
+
+      {isAdmin && (
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <div>
+              <div className="font-medium text-sm md:text-base">Hisobot yozishi kerak bo'lgan xodimlar</div>
+              <div className="text-xs text-muted-foreground">Faqat belgilangan xodimlar uchun avtomatik jarima hisoblanadi</div>
+            </div>
+            <Badge variant="outline">
+              {employees.filter(e => !e.terminated_at && e.report_required !== false).length} / {employees.filter(e => !e.terminated_at).length}
+            </Badge>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {employees.filter(e => !e.terminated_at).map((e) => {
+              const required = e.report_required !== false;
+              return (
+                <label key={e.id} className="flex items-center justify-between gap-3 rounded border px-3 py-2 cursor-pointer hover:bg-accent/50">
+                  <span className="text-sm truncate">{e.full_name}</span>
+                  <Switch
+                    checked={required}
+                    disabled={setRequiredMut.isPending}
+                    onCheckedChange={(v) => setRequiredMut.mutate({ employeeId: e.id, required: v })}
+                  />
+                </label>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {isAdmin && (
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+            <div className="font-medium text-sm md:text-base">Qo'lda jarima qo'shish</div>
+            <Dialog open={fineOpen} onOpenChange={setFineOpen}>
+              <DialogTrigger asChild>
+                <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Jarima qo'shish</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader><DialogTitle>Yangi jarima</DialogTitle></DialogHeader>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Xodim</label>
+                    <Select value={mfEmp} onValueChange={setMfEmp}>
+                      <SelectTrigger><SelectValue placeholder="Tanlang" /></SelectTrigger>
+                      <SelectContent>
+                        {employees.filter(e => !e.terminated_at).map((e) => (
+                          <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Sana</label>
+                      <Input type="date" value={mfDate} onChange={(e) => setMfDate(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground mb-1 block">Summa (so'm)</label>
+                      <Input type="number" value={mfAmount} onChange={(e) => setMfAmount(e.target.value)} />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Sabab</label>
+                    <Input placeholder="Masalan: Hisobot yozmagan" value={mfReason} onChange={(e) => setMfReason(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Izoh (ixtiyoriy)</label>
+                    <Input value={mfNote} onChange={(e) => setMfNote(e.target.value)} />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setFineOpen(false)}>Bekor qilish</Button>
+                  <Button
+                    disabled={!mfEmp || !mfDate || Number(mfAmount) <= 0 || addFineMut.isPending}
+                    onClick={() => addFineMut.mutate()}
+                  >
+                    {addFineMut.isPending ? "Saqlanmoqda..." : "Saqlash"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+          <div className="text-xs text-muted-foreground">Har bir xodim uchun alohida sabab bilan jarima qo'shishingiz mumkin. Jarima Jarima → Tarix bo'limida ko'rinadi va oylikdan avtomat ushlanadi.</div>
+        </Card>
+      )}
+
+
 
 
 

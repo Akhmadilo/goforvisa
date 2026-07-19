@@ -1,0 +1,1 @@
+ALTER TABLE public.employees ADD COLUMN IF NOT EXISTS report_required boolean NOT NULL DEFAULT true;
