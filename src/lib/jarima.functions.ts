@@ -115,7 +115,7 @@ export const syncMissingReportFines = createServerFn({ method: "POST" })
     const employees = ((empRes.data || []) as { id: string; full_name: string; created_at: string; report_required: boolean | null }[])
       .filter(e => e.report_required !== false);
 
-    const employees = (empRes.data || []) as { id: string; full_name: string; created_at: string }[];
+    
     const schedules = (schRes.data || []) as { employee_id: string; weekday: number; is_working: boolean }[];
     const reports = (wrRes.data || []) as { employee_id: string; date: string }[];
     const existing = (fineRes.data || []) as { employee_id: string; date: string }[];
