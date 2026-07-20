@@ -685,32 +685,48 @@ function JarimaPage() {
                           <TableRow key={f.id}>
                             <TableCell>{f.date}</TableCell>
                             <TableCell>{name}</TableCell>
-                            <TableCell>{f.minutes_late} daq</TableCell>
-                            <TableCell>{f.reason}</TableCell>
+                            <TableCell>{f.reason === "absent" || f.reason === NO_REPORT_REASON ? "—" : `${f.minutes_late} daq`}</TableCell>
+                            <TableCell>{fineReasonLabel(f.reason)}</TableCell>
                             <TableCell className="text-right">{fmt(f.amount_uzs)} so'm</TableCell>
                             <TableCell className="text-right">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={async () => {
-                                  if (!confirm(`Jarimani tasdiqlaysizmi?\n\nXodim: ${name}\nSumma: ${fmt(f.amount_uzs)} so'm\n\nTasdiqlovchi: ${signers.admin}`)) return;
-                                  try {
-                                    await generateFinePdf({
-                                      date: f.date,
-                                      employeeName: name,
-                                      minutes_late: f.minutes_late,
-                                      amount_uzs: f.amount_uzs,
-                                      reason: f.reason,
-                                    }, signers);
-                                    toast.success("PDF tayyor");
-                                  } catch (e: any) {
-                                    toast.error(e?.message || "Xatolik");
-                                  }
-                                }}
-                              >
-                                <FileText className="h-4 w-4 mr-1" />
-                                Tasdiqlash & PDF
-                              </Button>
+                              <div className="flex justify-end gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={async () => {
+                                    if (!confirm(`Jarimani tasdiqlaysizmi?\n\nXodim: ${name}\nSumma: ${fmt(f.amount_uzs)} so'm\n\nTasdiqlovchi: ${signers.admin}`)) return;
+                                    try {
+                                      await generateFinePdf({
+                                        date: f.date,
+                                        employeeName: name,
+                                        minutes_late: f.minutes_late,
+                                        amount_uzs: f.amount_uzs,
+                                        reason: fineReasonLabel(f.reason),
+                                      }, signers);
+                                      toast.success("PDF tayyor");
+                                    } catch (e: any) {
+                                      toast.error(e?.message || "Xatolik");
+                                    }
+                                  }}
+                                >
+                                  <FileText className="h-4 w-4 mr-1" />
+                                  PDF
+                                </Button>
+                                {(isAdmin || isFinance) && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                    disabled={delFineMut.isPending}
+                                    onClick={() => {
+                                      if (!confirm(`Jarimani bekor qilasizmi?\n\nXodim: ${name}\nSana: ${f.date}\nSumma: ${fmt(f.amount_uzs)} so'm`)) return;
+                                      delFineMut.mutate(f.id);
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
                             </TableCell>
                           </TableRow>
                         );
