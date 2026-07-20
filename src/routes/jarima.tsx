@@ -1467,29 +1467,47 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
                         <TableCell>
                           {cell?.leave ? <Badge className="bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30" variant="outline">Dam olish</Badge>
                             : isDayOff ? <Badge variant="outline">Dam</Badge>
-                            : cell?.fine?.reason === "absent" ? <Badge variant="destructive">Kelmadi</Badge>
-                            : cell?.fine ? <Badge variant="destructive">Kech</Badge>
+                            : cell?.fine?.reason === "absent" ? <Badge variant="destructive" title="Ishga kelmagani uchun">Kelmadi</Badge>
+                            : cell?.fine?.reason === NO_REPORT_REASON ? <Badge variant="destructive" title="Hisobot yozmagani uchun">Hisobot yo'q</Badge>
+                            : cell?.fine ? <Badge variant="destructive" title="Kech qolgani uchun">Kech qoldi</Badge>
                             : cell?.att ? <Badge variant="secondary">Kelgan</Badge>
                             : <Badge variant="outline">—</Badge>}
                         </TableCell>
                         <TableCell className="tabular-nums">{cell?.att ? timeFromIso(cell.att.check_in_at) : "—"}</TableCell>
-                        <TableCell>{cell?.fine && cell.fine.reason !== "absent" ? `${cell.fine.minutes_late} daq` : "—"}</TableCell>
+                        <TableCell>{cell?.fine && cell.fine.reason === "late" ? `${cell.fine.minutes_late} daq` : "—"}</TableCell>
                         <TableCell className="text-right tabular-nums">
                           {cell?.fine ? <span className="text-red-600 dark:text-red-400 font-semibold">{fmt(cell.fine.amount_uzs)}</span> : "0"}
                         </TableCell>
                         {canEditAttendance && (
                           <TableCell>
-                            {!isDayOff && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 w-7 p-0"
-                                onClick={() => openEdit(dateStr, cell?.att, cell?.fine)}
-                                title="Kunni tahrirlash"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
+                            <div className="flex items-center gap-1">
+                              {!isDayOff && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => openEdit(dateStr, cell?.att, cell?.fine)}
+                                  title="Kunni tahrirlash"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                              {cell?.fine && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                  disabled={delFineMut.isPending}
+                                  onClick={() => {
+                                    if (!confirm(`Jarimani bekor qilasizmi?\n\nSana: ${dateStr}\nSumma: ${fmt(cell.fine!.amount_uzs)} so'm`)) return;
+                                    delFineMut.mutate(cell.fine!.id);
+                                  }}
+                                  title="Jarimani bekor qilish"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         )}
                       </TableRow>
