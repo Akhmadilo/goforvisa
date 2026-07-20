@@ -548,6 +548,11 @@ function JarimaPage() {
 
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["jarima-data"] });
+  const delFineMut = useMutation({
+    mutationFn: (id: string) => delFineFn({ data: { id } }),
+    onSuccess: () => { invalidate(); qc.invalidateQueries({ queryKey: ["emp-month"] }); toast.success("Jarima bekor qilindi"); },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
 
   const linkMut = useMutation({
     mutationFn: (v: { telegramRowId: string; employeeId: string | null }) => linkFn({ data: v }),
