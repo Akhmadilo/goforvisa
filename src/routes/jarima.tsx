@@ -1402,15 +1402,21 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
                       <div className="text-[10px] text-muted-foreground">Dam</div>
                     ) : fine?.reason === "absent" ? (
                       <>
-                        <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold">Kelmadi</div>
+                        <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold" title="Ishga kelmagani uchun">Kelmadi</div>
+                        <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold">-{fmt(fine.amount_uzs)}</div>
+                      </>
+                    ) : fine?.reason === NO_REPORT_REASON ? (
+                      <>
+                        {att && <div className="text-[10px] tabular-nums">{timeFromIso(att.check_in_at)}</div>}
+                        <div className="text-[10px] text-amber-700 dark:text-amber-300 font-semibold" title="Hisobot yozmagani uchun">Hisobot yo'q</div>
                         <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold">-{fmt(fine.amount_uzs)}</div>
                       </>
                     ) : att ? (
                       <>
                         <div className="text-[10px] tabular-nums">{timeFromIso(att.check_in_at)}</div>
                         {fine ? (
-                          <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold">
-                            -{fmt(fine.amount_uzs)}
+                          <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold" title="Kech qolgani uchun">
+                            Kech -{fmt(fine.amount_uzs)}
                           </div>
                         ) : (
                           <div className="text-[10px] text-emerald-700 dark:text-emerald-300">✓</div>
@@ -1418,7 +1424,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
                       </>
                     ) : (
                       <div className="text-[10px] text-muted-foreground">—</div>
-                    )}
+                    );
                   </div>
                 );
               })}
