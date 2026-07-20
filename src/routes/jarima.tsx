@@ -455,6 +455,7 @@ function JarimaPage() {
   const saveSchedFn = useServerFn(saveSchedule);
   const saveRuleFn = useServerFn(saveFineRule);
   const delRuleFn = useServerFn(deleteFineRule);
+  const delFineFn = useServerFn(deleteFine);
 
   const qc = useQueryClient();
 
