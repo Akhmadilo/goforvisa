@@ -27,8 +27,17 @@ import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getJarimaData, linkTelegramToEmployee, saveSchedule, saveFineRule, deleteFineRule,
-  updateAttendanceCheckIn, setAbsenceFine, clearDay, setTelegramBotRole,
+  updateAttendanceCheckIn, setAbsenceFine, clearDay, setTelegramBotRole, deleteFine,
 } from "@/lib/jarima.functions";
+
+const NO_REPORT_REASON = "Hisobot yozmagan";
+function fineReasonLabel(reason?: string | null): string {
+  if (!reason) return "—";
+  if (reason === "late") return "Kech qolgani uchun";
+  if (reason === "absent") return "Ishga kelmagani uchun";
+  if (reason === NO_REPORT_REASON) return "Hisobot yozmagani uchun";
+  return reason;
+}
 import { Pencil } from "lucide-react";
 import {
   listAdvances, ceoDecideAdvance, financeDecideAdvance, markAdvancePaid, adminFinalizeAdvance,
