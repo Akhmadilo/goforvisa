@@ -27,8 +27,17 @@ import { useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getJarimaData, linkTelegramToEmployee, saveSchedule, saveFineRule, deleteFineRule,
-  updateAttendanceCheckIn, setAbsenceFine, clearDay, setTelegramBotRole,
+  updateAttendanceCheckIn, setAbsenceFine, clearDay, setTelegramBotRole, deleteFine,
 } from "@/lib/jarima.functions";
+
+const NO_REPORT_REASON = "Hisobot yozmagan";
+function fineReasonLabel(reason?: string | null): string {
+  if (!reason) return "—";
+  if (reason === "late") return "Kech qolgani uchun";
+  if (reason === "absent") return "Ishga kelmagani uchun";
+  if (reason === NO_REPORT_REASON) return "Hisobot yozmagani uchun";
+  return reason;
+}
 import { Pencil } from "lucide-react";
 import {
   listAdvances, ceoDecideAdvance, financeDecideAdvance, markAdvancePaid, adminFinalizeAdvance,
@@ -446,6 +455,7 @@ function JarimaPage() {
   const saveSchedFn = useServerFn(saveSchedule);
   const saveRuleFn = useServerFn(saveFineRule);
   const delRuleFn = useServerFn(deleteFineRule);
+  const delFineFn = useServerFn(deleteFine);
 
   const qc = useQueryClient();
 
@@ -538,6 +548,11 @@ function JarimaPage() {
 
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["jarima-data"] });
+  const delFineMut = useMutation({
+    mutationFn: (id: string) => delFineFn({ data: { id } }),
+    onSuccess: () => { invalidate(); qc.invalidateQueries({ queryKey: ["emp-month"] }); toast.success("Jarima bekor qilindi"); },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
 
   const linkMut = useMutation({
     mutationFn: (v: { telegramRowId: string; employeeId: string | null }) => linkFn({ data: v }),
@@ -660,7 +675,7 @@ function JarimaPage() {
                         <TableHead>Kechikish</TableHead>
                         <TableHead>Sabab</TableHead>
                         <TableHead className="text-right">Summa</TableHead>
-                        <TableHead className="text-right">Dalolatnoma</TableHead>
+                        <TableHead className="text-right">Amal</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -670,32 +685,48 @@ function JarimaPage() {
                           <TableRow key={f.id}>
                             <TableCell>{f.date}</TableCell>
                             <TableCell>{name}</TableCell>
-                            <TableCell>{f.minutes_late} daq</TableCell>
-                            <TableCell>{f.reason}</TableCell>
+                            <TableCell>{f.reason === "absent" || f.reason === NO_REPORT_REASON ? "—" : `${f.minutes_late} daq`}</TableCell>
+                            <TableCell>{fineReasonLabel(f.reason)}</TableCell>
                             <TableCell className="text-right">{fmt(f.amount_uzs)} so'm</TableCell>
                             <TableCell className="text-right">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={async () => {
-                                  if (!confirm(`Jarimani tasdiqlaysizmi?\n\nXodim: ${name}\nSumma: ${fmt(f.amount_uzs)} so'm\n\nTasdiqlovchi: ${signers.admin}`)) return;
-                                  try {
-                                    await generateFinePdf({
-                                      date: f.date,
-                                      employeeName: name,
-                                      minutes_late: f.minutes_late,
-                                      amount_uzs: f.amount_uzs,
-                                      reason: f.reason,
-                                    }, signers);
-                                    toast.success("PDF tayyor");
-                                  } catch (e: any) {
-                                    toast.error(e?.message || "Xatolik");
-                                  }
-                                }}
-                              >
-                                <FileText className="h-4 w-4 mr-1" />
-                                Tasdiqlash & PDF
-                              </Button>
+                              <div className="flex justify-end gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={async () => {
+                                    if (!confirm(`Jarimani tasdiqlaysizmi?\n\nXodim: ${name}\nSumma: ${fmt(f.amount_uzs)} so'm\n\nTasdiqlovchi: ${signers.admin}`)) return;
+                                    try {
+                                      await generateFinePdf({
+                                        date: f.date,
+                                        employeeName: name,
+                                        minutes_late: f.minutes_late,
+                                        amount_uzs: f.amount_uzs,
+                                        reason: fineReasonLabel(f.reason),
+                                      }, signers);
+                                      toast.success("PDF tayyor");
+                                    } catch (e: any) {
+                                      toast.error(e?.message || "Xatolik");
+                                    }
+                                  }}
+                                >
+                                  <FileText className="h-4 w-4 mr-1" />
+                                  PDF
+                                </Button>
+                                {(isAdmin || isFinance) && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                    disabled={delFineMut.isPending}
+                                    onClick={() => {
+                                      if (!confirm(`Jarimani bekor qilasizmi?\n\nXodim: ${name}\nSana: ${f.date}\nSumma: ${fmt(f.amount_uzs)} so'm`)) return;
+                                      delFineMut.mutate(f.id);
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
                             </TableCell>
                           </TableRow>
                         );
@@ -1150,6 +1181,12 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
     },
     onError: (e: any) => toast.error(e?.message || "Xatolik"),
   });
+  const delFineFn = useServerFn(deleteFine);
+  const delFineMut = useMutation({
+    mutationFn: (id: string) => delFineFn({ data: { id } }),
+    onSuccess: () => { toast.success("Jarima bekor qilindi"); invalidate(); },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
 
   const fetchFn = useServerFn(getEmployeeMonth);
   const { data, isLoading } = useQuery({
@@ -1365,15 +1402,21 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
                       <div className="text-[10px] text-muted-foreground">Dam</div>
                     ) : fine?.reason === "absent" ? (
                       <>
-                        <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold">Kelmadi</div>
+                        <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold" title="Ishga kelmagani uchun">Kelmadi</div>
+                        <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold">-{fmt(fine.amount_uzs)}</div>
+                      </>
+                    ) : fine?.reason === NO_REPORT_REASON ? (
+                      <>
+                        {att && <div className="text-[10px] tabular-nums">{timeFromIso(att.check_in_at)}</div>}
+                        <div className="text-[10px] text-amber-700 dark:text-amber-300 font-semibold" title="Hisobot yozmagani uchun">Hisobot yo'q</div>
                         <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold">-{fmt(fine.amount_uzs)}</div>
                       </>
                     ) : att ? (
                       <>
                         <div className="text-[10px] tabular-nums">{timeFromIso(att.check_in_at)}</div>
                         {fine ? (
-                          <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold">
-                            -{fmt(fine.amount_uzs)}
+                          <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold" title="Kech qolgani uchun">
+                            Kech -{fmt(fine.amount_uzs)}
                           </div>
                         ) : (
                           <div className="text-[10px] text-emerald-700 dark:text-emerald-300">✓</div>
@@ -1424,29 +1467,47 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
                         <TableCell>
                           {cell?.leave ? <Badge className="bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30" variant="outline">Dam olish</Badge>
                             : isDayOff ? <Badge variant="outline">Dam</Badge>
-                            : cell?.fine?.reason === "absent" ? <Badge variant="destructive">Kelmadi</Badge>
-                            : cell?.fine ? <Badge variant="destructive">Kech</Badge>
+                            : cell?.fine?.reason === "absent" ? <Badge variant="destructive" title="Ishga kelmagani uchun">Kelmadi</Badge>
+                            : cell?.fine?.reason === NO_REPORT_REASON ? <Badge variant="destructive" title="Hisobot yozmagani uchun">Hisobot yo'q</Badge>
+                            : cell?.fine ? <Badge variant="destructive" title="Kech qolgani uchun">Kech qoldi</Badge>
                             : cell?.att ? <Badge variant="secondary">Kelgan</Badge>
                             : <Badge variant="outline">—</Badge>}
                         </TableCell>
                         <TableCell className="tabular-nums">{cell?.att ? timeFromIso(cell.att.check_in_at) : "—"}</TableCell>
-                        <TableCell>{cell?.fine && cell.fine.reason !== "absent" ? `${cell.fine.minutes_late} daq` : "—"}</TableCell>
+                        <TableCell>{cell?.fine && cell.fine.reason === "late" ? `${cell.fine.minutes_late} daq` : "—"}</TableCell>
                         <TableCell className="text-right tabular-nums">
                           {cell?.fine ? <span className="text-red-600 dark:text-red-400 font-semibold">{fmt(cell.fine.amount_uzs)}</span> : "0"}
                         </TableCell>
                         {canEditAttendance && (
                           <TableCell>
-                            {!isDayOff && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-7 w-7 p-0"
-                                onClick={() => openEdit(dateStr, cell?.att, cell?.fine)}
-                                title="Kunni tahrirlash"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
+                            <div className="flex items-center gap-1">
+                              {!isDayOff && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => openEdit(dateStr, cell?.att, cell?.fine)}
+                                  title="Kunni tahrirlash"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                              {cell?.fine && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 w-7 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                  disabled={delFineMut.isPending}
+                                  onClick={() => {
+                                    if (!confirm(`Jarimani bekor qilasizmi?\n\nSana: ${dateStr}\nSumma: ${fmt(cell.fine!.amount_uzs)} so'm`)) return;
+                                    delFineMut.mutate(cell.fine!.id);
+                                  }}
+                                  title="Jarimani bekor qilish"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
                           </TableCell>
                         )}
                       </TableRow>
