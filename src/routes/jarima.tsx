@@ -675,7 +675,7 @@ function JarimaPage() {
                         <TableHead>Kechikish</TableHead>
                         <TableHead>Sabab</TableHead>
                         <TableHead className="text-right">Summa</TableHead>
-                        <TableHead className="text-right">Dalolatnoma</TableHead>
+                        <TableHead className="text-right">Amal</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
