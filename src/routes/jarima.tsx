@@ -1424,7 +1424,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
                       </>
                     ) : (
                       <div className="text-[10px] text-muted-foreground">—</div>
-                    );
+                    )}
                   </div>
                 );
               })}
