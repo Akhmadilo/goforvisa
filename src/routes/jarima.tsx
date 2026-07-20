@@ -1181,6 +1181,12 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
     },
     onError: (e: any) => toast.error(e?.message || "Xatolik"),
   });
+  const delFineFn = useServerFn(deleteFine);
+  const delFineMut = useMutation({
+    mutationFn: (id: string) => delFineFn({ data: { id } }),
+    onSuccess: () => { toast.success("Jarima bekor qilindi"); invalidate(); },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
 
   const fetchFn = useServerFn(getEmployeeMonth);
   const { data, isLoading } = useQuery({
