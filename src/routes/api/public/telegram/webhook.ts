@@ -53,6 +53,7 @@ const MAIN_KB = {
     [{ text: "💰 Avans so'rash" }, { text: "📅 Javob so'rash" }],
     [{ text: "📋 Bajarilgan ishlar" }],
     [{ text: "💵 Oyligim" }, { text: "⚠️ Jarimalarim" }],
+    [{ text: "🎁 Bonusim" }],
   ],
   resize_keyboard: true,
 };
@@ -65,12 +66,14 @@ function mainKb(role?: string | null) {
     [{ text: "💰 Avans so'rash" }, { text: "📅 Javob so'rash" }],
     [{ text: "📋 Bajarilgan ishlar" }],
     [{ text: "💵 Oyligim" }, { text: "⚠️ Jarimalarim" }],
+    [{ text: "🎁 Bonusim" }],
   ];
   if (role && (CONTRACTS_ROLES as readonly string[]).includes(role)) {
     rows.push([{ text: "📄 Shartnomalar" }]);
   }
   return { keyboard: rows, resize_keyboard: true };
 }
+
 
 
 const ABSENCE_FINE_UZS = 120000;
@@ -398,6 +401,153 @@ async function sendMyFines(chatId: number, employeeId: string, year: number, mon
   const text = `${title}\n${lines.join("\n")}\n\n─────────\n💸 *Jami: ${fmt(total)} so'm*`;
   await tg("sendMessage", { chat_id: chatId, text: text.slice(0, 3900), parse_mode: "Markdown" });
 }
+
+async function sendMyBonus(chatId: number, employeeId: string) {
+
+  const c = sb();
+  const { data: emp } = await c.from("employees").select("full_name").eq("id", employeeId).maybeSingle();
+  const name = emp?.full_name;
+  if (!name) {
+    await tg("sendMessage", { chat_id: chatId, text: "❗️ Ishchi ma'lumoti topilmadi." });
+    return;
+  }
+
+  // USD rates for payment conversion
+  const { data: rates } = await c.from("usd_rates").select("year, month, rate");
+  const rateMap = new Map<string, number>();
+  (rates || []).forEach((r: any) => rateMap.set(`${r.year}-${String(r.month).padStart(2, "0")}`, Number(r.rate)));
+  const allRates = (rates || []).map((r: any) => Number(r.rate)).filter((n: number) => n > 0);
+  const fallbackRate = allRates.length ? allRates[allRates.length - 1] : 12700;
+  const getRate = (ym: string) => rateMap.get(ym) || fallbackRate;
+
+  // KPI rates and approvals
+  const { data: kpiRates } = await c
+    .from("sales_kpi_rates")
+    .select("manager_name, rate_per_usd, role")
+    .eq("manager_name", name);
+  const rateFor = (role: string, def: number) => {
+    const r = (kpiRates || []).find((x: any) => x.role === role);
+    return r ? Number(r.rate_per_usd) : def;
+  };
+
+  const { data: approvals } = await c
+    .from("sales_kpi_approvals")
+    .select("contract_id, role, status, bonus_uzs, approved_year, approved_month")
+    .eq("manager_name", name);
+  const decidedByRole = new Map<string, Map<string, any>>();
+  (approvals || []).forEach((a: any) => {
+    if (!decidedByRole.has(a.role)) decidedByRole.set(a.role, new Map());
+    decidedByRole.get(a.role)!.set(a.contract_id, a);
+  });
+
+  // Sales KPI: contracts where sales_manager = name, fully paid, commission > 0
+  const { data: salesC } = await c
+    .from("contracts")
+    .select("id, client_name, price_usd, commission, visa_result")
+    .eq("sales_manager", name)
+    .gt("price_usd", 0)
+    .gt("commission", 0);
+
+  // Back-office KPI: contracts where back_office_manager = name, fully paid, commission > 0
+  const { data: boC } = await c
+    .from("contracts")
+    .select("id, client_name, price_usd, commission, visa_result, visa_taken_date")
+    .eq("back_office_manager", name)
+    .gt("commission", 0);
+
+  const allContractIds = [
+    ...((salesC || []).map((r: any) => r.id)),
+    ...((boC || []).map((r: any) => r.id)),
+  ];
+  const uniqueIds = Array.from(new Set(allContractIds));
+  const { data: pays } = uniqueIds.length
+    ? await c.from("contract_payments").select("contract_id, amount, currency, paid_at").in("contract_id", uniqueIds).order("paid_at", { ascending: true })
+    : { data: [] as any[] };
+
+  const paysByContract = new Map<string, any[]>();
+  (pays || []).forEach((p: any) => {
+    const arr = paysByContract.get(p.contract_id) || [];
+    arr.push(p);
+    paysByContract.set(p.contract_id, arr);
+  });
+
+  const isFullyPaid = (contractId: string, priceUsd: number): boolean => {
+    const ps = paysByContract.get(contractId) || [];
+    let running = 0;
+    for (const p of ps) {
+      const amt = Number(p.amount || 0);
+      const ym = (p.paid_at || "").slice(0, 7);
+      const usd = (p.currency || "UZS") === "USD" ? amt : amt / getRate(ym);
+      running += usd;
+      if (running >= priceUsd - 0.01) return true;
+    }
+    return false;
+  };
+
+  type BonusRow = { client: string; bonus: number };
+  const buildGroup = (role: string, defRate: number, source: any[], filter: (c: any) => boolean) => {
+    const rate = rateFor(role, defRate);
+    const decided = decidedByRole.get(role) || new Map();
+    const pending: BonusRow[] = [];
+    let approvedThisYear = 0;
+    const currentYear = nowInTashkent().getUTCFullYear();
+    for (const row of source) {
+      if (row.visa_result === "Bekor qilindi" || row.visa_result === "To'xtatildi") continue;
+      if (!filter(row)) continue;
+      const commissionUsd = Number(row.commission || 0);
+      if (commissionUsd <= 0) continue;
+      const bonus = Math.round(commissionUsd * rate);
+      const dec = decided.get(row.id);
+      if (!dec) {
+        pending.push({ client: row.client_name || "—", bonus });
+      } else if (dec.status === "approved" && dec.approved_year === currentYear) {
+        approvedThisYear += Number(dec.bonus_uzs || bonus);
+      }
+    }
+    const total = pending.reduce((s, r) => s + r.bonus, 0);
+    return { pending, total, approvedThisYear };
+  };
+
+  const salesGroup = buildGroup("sales", 500, salesC || [], (row: any) => isFullyPaid(row.id, Number(row.price_usd || 0)));
+  const boGroup = buildGroup("back_office", 500, boC || [], (row: any) => isFullyPaid(row.id, Number(row.price_usd || 0)));
+  const visaGroup = buildGroup("visa_bonus", 250, boC || [], (row: any) => row.visa_result === "Olindi" && !!row.visa_taken_date);
+
+  const sections: string[] = [];
+  const renderList = (rows: BonusRow[]) =>
+    rows.slice(0, 30).map((r, i) => `${i + 1}. ${r.client} — ${fmt(r.bonus)} so'm`).join("\n") +
+    (rows.length > 30 ? `\n… va yana ${rows.length - 30} ta` : "");
+
+  if (salesGroup.pending.length || salesGroup.approvedThisYear) {
+    sections.push(
+      `🛒 *Sales KPI*\n⏳ Kutilmoqda: *${fmt(salesGroup.total)} so'm* (${salesGroup.pending.length} ta)` +
+      (salesGroup.approvedThisYear ? `\n✅ Bu yil tasdiqlangan: ${fmt(salesGroup.approvedThisYear)} so'm` : "") +
+      (salesGroup.pending.length ? `\n\n${renderList(salesGroup.pending)}` : ""),
+    );
+  }
+  if (boGroup.pending.length || boGroup.approvedThisYear) {
+    sections.push(
+      `🏢 *Back Office KPI*\n⏳ Kutilmoqda: *${fmt(boGroup.total)} so'm* (${boGroup.pending.length} ta)` +
+      (boGroup.approvedThisYear ? `\n✅ Bu yil tasdiqlangan: ${fmt(boGroup.approvedThisYear)} so'm` : "") +
+      (boGroup.pending.length ? `\n\n${renderList(boGroup.pending)}` : ""),
+    );
+  }
+  if (visaGroup.pending.length || visaGroup.approvedThisYear) {
+    sections.push(
+      `🛂 *Viza bonusi*\n⏳ Kutilmoqda: *${fmt(visaGroup.total)} so'm* (${visaGroup.pending.length} ta)` +
+      (visaGroup.approvedThisYear ? `\n✅ Bu yil tasdiqlangan: ${fmt(visaGroup.approvedThisYear)} so'm` : "") +
+      (visaGroup.pending.length ? `\n\n${renderList(visaGroup.pending)}` : ""),
+    );
+  }
+
+  const totalPending = salesGroup.total + boGroup.total + visaGroup.total;
+  const header = `🎁 *Bonuslarim*\n👤 ${name}\n💰 Jami kutilayotgan: *${fmt(totalPending)} so'm*`;
+
+  const body = sections.length ? sections.join("\n\n───────────\n") : "Hozircha bonus yo'q.";
+  const text = `${header}\n\n${body}`;
+  await tg("sendMessage", { chat_id: chatId, text: text.slice(0, 3900), parse_mode: "Markdown" });
+}
+
+
 
 
 async function handleCheckIn(chatId: number, telegramId: number) {
@@ -738,7 +888,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                 : "";
               await tg("sendMessage", {
                 chat_id: chatId,
-                text: `Assalomu alaykum${from.first_name ? ", " + from.first_name : ""}! 👋\n\n🟢 Keldim — kelganingizni belgilang\n💰 Avans so'rash — avans uchun ariza\n📅 Javob so'rash — kela olmasangiz javob so'rash\n📋 Bajarilgan ishlar — bugungi ishlar hisoboti\n💵 Oyligim — oylik maoshingizni ko'rish\n⚠️ Jarimalarim — jarimalaringizni ko'rish${extra}`,
+                text: `Assalomu alaykum${from.first_name ? ", " + from.first_name : ""}! 👋\n\n🟢 Keldim — kelganingizni belgilang\n💰 Avans so'rash — avans uchun ariza\n📅 Javob so'rash — kela olmasangiz javob so'rash\n📋 Bajarilgan ishlar — bugungi ishlar hisoboti\n💵 Oyligim — oylik maoshingizni ko'rish\n⚠️ Jarimalarim — jarimalaringizni ko'rish\n🎁 Bonusim — kutilayotgan KPI bonuslaringiz${extra}`,
                 reply_markup: MKB,
               });
             } else if (text === "📄 Shartnomalar" || text.toLowerCase() === "shartnomalar" || text.startsWith("/shartnomalar")) {
@@ -767,6 +917,13 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
               } else {
                 await tg("sendMessage", { chat_id: chatId, text: "⚠️ Qaysi oy jarimalarini ko'rmoqchisiz?", reply_markup: monthsKb("fine") });
               }
+            } else if (text === "🎁 Bonusim" || text.toLowerCase() === "bonusim" || text.startsWith("/bonusim")) {
+              if (!tgRow?.employee_id) {
+                await tg("sendMessage", { chat_id: chatId, text: "⚠️ Akkauntingiz hali ishchiga bog'lanmagan.", reply_markup: MKB });
+              } else {
+                await sendMyBonus(chatId, tgRow.employee_id);
+              }
+
             } else if (text.startsWith("/dam_olish") || text.startsWith("/javob") || text === "📅 Javob so'rash" || text === "📅 Dam olish" || text.toLowerCase() === "javob so'rash" || text.toLowerCase() === "dam olish") {
               if (!tgRow?.employee_id) {
                 await tg("sendMessage", {
