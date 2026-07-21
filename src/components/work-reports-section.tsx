@@ -301,7 +301,7 @@ export function WorkReportsSection() {
                             : <Badge variant="destructive">Kutilmoqda</Badge>}
                         </td>
                         <td className="px-3 py-1.5 text-right">
-                          {!m.already_fined && (
+                          {!m.already_fined ? (
                             <Button
                               size="sm"
                               variant="default"
@@ -316,7 +316,20 @@ export function WorkReportsSection() {
                             >
                               {isBusy ? "..." : "Tasdiqlash"}
                             </Button>
-                          )}
+                          ) : m.fine_id ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={isBusy}
+                              onClick={() => {
+                                if (!confirm("Jarimani bekor qilishni tasdiqlaysizmi?")) return;
+                                setConfirmingRow(rowKey);
+                                cancelRowMut.mutate(m.fine_id!, { onSettled: () => setConfirmingRow(null) });
+                              }}
+                            >
+                              {isBusy ? "..." : <><Trash2 className="h-3.5 w-3.5 mr-1" />Bekor qilish</>}
+                            </Button>
+                          ) : null}
                         </td>
                       </tr>
                     );
