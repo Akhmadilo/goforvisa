@@ -400,8 +400,10 @@ async function sendMyFines(chatId: number, employeeId: string, year: number, mon
   });
   const text = `${title}\n${lines.join("\n")}\n\n─────────\n💸 *Jami: ${fmt(total)} so'm*`;
   await tg("sendMessage", { chat_id: chatId, text: text.slice(0, 3900), parse_mode: "Markdown" });
+}
 
 async function sendMyBonus(chatId: number, employeeId: string) {
+
   const c = sb();
   const { data: emp } = await c.from("employees").select("full_name").eq("id", employeeId).maybeSingle();
   const name = emp?.full_name;
