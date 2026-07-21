@@ -113,6 +113,7 @@ export function WorkReportsSection() {
   const [fineEmpFilter, setFineEmpFilter] = useState<string>("all");
   const [confirmingRow, setConfirmingRow] = useState<string | null>(null);
   const addFineForRowFn = useServerFn(addManualFine);
+  const deleteFineFn = useServerFn(deleteFine);
   const confirmRowMut = useMutation({
     mutationFn: (v: { employeeId: string; date: string }) =>
       addFineForRowFn({ data: {
@@ -124,6 +125,15 @@ export function WorkReportsSection() {
       }}),
     onSuccess: () => {
       toast.success("Jarima qo'shildi");
+      qc.invalidateQueries({ queryKey: ["missing-report-fines"] });
+      qc.invalidateQueries({ queryKey: ["jarima-data"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
+  const cancelRowMut = useMutation({
+    mutationFn: (id: string) => deleteFineFn({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Jarima bekor qilindi");
       qc.invalidateQueries({ queryKey: ["missing-report-fines"] });
       qc.invalidateQueries({ queryKey: ["jarima-data"] });
     },
