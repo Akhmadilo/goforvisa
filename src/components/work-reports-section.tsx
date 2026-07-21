@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { supabase } from "@/integrations/supabase/client";
-import { syncMissingReportFines, setReportRequired, addManualFine } from "@/lib/jarima.functions";
+import { syncMissingReportFines, setReportRequired, addManualFine, deleteFine } from "@/lib/jarima.functions";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
