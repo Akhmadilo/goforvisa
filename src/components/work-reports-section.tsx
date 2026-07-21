@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { supabase } from "@/integrations/supabase/client";
-import { syncMissingReportFines, setReportRequired, addManualFine } from "@/lib/jarima.functions";
+import { syncMissingReportFines, setReportRequired, addManualFine, deleteFine } from "@/lib/jarima.functions";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
@@ -113,6 +113,7 @@ export function WorkReportsSection() {
   const [fineEmpFilter, setFineEmpFilter] = useState<string>("all");
   const [confirmingRow, setConfirmingRow] = useState<string | null>(null);
   const addFineForRowFn = useServerFn(addManualFine);
+  const deleteFineFn = useServerFn(deleteFine);
   const confirmRowMut = useMutation({
     mutationFn: (v: { employeeId: string; date: string }) =>
       addFineForRowFn({ data: {
@@ -124,6 +125,15 @@ export function WorkReportsSection() {
       }}),
     onSuccess: () => {
       toast.success("Jarima qo'shildi");
+      qc.invalidateQueries({ queryKey: ["missing-report-fines"] });
+      qc.invalidateQueries({ queryKey: ["jarima-data"] });
+    },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
+  const cancelRowMut = useMutation({
+    mutationFn: (id: string) => deleteFineFn({ data: { id } }),
+    onSuccess: () => {
+      toast.success("Jarima bekor qilindi");
       qc.invalidateQueries({ queryKey: ["missing-report-fines"] });
       qc.invalidateQueries({ queryKey: ["jarima-data"] });
     },
@@ -291,7 +301,7 @@ export function WorkReportsSection() {
                             : <Badge variant="destructive">Kutilmoqda</Badge>}
                         </td>
                         <td className="px-3 py-1.5 text-right">
-                          {!m.already_fined && (
+                          {!m.already_fined ? (
                             <Button
                               size="sm"
                               variant="default"
@@ -306,7 +316,20 @@ export function WorkReportsSection() {
                             >
                               {isBusy ? "..." : "Tasdiqlash"}
                             </Button>
-                          )}
+                          ) : m.fine_id ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              disabled={isBusy}
+                              onClick={() => {
+                                if (!confirm("Jarimani bekor qilishni tasdiqlaysizmi?")) return;
+                                setConfirmingRow(rowKey);
+                                cancelRowMut.mutate(m.fine_id!, { onSettled: () => setConfirmingRow(null) });
+                              }}
+                            >
+                              {isBusy ? "..." : <><Trash2 className="h-3.5 w-3.5 mr-1" />Bekor qilish</>}
+                            </Button>
+                          ) : null}
                         </td>
                       </tr>
                     );

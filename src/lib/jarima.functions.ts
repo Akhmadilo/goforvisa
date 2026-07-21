@@ -79,6 +79,7 @@ export type MissingReportRow = {
   employee_name: string;
   date: string;
   already_fined: boolean;
+  fine_id: string | null;
 };
 
 // Compute (and optionally persist) fines for working days without a work_report.
@@ -108,7 +109,7 @@ export const syncMissingReportFines = createServerFn({ method: "POST" })
       c.from("employees").select("id, full_name, terminated_at, created_at, report_required").is("terminated_at", null),
       c.from("employee_schedules").select("employee_id, weekday, is_working"),
       c.from("work_reports").select("employee_id, date").gte("date", start).lte("date", end),
-      c.from("fines").select("employee_id, date, reason").eq("reason", NO_REPORT_REASON).gte("date", start).lte("date", end),
+      c.from("fines").select("id, employee_id, date, reason").eq("reason", NO_REPORT_REASON).gte("date", start).lte("date", end),
     ]);
     if (empRes.error) throw new Error(empRes.error.message);
 
@@ -118,13 +119,13 @@ export const syncMissingReportFines = createServerFn({ method: "POST" })
     
     const schedules = (schRes.data || []) as { employee_id: string; weekday: number; is_working: boolean }[];
     const reports = (wrRes.data || []) as { employee_id: string; date: string }[];
-    const existing = (fineRes.data || []) as { employee_id: string; date: string }[];
+    const existing = (fineRes.data || []) as { id: string; employee_id: string; date: string }[];
 
     // schedule lookup: key = `${emp}-${weekday}` (weekday 0=Sun..6=Sat)
     const schMap = new Map<string, boolean>();
     for (const s of schedules) schMap.set(`${s.employee_id}-${s.weekday}`, s.is_working);
     const reportSet = new Set(reports.map(r => `${r.employee_id}-${r.date}`));
-    const existingSet = new Set(existing.map(f => `${f.employee_id}-${f.date}`));
+    const existingMap = new Map(existing.map(f => [`${f.employee_id}-${f.date}`, f.id]));
 
     const missing: MissingReportRow[] = [];
     const toInsert: { employee_id: string; date: string; amount_uzs: number; minutes_late: number; reason: string }[] = [];
@@ -141,8 +142,9 @@ export const syncMissingReportFines = createServerFn({ method: "POST" })
         if (schMap.has(schKey) && schMap.get(schKey) === false) continue;
         if (reportSet.has(`${emp.id}-${dateStr}`)) continue;
         const key = `${emp.id}-${dateStr}`;
-        const already = existingSet.has(key);
-        missing.push({ employee_id: emp.id, employee_name: emp.full_name, date: dateStr, already_fined: already });
+        const fineId = existingMap.get(key) ?? null;
+        const already = fineId !== null;
+        missing.push({ employee_id: emp.id, employee_name: emp.full_name, date: dateStr, already_fined: already, fine_id: fineId });
         if (!already) {
           toInsert.push({
             employee_id: emp.id,
