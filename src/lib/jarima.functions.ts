@@ -79,6 +79,7 @@ export type MissingReportRow = {
   employee_name: string;
   date: string;
   already_fined: boolean;
+  fine_id: string | null;
 };
 
 // Compute (and optionally persist) fines for working days without a work_report.
