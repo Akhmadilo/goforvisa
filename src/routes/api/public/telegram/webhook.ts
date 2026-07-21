@@ -917,6 +917,13 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
               } else {
                 await tg("sendMessage", { chat_id: chatId, text: "⚠️ Qaysi oy jarimalarini ko'rmoqchisiz?", reply_markup: monthsKb("fine") });
               }
+            } else if (text === "🎁 Bonusim" || text.toLowerCase() === "bonusim" || text.startsWith("/bonusim")) {
+              if (!tgRow?.employee_id) {
+                await tg("sendMessage", { chat_id: chatId, text: "⚠️ Akkauntingiz hali ishchiga bog'lanmagan.", reply_markup: MKB });
+              } else {
+                await sendMyBonus(chatId, tgRow.employee_id);
+              }
+
             } else if (text.startsWith("/dam_olish") || text.startsWith("/javob") || text === "📅 Javob so'rash" || text === "📅 Dam olish" || text.toLowerCase() === "javob so'rash" || text.toLowerCase() === "dam olish") {
               if (!tgRow?.employee_id) {
                 await tg("sendMessage", {
