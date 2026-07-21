@@ -53,6 +53,7 @@ const MAIN_KB = {
     [{ text: "💰 Avans so'rash" }, { text: "📅 Javob so'rash" }],
     [{ text: "📋 Bajarilgan ishlar" }],
     [{ text: "💵 Oyligim" }, { text: "⚠️ Jarimalarim" }],
+    [{ text: "🎁 Bonusim" }],
   ],
   resize_keyboard: true,
 };
@@ -65,12 +66,14 @@ function mainKb(role?: string | null) {
     [{ text: "💰 Avans so'rash" }, { text: "📅 Javob so'rash" }],
     [{ text: "📋 Bajarilgan ishlar" }],
     [{ text: "💵 Oyligim" }, { text: "⚠️ Jarimalarim" }],
+    [{ text: "🎁 Bonusim" }],
   ];
   if (role && (CONTRACTS_ROLES as readonly string[]).includes(role)) {
     rows.push([{ text: "📄 Shartnomalar" }]);
   }
   return { keyboard: rows, resize_keyboard: true };
 }
+
 
 
 const ABSENCE_FINE_UZS = 120000;
