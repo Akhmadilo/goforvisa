@@ -392,7 +392,19 @@ function OperatorsCard() {
                     </>
                   ) : (
                     <>
-                      <span className="text-sm flex-1">{r.name}</span>
+                      <span className={`text-sm flex-1 ${r.is_active === false ? "text-muted-foreground line-through" : ""}`}>
+                        {r.name}
+                        {r.is_active === false && <span className="ml-1 text-[10px] uppercase text-muted-foreground">(nofaol)</span>}
+                      </span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className={`h-7 w-7 ${r.is_active === false ? "text-muted-foreground" : "text-emerald-600"}`}
+                        title={r.is_active === false ? "Faol qilish" : "Nofaol qilish"}
+                        onClick={() => toggleActive(r)}
+                      >
+                        {r.is_active === false ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </Button>
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(r)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
