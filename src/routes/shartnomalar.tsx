@@ -195,15 +195,17 @@ function ShartnomalarPage() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("operators")
-        .select("id, kind, name")
+        .select("id, kind, name, is_active")
         .order("name");
       if (error) throw error;
-      return (data ?? []) as { id: string; kind: string; name: string }[];
+      return (data ?? []) as { id: string; kind: string; name: string; is_active?: boolean }[];
     },
     enabled: canAccessContracts,
   });
   const opByKind = (k: string) =>
-    (operators ?? []).filter((o) => o.kind === k).map((o) => o.name);
+    (operators ?? [])
+      .filter((o) => o.kind === k && o.is_active !== false)
+      .map((o) => o.name);
   const salesOptions = useMemo(() => opByKind("sales"), [operators]);
   const backOfficeOptions = useMemo(() => opByKind("back_office"), [operators]);
   const callCentreOptions = useMemo(() => opByKind("call_centre"), [operators]);

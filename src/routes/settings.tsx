@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Plus, Trash2, Coins, Pencil, Check, X } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Coins, Pencil, Check, X, Eye, EyeOff } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -228,7 +228,7 @@ function LookupCard({ tableName, title, hint, invalidateKey, refTable, refColumn
 }
 
 type OperatorKind = "call_centre" | "sales" | "back_office";
-type OperatorRow = { id: string; kind: OperatorKind; name: string };
+type OperatorRow = { id: string; kind: OperatorKind; name: string; is_active?: boolean };
 
 const KIND_LABELS: Record<OperatorKind, string> = {
   call_centre: "Call centre",
@@ -247,7 +247,7 @@ function OperatorsCard() {
     queryFn: async (): Promise<OperatorRow[]> => {
       const { data, error } = await (supabase as any)
         .from("operators")
-        .select("id, kind, name")
+        .select("id, kind, name, is_active")
         .order("kind")
         .order("name");
       if (error) throw error;
@@ -281,6 +281,17 @@ function OperatorsCard() {
     const { error } = await (supabase as any).from("operators").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("O'chirildi");
+    invalidateAll();
+  };
+
+  const toggleActive = async (r: OperatorRow) => {
+    const next = r.is_active === false;
+    const { error } = await (supabase as any)
+      .from("operators")
+      .update({ is_active: next })
+      .eq("id", r.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(next ? "Faol qilindi" : "Nofaol qilindi");
     invalidateAll();
   };
 
@@ -381,7 +392,19 @@ function OperatorsCard() {
                     </>
                   ) : (
                     <>
-                      <span className="text-sm flex-1">{r.name}</span>
+                      <span className={`text-sm flex-1 ${r.is_active === false ? "text-muted-foreground line-through" : ""}`}>
+                        {r.name}
+                        {r.is_active === false && <span className="ml-1 text-[10px] uppercase text-muted-foreground">(nofaol)</span>}
+                      </span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className={`h-7 w-7 ${r.is_active === false ? "text-muted-foreground" : "text-emerald-600"}`}
+                        title={r.is_active === false ? "Faol qilish" : "Nofaol qilish"}
+                        onClick={() => toggleActive(r)}
+                      >
+                        {r.is_active === false ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </Button>
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => startEdit(r)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
