@@ -440,24 +440,45 @@ async function sendMyBonus(chatId: number, employeeId: string, year: number, mon
     decidedByRole.get(a.role)!.set(a.contract_id, a);
   });
 
-  // Sales KPI: contracts where sales_manager = name, fully paid, commission > 0
+  const monthStr = String(month);
+  const yearStr = String(year);
+
+  // Sales KPI: contracts where sales_manager = name, month matches
   const { data: salesC } = await c
     .from("contracts")
-    .select("id, client_name, price_usd, commission, visa_result")
+    .select("id, client_name, price_usd, commission, visa_result, year, month")
     .eq("sales_manager", name)
+    .eq("year", yearStr)
+    .eq("month", monthStr)
     .gt("price_usd", 0)
     .gt("commission", 0);
 
-  // Back-office KPI: contracts where back_office_manager = name, fully paid, commission > 0
+  // Back-office KPI: contracts where back_office_manager = name, month matches
   const { data: boC } = await c
+    .from("contracts")
+    .select("id, client_name, price_usd, commission, visa_result, visa_taken_date, year, month")
+    .eq("back_office_manager", name)
+    .eq("year", yearStr)
+    .eq("month", monthStr)
+    .gt("commission", 0);
+
+  // Visa bonus: contracts where visa was taken during selected month (independent of contract month)
+  const visaStart = `${year}-${String(month).padStart(2, "0")}-01`;
+  const visaEndDate = new Date(Date.UTC(year, month, 1));
+  const visaEnd = visaEndDate.toISOString().slice(0, 10);
+  const { data: visaC } = await c
     .from("contracts")
     .select("id, client_name, price_usd, commission, visa_result, visa_taken_date")
     .eq("back_office_manager", name)
+    .eq("visa_result", "Olindi")
+    .gte("visa_taken_date", visaStart)
+    .lt("visa_taken_date", visaEnd)
     .gt("commission", 0);
 
   const allContractIds = [
     ...((salesC || []).map((r: any) => r.id)),
     ...((boC || []).map((r: any) => r.id)),
+    ...((visaC || []).map((r: any) => r.id)),
   ];
   const uniqueIds = Array.from(new Set(allContractIds));
   const { data: pays } = uniqueIds.length
@@ -489,8 +510,7 @@ async function sendMyBonus(chatId: number, employeeId: string, year: number, mon
     const rate = rateFor(role, defRate);
     const decided = decidedByRole.get(role) || new Map();
     const pending: BonusRow[] = [];
-    let approvedThisYear = 0;
-    const currentYear = nowInTashkent().getUTCFullYear();
+    let approvedInMonth = 0;
     for (const row of source) {
       if (row.visa_result === "Bekor qilindi" || row.visa_result === "To'xtatildi") continue;
       if (!filter(row)) continue;
@@ -500,49 +520,49 @@ async function sendMyBonus(chatId: number, employeeId: string, year: number, mon
       const dec = decided.get(row.id);
       if (!dec) {
         pending.push({ client: row.client_name || "—", bonus });
-      } else if (dec.status === "approved" && dec.approved_year === currentYear) {
-        approvedThisYear += Number(dec.bonus_uzs || bonus);
+      } else if (dec.status === "approved") {
+        approvedInMonth += Number(dec.bonus_uzs || bonus);
       }
     }
     const total = pending.reduce((s, r) => s + r.bonus, 0);
-    return { pending, total, approvedThisYear };
+    return { pending, total, approvedInMonth };
   };
 
   const salesGroup = buildGroup("sales", 500, salesC || [], (row: any) => isFullyPaid(row.id, Number(row.price_usd || 0)));
   const boGroup = buildGroup("back_office", 500, boC || [], (row: any) => isFullyPaid(row.id, Number(row.price_usd || 0)));
-  const visaGroup = buildGroup("visa_bonus", 250, boC || [], (row: any) => row.visa_result === "Olindi" && !!row.visa_taken_date);
+  const visaGroup = buildGroup("visa_bonus", 250, visaC || [], () => true);
 
   const sections: string[] = [];
   const renderList = (rows: BonusRow[]) =>
     rows.slice(0, 30).map((r, i) => `${i + 1}. ${r.client} — ${fmt(r.bonus)} so'm`).join("\n") +
     (rows.length > 30 ? `\n… va yana ${rows.length - 30} ta` : "");
 
-  if (salesGroup.pending.length || salesGroup.approvedThisYear) {
+  if (salesGroup.pending.length || salesGroup.approvedInMonth) {
     sections.push(
       `🛒 *Sales KPI*\n⏳ Kutilmoqda: *${fmt(salesGroup.total)} so'm* (${salesGroup.pending.length} ta)` +
-      (salesGroup.approvedThisYear ? `\n✅ Bu yil tasdiqlangan: ${fmt(salesGroup.approvedThisYear)} so'm` : "") +
+      (salesGroup.approvedInMonth ? `\n✅ Tasdiqlangan: ${fmt(salesGroup.approvedInMonth)} so'm` : "") +
       (salesGroup.pending.length ? `\n\n${renderList(salesGroup.pending)}` : ""),
     );
   }
-  if (boGroup.pending.length || boGroup.approvedThisYear) {
+  if (boGroup.pending.length || boGroup.approvedInMonth) {
     sections.push(
       `🏢 *Back Office KPI*\n⏳ Kutilmoqda: *${fmt(boGroup.total)} so'm* (${boGroup.pending.length} ta)` +
-      (boGroup.approvedThisYear ? `\n✅ Bu yil tasdiqlangan: ${fmt(boGroup.approvedThisYear)} so'm` : "") +
+      (boGroup.approvedInMonth ? `\n✅ Tasdiqlangan: ${fmt(boGroup.approvedInMonth)} so'm` : "") +
       (boGroup.pending.length ? `\n\n${renderList(boGroup.pending)}` : ""),
     );
   }
-  if (visaGroup.pending.length || visaGroup.approvedThisYear) {
+  if (visaGroup.pending.length || visaGroup.approvedInMonth) {
     sections.push(
       `🛂 *Viza bonusi*\n⏳ Kutilmoqda: *${fmt(visaGroup.total)} so'm* (${visaGroup.pending.length} ta)` +
-      (visaGroup.approvedThisYear ? `\n✅ Bu yil tasdiqlangan: ${fmt(visaGroup.approvedThisYear)} so'm` : "") +
+      (visaGroup.approvedInMonth ? `\n✅ Tasdiqlangan: ${fmt(visaGroup.approvedInMonth)} so'm` : "") +
       (visaGroup.pending.length ? `\n\n${renderList(visaGroup.pending)}` : ""),
     );
   }
 
   const totalPending = salesGroup.total + boGroup.total + visaGroup.total;
-  const header = `🎁 *Bonuslarim*\n👤 ${name}\n💰 Jami kutilayotgan: *${fmt(totalPending)} so'm*`;
+  const header = `🎁 *Bonuslarim — ${MONTHS_UZ[month - 1]} ${year}*\n👤 ${name}\n💰 Jami kutilayotgan: *${fmt(totalPending)} so'm*`;
 
-  const body = sections.length ? sections.join("\n\n───────────\n") : "Hozircha bonus yo'q.";
+  const body = sections.length ? sections.join("\n\n───────────\n") : "Bu oy uchun bonus yo'q.";
   const text = `${header}\n\n${body}`;
   await tg("sendMessage", { chat_id: chatId, text: text.slice(0, 3900), parse_mode: "Markdown" });
 }
