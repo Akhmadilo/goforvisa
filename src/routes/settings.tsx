@@ -228,7 +228,7 @@ function LookupCard({ tableName, title, hint, invalidateKey, refTable, refColumn
 }
 
 type OperatorKind = "call_centre" | "sales" | "back_office";
-type OperatorRow = { id: string; kind: OperatorKind; name: string };
+type OperatorRow = { id: string; kind: OperatorKind; name: string; is_active?: boolean };
 
 const KIND_LABELS: Record<OperatorKind, string> = {
   call_centre: "Call centre",
@@ -247,7 +247,7 @@ function OperatorsCard() {
     queryFn: async (): Promise<OperatorRow[]> => {
       const { data, error } = await (supabase as any)
         .from("operators")
-        .select("id, kind, name")
+        .select("id, kind, name, is_active")
         .order("kind")
         .order("name");
       if (error) throw error;
@@ -281,6 +281,17 @@ function OperatorsCard() {
     const { error } = await (supabase as any).from("operators").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     toast.success("O'chirildi");
+    invalidateAll();
+  };
+
+  const toggleActive = async (r: OperatorRow) => {
+    const next = r.is_active === false;
+    const { error } = await (supabase as any)
+      .from("operators")
+      .update({ is_active: next })
+      .eq("id", r.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(next ? "Faol qilindi" : "Nofaol qilindi");
     invalidateAll();
   };
 
