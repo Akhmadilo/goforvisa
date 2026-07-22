@@ -1049,7 +1049,7 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                   await sendContractsForMonth(chatId, y, m);
                 }
               }
-            } else if (data.startsWith("sal_") || data.startsWith("fine_")) {
+            } else if (data.startsWith("sal_") || data.startsWith("fine_") || data.startsWith("bon_")) {
               const { data: link } = await sb()
                 .from("employee_telegram").select("employee_id").eq("telegram_id", tgId).maybeSingle();
               if (!link?.employee_id) {
@@ -1060,7 +1060,8 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                 const m = Number(parts[2]);
                 if (y && m) {
                   if (data.startsWith("sal_")) await sendMySalary(chatId, link.employee_id, y, m);
-                  else await sendMyFines(chatId, link.employee_id, y, m);
+                  else if (data.startsWith("fine_")) await sendMyFines(chatId, link.employee_id, y, m);
+                  else await sendMyBonus(chatId, link.employee_id, y, m);
                 }
               }
             } else if (data.startsWith("lv_")) {
