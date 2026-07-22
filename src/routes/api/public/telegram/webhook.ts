@@ -402,7 +402,7 @@ async function sendMyFines(chatId: number, employeeId: string, year: number, mon
   await tg("sendMessage", { chat_id: chatId, text: text.slice(0, 3900), parse_mode: "Markdown" });
 }
 
-async function sendMyBonus(chatId: number, employeeId: string) {
+async function sendMyBonus(chatId: number, employeeId: string, year: number, month: number) {
 
   const c = sb();
   const { data: emp } = await c.from("employees").select("full_name").eq("id", employeeId).maybeSingle();
