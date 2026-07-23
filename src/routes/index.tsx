@@ -364,6 +364,38 @@ function Dashboard() {
       .slice(0, 8);
   }, [filteredForManagers]);
 
+  // Sotuvchilar performance — barcha shartnomalar bo'yicha (top yo'q)
+  const salesPerformance = useMemo(() => {
+    const map = new Map<string, { contracts: number; revenue: number; profit: number }>();
+    for (const c of filteredForManagers) {
+      const key = c.salesManager || "—";
+      const m = map.get(key) ?? { contracts: 0, revenue: 0, profit: 0 };
+      m.contracts += 1;
+      m.revenue += toUsd(c, getRate);
+      m.profit += netProfit(c);
+      map.set(key, m);
+    }
+    return Array.from(map.entries())
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.contracts - a.contracts);
+  }, [filteredForManagers]);
+
+  // Call operatorlar performance — callCentre bo'yicha
+  const callCentrePerformance = useMemo(() => {
+    const map = new Map<string, { contracts: number; revenue: number }>();
+    for (const c of filtered) {
+      const key = c.callCentre || "—";
+      const m = map.get(key) ?? { contracts: 0, revenue: 0 };
+      m.contracts += 1;
+      m.revenue += toUsd(c, getRate);
+      map.set(key, m);
+    }
+    return Array.from(map.entries())
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.contracts - a.contracts);
+  }, [filtered]);
+
+
   const typeData = useMemo(() => {
     const map = new Map<string, number>();
     for (const c of filtered) {
