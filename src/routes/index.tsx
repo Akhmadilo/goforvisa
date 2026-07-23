@@ -1010,6 +1010,98 @@ function Dashboard() {
         </div>
         )}
 
+        {can("operators_performance") && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Sotuvchilar performance */}
+          <Card className="p-4 md:p-5 shadow-[var(--shadow-card)]">
+            <div className="flex items-center justify-between mb-3 md:mb-4">
+              <h3 className="font-semibold text-sm md:text-base">Sotuvchilar samaradorligi</h3>
+              <Badge variant="secondary">{salesPerformance.length}</Badge>
+            </div>
+            <div className="h-[220px] md:h-[260px] mb-3">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={salesPerformance}>
+                  <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+                  <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} angle={-20} textAnchor="end" height={60} interval={0} />
+                  <YAxis stroke="var(--color-muted-foreground)" fontSize={11} allowDecimals={false} />
+                  <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: "8px" }} />
+                  <Bar dataKey="contracts" fill="var(--color-chart-1)" name="Shartnomalar" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Sotuvchi</TableHead>
+                    <TableHead className="text-right">Shartnomalar</TableHead>
+                    <TableHead className="text-right">Daromad ($)</TableHead>
+                    <TableHead className="text-right">Sof foyda ($)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {salesPerformance.map((r) => (
+                    <TableRow key={r.name}>
+                      <TableCell className="font-medium">{r.name}</TableCell>
+                      <TableCell className="text-right">{r.contracts}</TableCell>
+                      <TableCell className="text-right">{r.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</TableCell>
+                      <TableCell className="text-right">{r.profit.toLocaleString(undefined, { maximumFractionDigits: 0 })}</TableCell>
+                    </TableRow>
+                  ))}
+                  {salesPerformance.length === 0 && (
+                    <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Ma'lumot yo'q</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+
+          {/* Call operatorlar performance */}
+          <Card className="p-4 md:p-5 shadow-[var(--shadow-card)]">
+            <div className="flex items-center justify-between mb-3 md:mb-4">
+              <h3 className="font-semibold text-sm md:text-base">Call operatorlar samaradorligi</h3>
+              <Badge variant="secondary">{callCentrePerformance.length}</Badge>
+            </div>
+            <div className="h-[220px] md:h-[260px] mb-3">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={callCentrePerformance}>
+                  <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+                  <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} angle={-20} textAnchor="end" height={60} interval={0} />
+                  <YAxis stroke="var(--color-muted-foreground)" fontSize={11} allowDecimals={false} />
+                  <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: "8px" }} />
+                  <Bar dataKey="contracts" fill="var(--color-chart-2)" name="Shartnomalar" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Operator</TableHead>
+                    <TableHead className="text-right">Shartnomalar</TableHead>
+                    <TableHead className="text-right">Daromad ($)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {callCentrePerformance.map((r) => (
+                    <TableRow key={r.name}>
+                      <TableCell className="font-medium">{r.name}</TableCell>
+                      <TableCell className="text-right">{r.contracts}</TableCell>
+                      <TableCell className="text-right">{r.revenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</TableCell>
+                    </TableRow>
+                  ))}
+                  {callCentrePerformance.length === 0 && (
+                    <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">Ma'lumot yo'q</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        </div>
+        )}
+
+
+
         {can("companies_revenue") && (
         <Card className="p-4 md:p-5 shadow-[var(--shadow-card)]">
           <h3 className="font-semibold text-sm md:text-base mb-3 md:mb-4">{t("dash.chart.companiesRevenue")}</h3>
