@@ -213,7 +213,9 @@ function Dashboard() {
     "payment_status",
     "top_clients",
     "yoy_comparison",
+    "operators_performance",
   ].some(can);
+
 
   const fetchContracts = useServerFn(getContracts);
   const { data, isLoading, isFetching, error, dataUpdatedAt, refetch } = useQuery({
