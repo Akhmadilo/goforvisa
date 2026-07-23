@@ -440,29 +440,25 @@ async function sendMyBonus(chatId: number, employeeId: string, year: number, mon
     decidedByRole.get(a.role)!.set(a.contract_id, a);
   });
 
-  const monthStr = String(month);
-  const yearStr = String(year);
+  const targetYm = `${year}-${String(month).padStart(2, "0")}`;
 
-  // Sales KPI: contracts where sales_manager = name, month matches
+  // Sales KPI: all contracts where sales_manager = name (month determined by full-payment date)
   const { data: salesC } = await c
     .from("contracts")
-    .select("id, client_name, price_usd, commission, visa_result, year, month")
+    .select("id, client_name, price_usd, commission, visa_result")
     .eq("sales_manager", name)
-    .eq("year", yearStr)
-    .eq("month", monthStr)
     .gt("price_usd", 0)
     .gt("commission", 0);
 
-  // Back-office KPI: contracts where back_office_manager = name, month matches
+  // Back-office KPI: all contracts where back_office_manager = name
   const { data: boC } = await c
     .from("contracts")
-    .select("id, client_name, price_usd, commission, visa_result, visa_taken_date, year, month")
+    .select("id, client_name, price_usd, commission, visa_result")
     .eq("back_office_manager", name)
-    .eq("year", yearStr)
-    .eq("month", monthStr)
+    .gt("price_usd", 0)
     .gt("commission", 0);
 
-  // Visa bonus: contracts where visa was taken during selected month (independent of contract month)
+  // Visa bonus: contracts where visa was taken during selected month
   const visaStart = `${year}-${String(month).padStart(2, "0")}-01`;
   const visaEndDate = new Date(Date.UTC(year, month, 1));
   const visaEnd = visaEndDate.toISOString().slice(0, 10);
@@ -492,7 +488,8 @@ async function sendMyBonus(chatId: number, employeeId: string, year: number, mon
     paysByContract.set(p.contract_id, arr);
   });
 
-  const isFullyPaid = (contractId: string, priceUsd: number): boolean => {
+  // Returns "YYYY-MM" of the payment that fully closed the contract, or null.
+  const fullyPaidMonth = (contractId: string, priceUsd: number): string | null => {
     const ps = paysByContract.get(contractId) || [];
     let running = 0;
     for (const p of ps) {
@@ -500,9 +497,9 @@ async function sendMyBonus(chatId: number, employeeId: string, year: number, mon
       const ym = (p.paid_at || "").slice(0, 7);
       const usd = (p.currency || "UZS") === "USD" ? amt : amt / getRate(ym);
       running += usd;
-      if (running >= priceUsd - 0.01) return true;
+      if (running >= priceUsd - 0.01) return ym;
     }
-    return false;
+    return null;
   };
 
   type BonusRow = { client: string; bonus: number };
@@ -528,8 +525,8 @@ async function sendMyBonus(chatId: number, employeeId: string, year: number, mon
     return { pending, total, approvedInMonth };
   };
 
-  const salesGroup = buildGroup("sales", 500, salesC || [], (row: any) => isFullyPaid(row.id, Number(row.price_usd || 0)));
-  const boGroup = buildGroup("back_office", 500, boC || [], (row: any) => isFullyPaid(row.id, Number(row.price_usd || 0)));
+  const salesGroup = buildGroup("sales", 500, salesC || [], (row: any) => fullyPaidMonth(row.id, Number(row.price_usd || 0)) === targetYm);
+  const boGroup = buildGroup("back_office", 500, boC || [], (row: any) => fullyPaidMonth(row.id, Number(row.price_usd || 0)) === targetYm);
   const visaGroup = buildGroup("visa_bonus", 250, visaC || [], () => true);
 
   const sections: string[] = [];
