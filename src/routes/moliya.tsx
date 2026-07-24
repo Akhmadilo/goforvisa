@@ -32,6 +32,7 @@ import { getContracts, type Contract } from "@/lib/contracts.functions";
 import { useUsdRates } from "@/lib/usd-rates";
 import { useT, getMonthNames } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { FinanceInsights } from "@/components/finance-insights";
 
 
 export const Route = createFileRoute("/moliya")({
