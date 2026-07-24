@@ -206,6 +206,20 @@ export const setTelegramBotRole = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const deleteTelegramAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { telegramRowId: string }) =>
+    z.object({ telegramRowId: z.string().uuid() }).parse(d)
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("employee_telegram")
+      .delete()
+      .eq("id", data.telegramRowId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const saveSchedule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: { employeeId: string; weekday: number; startTime: string; isWorking: boolean }) =>

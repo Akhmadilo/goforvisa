@@ -26,8 +26,9 @@ import { useNavigate } from "@tanstack/react-router";
 
 import { supabase } from "@/integrations/supabase/client";
 import {
-  getJarimaData, linkTelegramToEmployee, saveSchedule, saveFineRule, deleteFineRule,
-  updateAttendanceCheckIn, setAbsenceFine, clearDay, setTelegramBotRole, deleteFine,
+ getJarimaData, linkTelegramToEmployee, saveSchedule, saveFineRule, deleteFineRule,
+ updateAttendanceCheckIn, setAbsenceFine, clearDay, setTelegramBotRole, deleteFine,
+ deleteTelegramAccount,
 } from "@/lib/jarima.functions";
 
 const NO_REPORT_REASON = "Hisobot yozmagan";
@@ -452,6 +453,7 @@ function JarimaPage() {
   const fetchData = useServerFn(getJarimaData);
   const linkFn = useServerFn(linkTelegramToEmployee);
   const botRoleFn = useServerFn(setTelegramBotRole);
+  const delTgFn = useServerFn(deleteTelegramAccount);
   const saveSchedFn = useServerFn(saveSchedule);
   const saveRuleFn = useServerFn(saveFineRule);
   const delRuleFn = useServerFn(deleteFineRule);
@@ -563,6 +565,11 @@ function JarimaPage() {
     mutationFn: (v: { telegramRowId: string; botRole: "none" | "owner" | "ceo" | "financier" | "director" | "finance" }) => botRoleFn({ data: v }),
     onSuccess: () => { invalidate(); toast.success("Lavozim saqlandi"); },
     onError: (e: any) => toast.error(e.message),
+  });
+  const delTgMut = useMutation({
+    mutationFn: (id: string) => delTgFn({ data: { telegramRowId: id } }),
+    onSuccess: () => { invalidate(); toast.success("Telegram akkaunt o'chirildi"); },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
   });
   const schedMut = useMutation({
     mutationFn: (v: { employeeId: string; weekday: number; startTime: string; isWorking: boolean }) =>
@@ -781,6 +788,7 @@ function JarimaPage() {
                           <TableHead>Ism</TableHead>
                           <TableHead>Ishchi</TableHead>
                           <TableHead>Bot lavozimi</TableHead>
+                          <TableHead className="w-[60px]"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -824,10 +832,24 @@ function JarimaPage() {
                                  </SelectContent>
                                </Select>
                             </TableCell>
+                            <TableCell>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => {
+                                  if (confirm("Ushbu Telegram akkauntni jadvaldan o'chirmoqchimisiz?")) {
+                                    delTgMut.mutate(tg.id);
+                                  }
+                                }}
+                                title="O'chirish"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </TableCell>
                           </TableRow>
                         ))}
                         {(data?.telegram || []).length === 0 && (
-                          <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">
+                          <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">
                             Hali hech kim botga /start yubormagan
                           </TableCell></TableRow>
                         )}
