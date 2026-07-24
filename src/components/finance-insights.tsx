@@ -16,12 +16,11 @@ type Expense = {
   id: string;
   expense_date: string;
   total_amount: number | string;
-  currency: "UZS" | "USD";
+  currency: string;
   category: string;
 };
 
 type Payment = {
-  id: string;
   expense_id: string;
   paid_at: string;
   amount: number | string;
