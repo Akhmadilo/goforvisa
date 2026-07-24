@@ -788,6 +788,7 @@ function JarimaPage() {
                           <TableHead>Ism</TableHead>
                           <TableHead>Ishchi</TableHead>
                           <TableHead>Bot lavozimi</TableHead>
+                          <TableHead className="w-[60px]"></TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
