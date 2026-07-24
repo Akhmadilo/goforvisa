@@ -1227,6 +1227,20 @@ function FinancePage() {
             </div>
           </Card>
 
+          <FinanceInsights
+            contracts={contracts}
+            expenses={expenses}
+            payments={payments}
+            year={year}
+            months={months}
+            basis={basis}
+            currency={currency}
+            getRate={getRate}
+            fmt={fmt}
+            monthNames={MONTHS}
+            t={t as (k: string) => string}
+          />
+
           <AgedReceivablesCard contracts={contracts} t={t} />
 
           <div className="text-xs text-muted-foreground text-center pb-4">
