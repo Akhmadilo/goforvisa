@@ -32,6 +32,7 @@ import { getContracts, type Contract } from "@/lib/contracts.functions";
 import { useUsdRates } from "@/lib/usd-rates";
 import { useT, getMonthNames } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { FinanceInsights } from "@/components/finance-insights";
 
 
 export const Route = createFileRoute("/moliya")({
@@ -1225,6 +1226,20 @@ function FinancePage() {
               </div>
             </div>
           </Card>
+
+          <FinanceInsights
+            contracts={contracts}
+            expenses={expenses}
+            payments={payments}
+            year={year}
+            months={months}
+            basis={basis}
+            currency={currency}
+            getRate={getRate}
+            fmt={fmt}
+            monthNames={MONTHS}
+            t={t as (k: string) => string}
+          />
 
           <AgedReceivablesCard contracts={contracts} t={t} />
 
