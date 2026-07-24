@@ -832,10 +832,24 @@ function JarimaPage() {
                                  </SelectContent>
                                </Select>
                             </TableCell>
+                            <TableCell>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => {
+                                  if (confirm("Ushbu Telegram akkauntni jadvaldan o'chirmoqchimisiz?")) {
+                                    delTgMut.mutate(tg.id);
+                                  }
+                                }}
+                                title="O'chirish"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </TableCell>
                           </TableRow>
                         ))}
                         {(data?.telegram || []).length === 0 && (
-                          <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">
+                          <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">
                             Hali hech kim botga /start yubormagan
                           </TableCell></TableRow>
                         )}
