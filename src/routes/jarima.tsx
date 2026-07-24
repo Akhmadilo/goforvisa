@@ -26,8 +26,9 @@ import { useNavigate } from "@tanstack/react-router";
 
 import { supabase } from "@/integrations/supabase/client";
 import {
-  getJarimaData, linkTelegramToEmployee, saveSchedule, saveFineRule, deleteFineRule,
-  updateAttendanceCheckIn, setAbsenceFine, clearDay, setTelegramBotRole, deleteFine,
+ getJarimaData, linkTelegramToEmployee, saveSchedule, saveFineRule, deleteFineRule,
+ updateAttendanceCheckIn, setAbsenceFine, clearDay, setTelegramBotRole, deleteFine,
+ deleteTelegramAccount,
 } from "@/lib/jarima.functions";
 
 const NO_REPORT_REASON = "Hisobot yozmagan";
