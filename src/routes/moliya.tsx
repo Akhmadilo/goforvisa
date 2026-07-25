@@ -424,7 +424,10 @@ function FinancePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allMonths, totals, contracts, expenses, basis, currency, getRate]);
 
-  const PIE_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#ec4899", "#84cc16", "#f97316", "#0ea5e9"];
+  const PIE_COLORS = [
+    "var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)",
+    "var(--primary)", "var(--accent)", "var(--secondary)", "var(--muted-foreground)", "var(--destructive)",
+  ];
 
   const exportCsv = () => {
     const { head, rows } = buildReportRows();
@@ -926,9 +929,9 @@ function FinancePage() {
                   />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                   <ReferenceLine y={0} stroke="currentColor" opacity={0.3} />
-                  <Bar dataKey="revenue" name="Daromad" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="expense" name="Xarajat" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                  <Line type="monotone" dataKey="profit" name="Sof foyda" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 3 }} />
+                  <Bar dataKey="revenue" name="Daromad" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="expense" name="Xarajat" fill="var(--destructive)" radius={[4, 4, 0, 0]} />
+                  <Line type="monotone" dataKey="profit" name="Sof foyda" stroke="var(--chart-2)" strokeWidth={2.5} dot={{ r: 3 }} />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -991,7 +994,7 @@ function FinancePage() {
                     contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
                   />
                   <ReferenceLine y={0} stroke="currentColor" opacity={0.3} />
-                  <Line type="monotone" dataKey="profit" stroke="#6366f1" strokeWidth={2} dot={{ r: 3 }} />
+                  <Line type="monotone" dataKey="profit" stroke="var(--chart-2)" strokeWidth={2} dot={{ r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -1549,10 +1552,10 @@ function ForecastCard({
               contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
             />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Line type="monotone" dataKey="actual" name="Haqiqiy" stroke="#6366f1" strokeWidth={2} dot={{ r: 3 }} connectNulls />
-            <Line type="monotone" dataKey="forecast" name="Prognoz (realist)" stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3 }} connectNulls />
-            <Line type="monotone" dataKey="high" name="Optimist" stroke="#10b981" strokeWidth={1} strokeDasharray="2 4" dot={false} opacity={0.5} />
-            <Line type="monotone" dataKey="low" name="Pessimist" stroke="#ef4444" strokeWidth={1} strokeDasharray="2 4" dot={false} opacity={0.5} />
+            <Line type="monotone" dataKey="actual" name="Haqiqiy" stroke="var(--chart-2)" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+            <Line type="monotone" dataKey="forecast" name="Prognoz (realist)" stroke="var(--chart-1)" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3 }} connectNulls />
+            <Line type="monotone" dataKey="high" name="Optimist" stroke="var(--chart-3)" strokeWidth={1} strokeDasharray="2 4" dot={false} opacity={0.5} />
+            <Line type="monotone" dataKey="low" name="Pessimist" stroke="var(--destructive)" strokeWidth={1} strokeDasharray="2 4" dot={false} opacity={0.5} />
           </LineChart>
         </ResponsiveContainer>
       </div>
