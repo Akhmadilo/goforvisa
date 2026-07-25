@@ -363,7 +363,12 @@ export function FinanceInsights({
                 <YAxis yAxisId="left" tickFormatter={(v) => fmt(Number(v))} tick={{ fontSize: 11 }} width={70} />
                 <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} domain={[0, 100]} width={40} />
                 <Tooltip
-                  formatter={(v: number, n: string) => n === "rate" ? [`${v}%`, t("insights.collection.rate")] : [fmt(v), n === "invoiced" ? t("insights.collection.invoiced") : t("insights.collection.collected")]}
+                  formatter={(v: number, _n: string, item: any) => {
+                    const dk = item?.dataKey;
+                    if (dk === "rate") return [`${Number(v).toFixed(1)}%`, t("insights.collection.rate")];
+                    if (dk === "invoiced") return [fmt(Number(v)), t("insights.collection.invoiced")];
+                    return [fmt(Number(v)), t("insights.collection.collected")];
+                  }}
                   contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
                 />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
