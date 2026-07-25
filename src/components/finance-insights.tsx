@@ -367,9 +367,9 @@ export function FinanceInsights({
                   contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
                 />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar yAxisId="left" dataKey="invoiced" fill="hsl(var(--chart-2, 217 91% 60%))" name={t("insights.collection.invoiced")} radius={[3, 3, 0, 0]} />
-                <Bar yAxisId="left" dataKey="collected" fill="hsl(var(--chart-1, 142 76% 36%))" name={t("insights.collection.collected")} radius={[3, 3, 0, 0]} />
-                <Line yAxisId="right" type="monotone" dataKey="rate" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} name={t("insights.collection.rate")} />
+                <Bar yAxisId="left" dataKey="invoiced" fill="var(--chart-2)" name={t("insights.collection.invoiced")} radius={[3, 3, 0, 0]} />
+                <Bar yAxisId="left" dataKey="collected" fill="var(--chart-1)" name={t("insights.collection.collected")} radius={[3, 3, 0, 0]} />
+                <Line yAxisId="right" type="monotone" dataKey="rate" stroke="var(--primary)" strokeWidth={2} dot={{ r: 3 }} name={t("insights.collection.rate")} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -400,9 +400,9 @@ export function FinanceInsights({
                   }}
                   contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
                 />
-                <Bar yAxisId="left" dataKey="value" fill="hsl(var(--chart-3, 262 83% 58%))" radius={[3, 3, 0, 0]} />
-                <Line yAxisId="right" type="monotone" dataKey="cum" stroke="hsl(var(--destructive))" strokeWidth={2} dot={{ r: 3 }} name={t("insights.pareto.cumulative")} />
-                <ReferenceLine yAxisId="right" y={80} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" />
+                <Bar yAxisId="left" dataKey="value" fill="var(--chart-3)" radius={[3, 3, 0, 0]} />
+                <Line yAxisId="right" type="monotone" dataKey="cum" stroke="var(--destructive)" strokeWidth={2} dot={{ r: 3 }} name={t("insights.pareto.cumulative")} />
+                <ReferenceLine yAxisId="right" y={80} stroke="var(--muted-foreground)" strokeDasharray="4 4" />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
