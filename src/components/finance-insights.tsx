@@ -290,9 +290,9 @@ export function FinanceInsights({
   }, [waterfall, filteredContracts, clientPareto]);
 
   const waterfallColors = {
-    in: "hsl(var(--chart-1, 142 76% 36%))",
-    out: "hsl(var(--destructive))",
-    total: "hsl(var(--primary))",
+    in: "var(--chart-1)",
+    out: "var(--destructive)",
+    total: "var(--primary)",
   };
 
   return (
