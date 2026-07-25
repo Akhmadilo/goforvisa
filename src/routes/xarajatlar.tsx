@@ -1252,8 +1252,8 @@ function ExpensesDashboard({ expenses }: { expenses: Expense[] }) {
             <AreaChart data={monthlyData} margin={{ top: 10, right: 8, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id="gradExp" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="hsl(var(--primary, 142 71% 45%))" stopOpacity={0.6} />
-                  <stop offset="100%" stopColor="hsl(var(--primary, 142 71% 45%))" stopOpacity={0.02} />
+                  <stop offset="0%" stopColor="var(--primary)" stopOpacity={0.6} />
+                  <stop offset="100%" stopColor="var(--primary)" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.08} vertical={false} />
