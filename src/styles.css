@@ -151,4 +151,13 @@
   .md\:pl-56 { padding-left: 0 !important; }
   body { background: white !important; color: black !important; }
   .rounded-xl, .rounded-lg, .rounded-md { break-inside: avoid; }
+  /* Preserve chart colors and gradients when printing / saving to PDF */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  svg, .recharts-wrapper, .recharts-surface { break-inside: avoid; }
+  .print-keep, .print-keep * { break-inside: avoid; page-break-inside: avoid; }
+  section { break-inside: avoid; }
 }
