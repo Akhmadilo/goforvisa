@@ -587,10 +587,10 @@ function Dashboard() {
     const activePipeline = taken + rejected + inProcess + submitted; // exclude cancelled/unknown
     // Funnel: submitted (incl. downstream) -> in progress+decided -> taken vs rejected
     const funnel = [
-      { stage: t("dash.visaBI.funnel.applied"), value: activePipeline, fill: VISA_STAGE_COLORS.submitted },
-      { stage: t("dash.visaBI.funnel.processed"), value: taken + rejected + inProcess, fill: VISA_STAGE_COLORS.inProcess },
-      { stage: t("dash.visaBI.funnel.decided"), value: taken + rejected, fill: "#8b5cf6" },
-      { stage: t("dash.visaBI.funnel.approved"), value: taken, fill: VISA_STAGE_COLORS.taken },
+      { stage: "Faol pipeline", value: activePipeline, fill: VISA_STAGE_COLORS.submitted },
+      { stage: "Jarayonda + qaror", value: taken + rejected + inProcess, fill: VISA_STAGE_COLORS.inProcess },
+      { stage: "Qaror qabul qilindi", value: taken + rejected, fill: "#8b5cf6" },
+      { stage: "Viza olindi", value: taken, fill: VISA_STAGE_COLORS.taken },
     ];
     const decided = taken + rejected;
     const approvalRate = decided > 0 ? (taken / decided) * 100 : 0;
