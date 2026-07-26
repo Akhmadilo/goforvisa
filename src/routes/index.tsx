@@ -13,6 +13,9 @@ import {
   AreaChart,
   Area,
   ComposedChart,
+  RadialBarChart,
+  RadialBar,
+  LabelList,
   XAxis,
   YAxis,
   Tooltip,
@@ -169,6 +172,27 @@ function visaColor(value: string | null | undefined): string {
   if (!value) return "#94a3b8";
   const key = VISA_I18N_KEY[value];
   return (key && VISA_COLOR[key]) || "#6366f1";
+}
+
+// Print-friendly, semantic palette used across the visa-BI section.
+const VISA_STAGE_COLORS = {
+  submitted: "#3b82f6", // blue
+  inProcess: "#f59e0b", // amber
+  taken: "#10b981",     // emerald
+  rejected: "#ef4444",  // red
+  cancelled: "#94a3b8", // slate
+} as const;
+
+type VisaStage = keyof typeof VISA_STAGE_COLORS | "unknown";
+
+function visaStage(value: string | null | undefined): VisaStage {
+  const key = VISA_I18N_KEY[(value || "").trim()];
+  if (key === "visa.Olindi") return "taken";
+  if (key === "visa.RadEtildi") return "rejected";
+  if (key === "visa.Jarayonda") return "inProcess";
+  if (key === "visa.Topshirildi") return "submitted";
+  if (key === "visa.BekorQilindi") return "cancelled";
+  return "unknown";
 }
 
 function parseContractDate(s: string): Date | null {
@@ -546,6 +570,90 @@ function Dashboard() {
     [filtered],
   );
 
+  // ============= Visa business intelligence =============
+  const visaBI = useMemo(() => {
+    let submitted = 0, inProcess = 0, taken = 0, rejected = 0, cancelled = 0;
+    const revByStage = { taken: 0, rejected: 0, inProcess: 0, submitted: 0, cancelled: 0 } as Record<string, number>;
+    const countByStage = { ...revByStage };
+    for (const c of filtered) {
+      const s = visaStage(c.visaResult);
+      const rev = toUsd(c, getRate);
+      if (s === "taken") { taken++; revByStage.taken += rev; countByStage.taken++; }
+      else if (s === "rejected") { rejected++; revByStage.rejected += rev; countByStage.rejected++; }
+      else if (s === "inProcess") { inProcess++; revByStage.inProcess += rev; countByStage.inProcess++; }
+      else if (s === "submitted") { submitted++; revByStage.submitted += rev; countByStage.submitted++; }
+      else if (s === "cancelled") { cancelled++; revByStage.cancelled += rev; countByStage.cancelled++; }
+    }
+    const activePipeline = taken + rejected + inProcess + submitted; // exclude cancelled/unknown
+    // Funnel: submitted (incl. downstream) -> in progress+decided -> taken vs rejected
+    const funnel = [
+      { stage: "Faol pipeline", value: activePipeline, fill: VISA_STAGE_COLORS.submitted },
+      { stage: "Jarayonda + qaror", value: taken + rejected + inProcess, fill: VISA_STAGE_COLORS.inProcess },
+      { stage: "Qaror qabul qilindi", value: taken + rejected, fill: "#8b5cf6" },
+      { stage: "Viza olindi", value: taken, fill: VISA_STAGE_COLORS.taken },
+    ];
+    const decided = taken + rejected;
+    const approvalRate = decided > 0 ? (taken / decided) * 100 : 0;
+    const pipelineValue = revByStage.inProcess + revByStage.submitted;
+    const avgTicketTaken = countByStage.taken > 0 ? revByStage.taken / countByStage.taken : 0;
+    return {
+      funnel,
+      approvalRate,
+      pipelineValue,
+      avgTicketTaken,
+      counts: { submitted, inProcess, taken, rejected, cancelled },
+      revenueByStage: [
+        { name: t("visa.Olindi"), count: countByStage.taken, revenue: revByStage.taken, fill: VISA_STAGE_COLORS.taken },
+        { name: t("visa.Jarayonda"), count: countByStage.inProcess, revenue: revByStage.inProcess, fill: VISA_STAGE_COLORS.inProcess },
+        { name: t("visa.Topshirildi"), count: countByStage.submitted, revenue: revByStage.submitted, fill: VISA_STAGE_COLORS.submitted },
+        { name: t("visa.RadEtildi"), count: countByStage.rejected, revenue: revByStage.rejected, fill: VISA_STAGE_COLORS.rejected },
+        { name: t("visa.BekorQilindi"), count: countByStage.cancelled, revenue: revByStage.cancelled, fill: VISA_STAGE_COLORS.cancelled },
+      ].filter((r) => r.count > 0),
+    };
+  }, [filtered, getRate, lang]);
+
+  // Monthly stacked outcomes (business quality trend)
+  const visaMonthlyStack = useMemo(() => {
+    const map = new Map<string, { name: string; taken: number; inProcess: number; submitted: number; rejected: number; cancelled: number }>();
+    for (const c of filtered) {
+      const name = `${c.year} ${c.month}`;
+      const row = map.get(name) ?? { name, taken: 0, inProcess: 0, submitted: 0, rejected: 0, cancelled: 0 };
+      const s = visaStage(c.visaResult);
+      if (s !== "unknown") row[s] += 1;
+      map.set(name, row);
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      const [ya, ma] = a.name.split(" ");
+      const [yb, mb] = b.name.split(" ");
+      if (ya !== yb) return Number(ya) - Number(yb);
+      return MONTH_ORDER.indexOf(ma) - MONTH_ORDER.indexOf(mb);
+    });
+  }, [filtered]);
+
+  // Approval rate by sales manager (composed: clients + line success%)
+  const managerSuccess = useMemo(() => {
+    const map = new Map<string, { name: string; clients: number; taken: number; decided: number }>();
+    for (const c of filteredForManagers) {
+      const key = c.salesManager || "—";
+      const m = map.get(key) ?? { name: key, clients: 0, taken: 0, decided: 0 };
+      m.clients++;
+      const s = visaStage(c.visaResult);
+      if (s === "taken") { m.taken++; m.decided++; }
+      else if (s === "rejected") { m.decided++; }
+      map.set(key, m);
+    }
+    return Array.from(map.values())
+      .filter((m) => m.clients >= 2)
+      .map((m) => ({
+        name: m.name,
+        clients: m.clients,
+        approvalRate: m.decided > 0 ? +((m.taken / m.decided) * 100).toFixed(1) : 0,
+      }))
+      .sort((a, b) => b.clients - a.clients)
+      .slice(0, 10);
+  }, [filteredForManagers]);
+
+
 
   const debtors = useMemo(() => {
     const today = new Date();
@@ -882,6 +990,187 @@ function Dashboard() {
           )}
         </div>
         )}
+
+        {/* ============= Visa Business Intelligence ============= */}
+        {can("visa_results") && filtered.length > 0 && (
+        <section className="print-keep space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base md:text-lg font-bold tracking-tight">Viza biznes tahlili</h2>
+              <p className="text-xs text-muted-foreground">Voronka, tasdiqlash darajasi va pipeline qiymati</p>
+            </div>
+            <Badge variant="secondary" className="hidden sm:inline-flex">
+              {filtered.length} shartnoma
+            </Badge>
+          </div>
+
+          {/* Top KPI strip specific to visa business */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <Card className="p-4 shadow-[var(--shadow-card)] relative overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-1" style={{ background: VISA_STAGE_COLORS.taken }} />
+              <div className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wide">Tasdiqlash darajasi</div>
+              <div className="mt-1 text-xl md:text-2xl font-bold" style={{ color: VISA_STAGE_COLORS.taken }}>
+                {visaBI.approvalRate.toFixed(1)}%
+              </div>
+              <div className="text-[10px] md:text-xs text-muted-foreground mt-1">
+                Olindi / (Olindi + Rad etildi)
+              </div>
+            </Card>
+            <Card className="p-4 shadow-[var(--shadow-card)] relative overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-1" style={{ background: VISA_STAGE_COLORS.inProcess }} />
+              <div className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wide">Faol pipeline</div>
+              <div className="mt-1 text-xl md:text-2xl font-bold" style={{ color: VISA_STAGE_COLORS.inProcess }}>
+                {visaBI.counts.submitted + visaBI.counts.inProcess}
+              </div>
+              <div className="text-[10px] md:text-xs text-muted-foreground mt-1">
+                Topshirildi + jarayonda
+              </div>
+            </Card>
+            <Card className="p-4 shadow-[var(--shadow-card)] relative overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-1" style={{ background: VISA_STAGE_COLORS.submitted }} />
+              <div className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wide">Pipeline qiymati</div>
+              <div className="mt-1 text-xl md:text-2xl font-bold" style={{ color: VISA_STAGE_COLORS.submitted }}>
+                {fmtUsd(visaBI.pipelineValue)}
+              </div>
+              <div className="text-[10px] md:text-xs text-muted-foreground mt-1">
+                Yopilmagan shartnomalar summasi
+              </div>
+            </Card>
+            <Card className="p-4 shadow-[var(--shadow-card)] relative overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-1" style={{ background: "#8b5cf6" }} />
+              <div className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wide">O'rt. shartnoma (olingan)</div>
+              <div className="mt-1 text-xl md:text-2xl font-bold" style={{ color: "#8b5cf6" }}>
+                {fmtUsd(visaBI.avgTicketTaken)}
+              </div>
+              <div className="text-[10px] md:text-xs text-muted-foreground mt-1">
+                Olingan vizalar bo'yicha o'rtacha
+              </div>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Visa funnel */}
+            <Card className="p-4 md:p-5 shadow-[var(--shadow-card)] print-keep">
+              <h3 className="font-semibold text-sm md:text-base mb-1">Viza voronkasi</h3>
+              <p className="text-xs text-muted-foreground mb-3">Ariza → jarayon → qaror → olindi</p>
+              <div className="h-[260px] md:h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={visaBI.funnel} layout="vertical" margin={{ left: 30, right: 40 }}>
+                    <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" stroke="var(--color-muted-foreground)" fontSize={11} />
+                    <YAxis dataKey="stage" type="category" stroke="var(--color-muted-foreground)" fontSize={11} width={150} />
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--color-card)",
+                        border: "1px solid var(--color-border)",
+                        borderRadius: "8px",
+                      }}
+                      formatter={(v: number) => `${v} ta`}
+                    />
+                    <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                      {visaBI.funnel.map((d, i) => (
+                        <Cell key={i} fill={d.fill} />
+                      ))}
+                      <LabelList
+                        dataKey="value"
+                        position="right"
+                        style={{ fill: "var(--color-foreground)", fontSize: 12, fontWeight: 600 }}
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+
+            {/* Revenue by visa stage */}
+            <Card className="p-4 md:p-5 shadow-[var(--shadow-card)] print-keep">
+              <h3 className="font-semibold text-sm md:text-base mb-1">Viza natijalari bo'yicha daromad</h3>
+              <p className="text-xs text-muted-foreground mb-3">Har bir bosqichdagi shartnoma qiymati</p>
+              <div className="h-[260px] md:h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={visaBI.revenueByStage} margin={{ top: 10 }}>
+                    <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+                    <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} />
+                    <YAxis stroke="var(--color-muted-foreground)" fontSize={11} tickFormatter={(v) => `$${Math.round(v / 1000)}k`} />
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--color-card)",
+                        border: "1px solid var(--color-border)",
+                        borderRadius: "8px",
+                      }}
+                      formatter={(v: number, k: string) => (k === "revenue" ? fmtUsd(v) : `${v} ta`)}
+                    />
+                    <Bar dataKey="revenue" name="Daromad" radius={[6, 6, 0, 0]}>
+                      {visaBI.revenueByStage.map((d, i) => (
+                        <Cell key={i} fill={d.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* Monthly stacked outcomes */}
+            <Card className="p-4 md:p-5 shadow-[var(--shadow-card)] print-keep">
+              <h3 className="font-semibold text-sm md:text-base mb-1">Oylik viza natijalari</h3>
+              <p className="text-xs text-muted-foreground mb-3">Biznes sifatining oydan-oyga trendi</p>
+              <div className="h-[260px] md:h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={visaMonthlyStack}>
+                    <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+                    <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={10} />
+                    <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--color-card)",
+                        border: "1px solid var(--color-border)",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: "11px" }} />
+                    <Bar dataKey="taken" name={t("visa.Olindi")} stackId="v" fill={VISA_STAGE_COLORS.taken} />
+                    <Bar dataKey="inProcess" name={t("visa.Jarayonda")} stackId="v" fill={VISA_STAGE_COLORS.inProcess} />
+                    <Bar dataKey="submitted" name={t("visa.Topshirildi")} stackId="v" fill={VISA_STAGE_COLORS.submitted} />
+                    <Bar dataKey="rejected" name={t("visa.RadEtildi")} stackId="v" fill={VISA_STAGE_COLORS.rejected} />
+                    <Bar dataKey="cancelled" name={t("visa.BekorQilindi")} stackId="v" fill={VISA_STAGE_COLORS.cancelled} radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+
+            {/* Approval rate by manager */}
+            <Card className="p-4 md:p-5 shadow-[var(--shadow-card)] print-keep">
+              <h3 className="font-semibold text-sm md:text-base mb-1">Menejerlar bo'yicha tasdiqlash %</h3>
+              <p className="text-xs text-muted-foreground mb-3">Mijozlar soni va viza tasdiqlash darajasi</p>
+              <div className="h-[260px] md:h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={managerSuccess} margin={{ right: 10 }}>
+                    <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+                    <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={10} interval={0} angle={-20} textAnchor="end" height={60} />
+                    <YAxis yAxisId="left" stroke="var(--color-muted-foreground)" fontSize={11} />
+                    <YAxis yAxisId="right" orientation="right" stroke="var(--color-muted-foreground)" fontSize={11} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+                    <Tooltip
+                      contentStyle={{
+                        background: "var(--color-card)",
+                        border: "1px solid var(--color-border)",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: "11px" }} />
+                    <Bar yAxisId="left" dataKey="clients" name="Mijozlar" fill={VISA_STAGE_COLORS.submitted} radius={[4, 4, 0, 0]} />
+                    <Line yAxisId="right" dataKey="approvalRate" name="Tasdiqlash %" stroke={VISA_STAGE_COLORS.taken} strokeWidth={2.5} dot={{ r: 4, fill: VISA_STAGE_COLORS.taken }} />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          </div>
+        </section>
+        )}
+
+
+
 
 
         {(can("managers_revenue") || can("contract_types")) && (
