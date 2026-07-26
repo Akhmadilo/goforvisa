@@ -399,15 +399,104 @@ export function FinanceInsights({
                 <YAxis yAxisId="left" tickFormatter={(v) => fmt(Number(v))} tick={{ fontSize: 11 }} width={70} />
                 <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} domain={[0, 100]} width={40} />
                 <Tooltip
-                  formatter={(v: number, n: string, item) => {
-                    if (n === "cum") return [`${(v as number).toFixed(1)}%`, t("insights.pareto.cumulative")];
-                    return [fmt(v), item.payload.fullName];
+                  formatter={(v: number, _n: string, item: any) => {
+                    const dk = item?.dataKey;
+                    if (dk === "cum") return [`${Number(v).toFixed(1)}%`, t("insights.pareto.cumulative")];
+                    if (dk === "value") return [fmt(Number(v)), `${item?.payload?.fullName ?? ""} (${item?.payload?.contracts ?? 0})`];
+                    return [fmt(Number(v)), item?.payload?.fullName ?? ""];
                   }}
                   contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
                 />
-                <Bar yAxisId="left" dataKey="value" fill="var(--chart-3)" radius={[3, 3, 0, 0]} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar yAxisId="left" dataKey="value" fill="var(--chart-3)" name={t("insights.scorecard.revenue")} radius={[3, 3, 0, 0]} />
                 <Line yAxisId="right" type="monotone" dataKey="cum" stroke="var(--destructive)" strokeWidth={2} dot={{ r: 3 }} name={t("insights.pareto.cumulative")} />
                 <ReferenceLine yAxisId="right" y={80} stroke="var(--muted-foreground)" strokeDasharray="4 4" />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+      </div>
+
+      {/* Employee performance charts */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <div className="text-sm font-semibold">{t("insights.scorecard.title")} — {t("insights.scorecard.revenue")} / {t("insights.scorecard.collectionRate")}</div>
+              <div className="text-xs text-muted-foreground">{t("insights.scorecard.subtitle")}</div>
+            </div>
+            <Badge variant="outline" className="text-[10px]">{salesScorecard.length}</Badge>
+          </div>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart
+                data={salesScorecard.slice(0, 10).map((s) => ({
+                  name: s.name.length > 14 ? s.name.slice(0, 13) + "…" : s.name,
+                  fullName: s.name,
+                  revenue: Math.round(s.gross),
+                  collected: Math.round(s.collected),
+                  rate: s.gross > 0 ? Math.round((s.collected / s.gross) * 1000) / 10 : 0,
+                }))}
+                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-25} textAnchor="end" height={60} />
+                <YAxis yAxisId="left" tickFormatter={(v) => fmt(Number(v))} tick={{ fontSize: 11 }} width={70} />
+                <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} domain={[0, 100]} width={40} />
+                <Tooltip
+                  formatter={(v: number, _n: string, item: any) => {
+                    const dk = item?.dataKey;
+                    if (dk === "rate") return [`${Number(v).toFixed(1)}%`, t("insights.scorecard.collectionRate")];
+                    if (dk === "revenue") return [fmt(Number(v)), t("insights.scorecard.revenue")];
+                    return [fmt(Number(v)), t("insights.scorecard.collected")];
+                  }}
+                  labelFormatter={(_l, p) => (p?.[0]?.payload as any)?.fullName ?? ""}
+                  contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+                />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar yAxisId="left" dataKey="revenue" fill="var(--chart-2)" name={t("insights.scorecard.revenue")} radius={[3, 3, 0, 0]} />
+                <Bar yAxisId="left" dataKey="collected" fill="var(--chart-1)" name={t("insights.scorecard.collected")} radius={[3, 3, 0, 0]} />
+                <Line yAxisId="right" type="monotone" dataKey="rate" stroke="var(--primary)" strokeWidth={2} dot={{ r: 3 }} name={t("insights.scorecard.collectionRate")} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+
+        <Card className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <div className="text-sm font-semibold">{t("insights.scorecard.avgDeal")} / {t("finance.contracts")}</div>
+              <div className="text-xs text-muted-foreground">{t("insights.scorecard.manager")}</div>
+            </div>
+            <Badge variant="outline" className="text-[10px]">Top 10</Badge>
+          </div>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart
+                data={salesScorecard.slice(0, 10).map((s) => ({
+                  name: s.name.length > 14 ? s.name.slice(0, 13) + "…" : s.name,
+                  fullName: s.name,
+                  avg: s.contracts > 0 ? Math.round(s.gross / s.contracts) : 0,
+                  contracts: s.contracts,
+                }))}
+                margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={-25} textAnchor="end" height={60} />
+                <YAxis yAxisId="left" tickFormatter={(v) => fmt(Number(v))} tick={{ fontSize: 11 }} width={70} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} width={40} />
+                <Tooltip
+                  formatter={(v: number, _n: string, item: any) => {
+                    const dk = item?.dataKey;
+                    if (dk === "avg") return [fmt(Number(v)), t("insights.scorecard.avgDeal")];
+                    return [Number(v), t("finance.contracts")];
+                  }}
+                  labelFormatter={(_l, p) => (p?.[0]?.payload as any)?.fullName ?? ""}
+                  contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+                />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar yAxisId="left" dataKey="avg" fill="var(--chart-4)" name={t("insights.scorecard.avgDeal")} radius={[3, 3, 0, 0]} />
+                <Line yAxisId="right" type="monotone" dataKey="contracts" stroke="var(--chart-5)" strokeWidth={2} dot={{ r: 4 }} name={t("finance.contracts")} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
