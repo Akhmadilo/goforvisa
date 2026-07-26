@@ -174,6 +174,27 @@ function visaColor(value: string | null | undefined): string {
   return (key && VISA_COLOR[key]) || "#6366f1";
 }
 
+// Print-friendly, semantic palette used across the visa-BI section.
+const VISA_STAGE_COLORS = {
+  submitted: "#3b82f6", // blue
+  inProcess: "#f59e0b", // amber
+  taken: "#10b981",     // emerald
+  rejected: "#ef4444",  // red
+  cancelled: "#94a3b8", // slate
+} as const;
+
+type VisaStage = keyof typeof VISA_STAGE_COLORS | "unknown";
+
+function visaStage(value: string | null | undefined): VisaStage {
+  const key = VISA_I18N_KEY[(value || "").trim()];
+  if (key === "visa.Olindi") return "taken";
+  if (key === "visa.RadEtildi") return "rejected";
+  if (key === "visa.Jarayonda") return "inProcess";
+  if (key === "visa.Topshirildi") return "submitted";
+  if (key === "visa.BekorQilindi") return "cancelled";
+  return "unknown";
+}
+
 function parseContractDate(s: string): Date | null {
   if (!s) return null;
   // Format: "10 June 2025"
