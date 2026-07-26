@@ -570,6 +570,90 @@ function Dashboard() {
     [filtered],
   );
 
+  // ============= Visa business intelligence =============
+  const visaBI = useMemo(() => {
+    let submitted = 0, inProcess = 0, taken = 0, rejected = 0, cancelled = 0;
+    const revByStage = { taken: 0, rejected: 0, inProcess: 0, submitted: 0, cancelled: 0 } as Record<string, number>;
+    const countByStage = { ...revByStage };
+    for (const c of filtered) {
+      const s = visaStage(c.visaResult);
+      const rev = toUsd(c, getRate);
+      if (s === "taken") { taken++; revByStage.taken += rev; countByStage.taken++; }
+      else if (s === "rejected") { rejected++; revByStage.rejected += rev; countByStage.rejected++; }
+      else if (s === "inProcess") { inProcess++; revByStage.inProcess += rev; countByStage.inProcess++; }
+      else if (s === "submitted") { submitted++; revByStage.submitted += rev; countByStage.submitted++; }
+      else if (s === "cancelled") { cancelled++; revByStage.cancelled += rev; countByStage.cancelled++; }
+    }
+    const activePipeline = taken + rejected + inProcess + submitted; // exclude cancelled/unknown
+    // Funnel: submitted (incl. downstream) -> in progress+decided -> taken vs rejected
+    const funnel = [
+      { stage: t("dash.visaBI.funnel.applied"), value: activePipeline, fill: VISA_STAGE_COLORS.submitted },
+      { stage: t("dash.visaBI.funnel.processed"), value: taken + rejected + inProcess, fill: VISA_STAGE_COLORS.inProcess },
+      { stage: t("dash.visaBI.funnel.decided"), value: taken + rejected, fill: "#8b5cf6" },
+      { stage: t("dash.visaBI.funnel.approved"), value: taken, fill: VISA_STAGE_COLORS.taken },
+    ];
+    const decided = taken + rejected;
+    const approvalRate = decided > 0 ? (taken / decided) * 100 : 0;
+    const pipelineValue = revByStage.inProcess + revByStage.submitted;
+    const avgTicketTaken = countByStage.taken > 0 ? revByStage.taken / countByStage.taken : 0;
+    return {
+      funnel,
+      approvalRate,
+      pipelineValue,
+      avgTicketTaken,
+      counts: { submitted, inProcess, taken, rejected, cancelled },
+      revenueByStage: [
+        { name: t("visa.Olindi"), count: countByStage.taken, revenue: revByStage.taken, fill: VISA_STAGE_COLORS.taken },
+        { name: t("visa.Jarayonda"), count: countByStage.inProcess, revenue: revByStage.inProcess, fill: VISA_STAGE_COLORS.inProcess },
+        { name: t("visa.Topshirildi"), count: countByStage.submitted, revenue: revByStage.submitted, fill: VISA_STAGE_COLORS.submitted },
+        { name: t("visa.RadEtildi"), count: countByStage.rejected, revenue: revByStage.rejected, fill: VISA_STAGE_COLORS.rejected },
+        { name: t("visa.BekorQilindi"), count: countByStage.cancelled, revenue: revByStage.cancelled, fill: VISA_STAGE_COLORS.cancelled },
+      ].filter((r) => r.count > 0),
+    };
+  }, [filtered, getRate, lang]);
+
+  // Monthly stacked outcomes (business quality trend)
+  const visaMonthlyStack = useMemo(() => {
+    const map = new Map<string, { name: string; taken: number; inProcess: number; submitted: number; rejected: number; cancelled: number }>();
+    for (const c of filtered) {
+      const name = `${c.year} ${c.month}`;
+      const row = map.get(name) ?? { name, taken: 0, inProcess: 0, submitted: 0, rejected: 0, cancelled: 0 };
+      const s = visaStage(c.visaResult);
+      if (s !== "unknown") row[s] += 1;
+      map.set(name, row);
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      const [ya, ma] = a.name.split(" ");
+      const [yb, mb] = b.name.split(" ");
+      if (ya !== yb) return Number(ya) - Number(yb);
+      return MONTH_ORDER.indexOf(ma) - MONTH_ORDER.indexOf(mb);
+    });
+  }, [filtered]);
+
+  // Approval rate by sales manager (composed: clients + line success%)
+  const managerSuccess = useMemo(() => {
+    const map = new Map<string, { name: string; clients: number; taken: number; decided: number }>();
+    for (const c of filteredForManagers) {
+      const key = c.salesManager || "—";
+      const m = map.get(key) ?? { name: key, clients: 0, taken: 0, decided: 0 };
+      m.clients++;
+      const s = visaStage(c.visaResult);
+      if (s === "taken") { m.taken++; m.decided++; }
+      else if (s === "rejected") { m.decided++; }
+      map.set(key, m);
+    }
+    return Array.from(map.values())
+      .filter((m) => m.clients >= 2)
+      .map((m) => ({
+        name: m.name,
+        clients: m.clients,
+        approvalRate: m.decided > 0 ? +((m.taken / m.decided) * 100).toFixed(1) : 0,
+      }))
+      .sort((a, b) => b.clients - a.clients)
+      .slice(0, 10);
+  }, [filteredForManagers]);
+
+
 
   const debtors = useMemo(() => {
     const today = new Date();
