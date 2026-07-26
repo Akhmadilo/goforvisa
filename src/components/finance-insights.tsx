@@ -408,7 +408,7 @@ export function FinanceInsights({
                   contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
                 />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar yAxisId="left" dataKey="value" fill="var(--chart-3)" radius={[3, 3, 0, 0]} />
+                <Bar yAxisId="left" dataKey="value" fill="var(--chart-3)" name={t("insights.scorecard.revenue")} radius={[3, 3, 0, 0]} />
                 <Line yAxisId="right" type="monotone" dataKey="cum" stroke="var(--destructive)" strokeWidth={2} dot={{ r: 3 }} name={t("insights.pareto.cumulative")} />
                 <ReferenceLine yAxisId="right" y={80} stroke="var(--muted-foreground)" strokeDasharray="4 4" />
               </ComposedChart>
