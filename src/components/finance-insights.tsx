@@ -399,12 +399,15 @@ export function FinanceInsights({
                 <YAxis yAxisId="left" tickFormatter={(v) => fmt(Number(v))} tick={{ fontSize: 11 }} width={70} />
                 <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => `${v}%`} tick={{ fontSize: 11 }} domain={[0, 100]} width={40} />
                 <Tooltip
-                  formatter={(v: number, n: string, item) => {
-                    if (n === "cum") return [`${(v as number).toFixed(1)}%`, t("insights.pareto.cumulative")];
-                    return [fmt(v), item.payload.fullName];
+                  formatter={(v: number, _n: string, item: any) => {
+                    const dk = item?.dataKey;
+                    if (dk === "cum") return [`${Number(v).toFixed(1)}%`, t("insights.pareto.cumulative")];
+                    if (dk === "value") return [fmt(Number(v)), `${item?.payload?.fullName ?? ""} (${item?.payload?.contracts ?? 0})`];
+                    return [fmt(Number(v)), item?.payload?.fullName ?? ""];
                   }}
                   contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
                 />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
                 <Bar yAxisId="left" dataKey="value" fill="var(--chart-3)" radius={[3, 3, 0, 0]} />
                 <Line yAxisId="right" type="monotone" dataKey="cum" stroke="var(--destructive)" strokeWidth={2} dot={{ r: 3 }} name={t("insights.pareto.cumulative")} />
                 <ReferenceLine yAxisId="right" y={80} stroke="var(--muted-foreground)" strokeDasharray="4 4" />
