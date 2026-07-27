@@ -67,7 +67,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { useUsdRates } from "@/lib/usd-rates";
 import { Link } from "@tanstack/react-router";
-import { LogOut, Shield } from "lucide-react";
+import { LogOut, Shield, FileText } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useT, format, localeOf } from "@/lib/i18n";
