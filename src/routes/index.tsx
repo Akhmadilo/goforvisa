@@ -797,7 +797,7 @@ function Dashboard() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1500px] px-4 sm:px-6 py-4 md:py-6 space-y-4 md:space-y-6">
+      <main id="dashboard-pdf-root" className="mx-auto max-w-[1500px] px-4 sm:px-6 py-4 md:py-6 space-y-4 md:space-y-6">
         {error && (
           <Card className="p-4 border-destructive/50 text-destructive">
             {t("common.error")}: {(error as Error).message}
