@@ -582,7 +582,7 @@ function FinancePage() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1500px] px-4 sm:px-6 py-4 md:py-6 space-y-4 md:space-y-6">
+        <main id="moliya-pdf-root" className="mx-auto max-w-[1500px] px-4 sm:px-6 py-4 md:py-6 space-y-4 md:space-y-6">
           <Card className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
