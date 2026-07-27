@@ -585,27 +585,30 @@ function Dashboard() {
       else if (s === "cancelled") { cancelled++; revByStage.cancelled += rev; countByStage.cancelled++; }
     }
     const activePipeline = taken + rejected + inProcess + submitted; // exclude cancelled/unknown
-    // Funnel: submitted (incl. downstream) -> in progress+decided -> taken vs rejected
-    const funnel = [
-      { stage: "Faol pipeline", value: activePipeline, fill: VISA_STAGE_COLORS.submitted },
-      { stage: "Jarayonda + qaror", value: taken + rejected + inProcess, fill: VISA_STAGE_COLORS.inProcess },
-      { stage: "Qaror qabul qilindi", value: taken + rejected, fill: "#8b5cf6" },
-      { stage: "Viza olindi", value: taken, fill: VISA_STAGE_COLORS.taken },
+    // Non-overlapping breakdown — each contract counted in exactly one stage.
+    // Ordered as a pipeline: entered → in progress → decided outcomes.
+    const funnelRaw = [
+      { stage: t("visa.Topshirildi"), value: submitted, fill: VISA_STAGE_COLORS.submitted },
+      { stage: t("visa.Jarayonda"), value: inProcess, fill: VISA_STAGE_COLORS.inProcess },
+      { stage: t("visa.Olindi"), value: taken, fill: VISA_STAGE_COLORS.taken },
+      { stage: t("visa.RadEtildi"), value: rejected, fill: VISA_STAGE_COLORS.rejected },
     ];
+    const funnel = funnelRaw.filter((s) => s.value > 0);
     const decided = taken + rejected;
     const approvalRate = decided > 0 ? (taken / decided) * 100 : 0;
     const pipelineValue = revByStage.inProcess + revByStage.submitted;
     const avgTicketTaken = countByStage.taken > 0 ? revByStage.taken / countByStage.taken : 0;
     return {
       funnel,
+      activePipeline,
       approvalRate,
       pipelineValue,
       avgTicketTaken,
       counts: { submitted, inProcess, taken, rejected, cancelled },
       revenueByStage: [
-        { name: t("visa.Olindi"), count: countByStage.taken, revenue: revByStage.taken, fill: VISA_STAGE_COLORS.taken },
-        { name: t("visa.Jarayonda"), count: countByStage.inProcess, revenue: revByStage.inProcess, fill: VISA_STAGE_COLORS.inProcess },
         { name: t("visa.Topshirildi"), count: countByStage.submitted, revenue: revByStage.submitted, fill: VISA_STAGE_COLORS.submitted },
+        { name: t("visa.Jarayonda"), count: countByStage.inProcess, revenue: revByStage.inProcess, fill: VISA_STAGE_COLORS.inProcess },
+        { name: t("visa.Olindi"), count: countByStage.taken, revenue: revByStage.taken, fill: VISA_STAGE_COLORS.taken },
         { name: t("visa.RadEtildi"), count: countByStage.rejected, revenue: revByStage.rejected, fill: VISA_STAGE_COLORS.rejected },
         { name: t("visa.BekorQilindi"), count: countByStage.cancelled, revenue: revByStage.cancelled, fill: VISA_STAGE_COLORS.cancelled },
       ].filter((r) => r.count > 0),
@@ -1051,8 +1054,8 @@ function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Visa funnel */}
             <Card className="p-4 md:p-5 shadow-[var(--shadow-card)] print-keep">
-              <h3 className="font-semibold text-sm md:text-base mb-1">Viza voronkasi</h3>
-              <p className="text-xs text-muted-foreground mb-3">Ariza → jarayon → qaror → olindi</p>
+              <h3 className="font-semibold text-sm md:text-base mb-1">Viza bosqichlari taqsimoti</h3>
+              <p className="text-xs text-muted-foreground mb-3">Har bir shartnoma bitta bosqichda hisoblanadi</p>
               <div className="h-[260px] md:h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={visaBI.funnel} layout="vertical" margin={{ left: 30, right: 40 }}>
