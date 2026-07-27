@@ -769,11 +769,28 @@ function Dashboard() {
             <button
               onClick={() => refetch()}
               disabled={isFetching}
-              className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary transition-colors flex items-center justify-center disabled:opacity-50"
+              className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary transition-colors flex items-center justify-center disabled:opacity-50 pdf-hide"
               title={t("common.refresh")}
             >
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
             </button>
+            <button
+              onClick={async () => {
+                const el = document.getElementById("dashboard-pdf-root");
+                if (!el) return;
+                const { exportElementToPdf } = await import("@/lib/pdf-export");
+                await exportElementToPdf(el, {
+                  filename: `dashboard-${new Date().toISOString().slice(0,10)}.pdf`,
+                  title: t("dash.title"),
+                  subtitle: t("dash.subtitle"),
+                });
+              }}
+              className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary transition-colors flex items-center justify-center pdf-hide"
+              title="PDF"
+            >
+              <FileText className="h-4 w-4" />
+            </button>
+
             {isAdmin && (
               <Link
                 to="/admin"
