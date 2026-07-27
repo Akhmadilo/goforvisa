@@ -1054,8 +1054,8 @@ function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Visa funnel */}
             <Card className="p-4 md:p-5 shadow-[var(--shadow-card)] print-keep">
-              <h3 className="font-semibold text-sm md:text-base mb-1">Viza voronkasi</h3>
-              <p className="text-xs text-muted-foreground mb-3">Ariza → jarayon → qaror → olindi</p>
+              <h3 className="font-semibold text-sm md:text-base mb-1">Viza bosqichlari taqsimoti</h3>
+              <p className="text-xs text-muted-foreground mb-3">Har bir shartnoma bitta bosqichda hisoblanadi</p>
               <div className="h-[260px] md:h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={visaBI.funnel} layout="vertical" margin={{ left: 30, right: 40 }}>
