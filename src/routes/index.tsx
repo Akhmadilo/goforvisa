@@ -67,7 +67,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { useUsdRates } from "@/lib/usd-rates";
 import { Link } from "@tanstack/react-router";
-import { LogOut, Shield } from "lucide-react";
+import { LogOut, Shield, FileText } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useT, format, localeOf } from "@/lib/i18n";
@@ -769,11 +769,28 @@ function Dashboard() {
             <button
               onClick={() => refetch()}
               disabled={isFetching}
-              className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary transition-colors flex items-center justify-center disabled:opacity-50"
+              className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary transition-colors flex items-center justify-center disabled:opacity-50 pdf-hide"
               title={t("common.refresh")}
             >
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
             </button>
+            <button
+              onClick={async () => {
+                const el = document.getElementById("dashboard-pdf-root");
+                if (!el) return;
+                const { exportElementToPdf } = await import("@/lib/pdf-export");
+                await exportElementToPdf(el, {
+                  filename: `dashboard-${new Date().toISOString().slice(0,10)}.pdf`,
+                  title: t("dash.title"),
+                  subtitle: t("dash.subtitle"),
+                });
+              }}
+              className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary transition-colors flex items-center justify-center pdf-hide"
+              title="PDF"
+            >
+              <FileText className="h-4 w-4" />
+            </button>
+
             {isAdmin && (
               <Link
                 to="/admin"
@@ -797,7 +814,7 @@ function Dashboard() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1500px] px-4 sm:px-6 py-4 md:py-6 space-y-4 md:space-y-6">
+      <main id="dashboard-pdf-root" className="mx-auto max-w-[1500px] px-4 sm:px-6 py-4 md:py-6 space-y-4 md:space-y-6">
         {error && (
           <Card className="p-4 border-destructive/50 text-destructive">
             {t("common.error")}: {(error as Error).message}
