@@ -161,3 +161,19 @@
   .print-keep, .print-keep * { break-inside: avoid; page-break-inside: avoid; }
   section { break-inside: avoid; }
 }
+
+/* When exporting to PDF via html2canvas, force high-contrast readable styles */
+.pdf-exporting { background: #ffffff !important; }
+.pdf-exporting * {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  color-adjust: exact !important;
+}
+.pdf-exporting .sticky { position: static !important; }
+.pdf-exporting .backdrop-blur { backdrop-filter: none !important; }
+.pdf-exporting table,
+.pdf-exporting .recharts-wrapper,
+.pdf-exporting [data-slot="card"] {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
