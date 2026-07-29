@@ -45,6 +45,7 @@
         "date-fns": "^4.1.0",
         "embla-carousel-react": "^8.6.0",
         "html2canvas": "^1.4.1",
+        "html2canvas-pro": "^2.3.2",
         "input-otp": "^1.4.2",
         "jspdf": "^4.2.1",
         "jspdf-autotable": "^5.0.8",
@@ -945,6 +946,8 @@
     "hookable": ["hookable@6.1.1", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/hookable/-/hookable-6.1.1.tgz", {}, "sha512-U9LYDy1CwhMCnprUfeAZWZGByVbhd54hwepegYTK7Pi5NvqEj63ifz5z+xukznehT7i6NIZRu89Ay1AZmRsLEQ=="],
 
     "html2canvas": ["html2canvas@1.4.1", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/html2canvas/-/html2canvas-1.4.1.tgz", { "dependencies": { "css-line-break": "^2.1.0", "text-segmentation": "^1.0.3" } }, "sha512-fPU6BHNpsyIhr8yyMpTLLxAbkaK8ArIBcmZIRiBLiDhjeqvXolaEmDGmELFuX9I4xDcaKKcJl+TKZLqruBbmWA=="],
+
+    "html2canvas-pro": ["html2canvas-pro@2.3.2", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/html2canvas-pro/-/html2canvas-pro-2.3.2.tgz", { "dependencies": { "css-line-break": "^2.1.0", "text-segmentation": "^1.0.3" } }, "sha512-lYFaxtQM8exYVAtXmjdx8cjkw+/2GycRvSTcr2M2MuxXKuYlWe77+KFKuY92y/tzkvzA8XZTQIDlqoVZDB+mqQ=="],
 
     "httpxy": ["httpxy@0.5.3", "https://europe-west1-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/httpxy/-/httpxy-0.5.3.tgz", {}, "sha512-SMS9V6Sn7VWaS11lYhoAr0ceoaiolTWf4jYdJn0NJhCdKMu9R2H9Fh0LBDWBHQF6HRLI1PmaePYsjanSpE5PEw=="],
 

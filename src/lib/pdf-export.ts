@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
+import html2canvas from "html2canvas-pro";
 import logoUrl from "@/assets/logo.png";
 
 async function loadLogo(): Promise<string | null> {
@@ -81,12 +81,13 @@ export async function exportElementToPdf(
 
   try {
     // Give recharts/layout a tick to reflow.
-    await new Promise((r) => setTimeout(r, 60));
+    await new Promise((r) => setTimeout(r, 120));
 
     const canvas = await html2canvas(element, {
-      scale: 2,
+      scale: Math.min(1.8, window.devicePixelRatio > 1 ? 1.8 : 1.5),
       useCORS: true,
       backgroundColor: "#ffffff",
+      logging: false,
       windowWidth: Math.max(element.scrollWidth, 1400),
       onclone: (doc) => {
         const fallbackStyles = doc.createElement("style");
