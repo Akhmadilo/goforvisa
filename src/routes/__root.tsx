@@ -8,6 +8,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
+import { PdfPreviewModal } from "@/components/pdf-preview-modal";
 
 import appCss from "../styles.css?url";
 
@@ -120,6 +121,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <I18nProvider>
         <Outlet />
+        <PdfPreviewModal />
         <Toaster />
       </I18nProvider>
     </QueryClientProvider>

@@ -24,6 +24,45 @@ export interface ExportOptions {
   meta?: string;
 }
 
+const PDF_COLOR_FALLBACKS = `
+  :root, .dark {
+    --background: rgb(255, 255, 255) !important;
+    --foreground: rgb(24, 33, 48) !important;
+    --card: rgb(255, 255, 255) !important;
+    --card-foreground: rgb(24, 33, 48) !important;
+    --popover: rgb(255, 255, 255) !important;
+    --popover-foreground: rgb(24, 33, 48) !important;
+    --primary: rgb(16, 129, 108) !important;
+    --primary-foreground: rgb(255, 255, 255) !important;
+    --secondary: rgb(242, 245, 248) !important;
+    --secondary-foreground: rgb(31, 42, 58) !important;
+    --muted: rgb(246, 248, 250) !important;
+    --muted-foreground: rgb(100, 116, 139) !important;
+    --accent: rgb(224, 101, 45) !important;
+    --accent-foreground: rgb(255, 255, 255) !important;
+    --destructive: rgb(220, 38, 38) !important;
+    --destructive-foreground: rgb(255, 255, 255) !important;
+    --border: rgb(226, 232, 240) !important;
+    --input: rgb(226, 232, 240) !important;
+    --ring: rgb(16, 129, 108) !important;
+    --chart-1: rgb(16, 129, 108) !important;
+    --chart-2: rgb(37, 99, 235) !important;
+    --chart-3: rgb(234, 88, 12) !important;
+    --chart-4: rgb(147, 51, 234) !important;
+    --chart-5: rgb(220, 38, 38) !important;
+    --sidebar: rgb(248, 250, 252) !important;
+    --sidebar-foreground: rgb(24, 33, 48) !important;
+    --sidebar-primary: rgb(16, 129, 108) !important;
+    --sidebar-primary-foreground: rgb(255, 255, 255) !important;
+    --sidebar-accent: rgb(241, 245, 249) !important;
+    --sidebar-accent-foreground: rgb(31, 42, 58) !important;
+    --sidebar-border: rgb(226, 232, 240) !important;
+    --sidebar-ring: rgb(16, 129, 108) !important;
+    --gradient-primary: linear-gradient(135deg, rgb(16, 129, 108), rgb(37, 99, 235)) !important;
+    --shadow-card: 0 4px 16px -6px rgba(15, 23, 42, 0.12) !important;
+  }
+`;
+
 /**
  * Snapshot a DOM element into a beautifully paginated landscape A4 PDF.
  * - html2canvas at scale=2 for crisp charts/numbers
@@ -50,6 +89,9 @@ export async function exportElementToPdf(
       backgroundColor: "#ffffff",
       windowWidth: Math.max(element.scrollWidth, 1400),
       onclone: (doc) => {
+        const fallbackStyles = doc.createElement("style");
+        fallbackStyles.textContent = PDF_COLOR_FALLBACKS;
+        doc.head.appendChild(fallbackStyles);
         doc.querySelectorAll<HTMLElement>(
           "[data-pdf-hide], .pdf-hide, .print\\:hidden",
         ).forEach((el) => {
@@ -128,8 +170,9 @@ export async function exportElementToPdf(
 
       const sliceCanvas = document.createElement("canvas");
       sliceCanvas.width = canvas.width;
-      sliceCanvas.height = canvasSliceHpx;
-      const ctx = sliceCanvas.getContext("2d")!;
+      sliceCanvas.height = Math.ceil(canvasSliceHpx);
+      const ctx = sliceCanvas.getContext("2d");
+      if (!ctx) throw new Error("PDF sahifasini chizib bo‘lmadi");
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, sliceCanvas.width, sliceCanvas.height);
       ctx.drawImage(
@@ -166,7 +209,11 @@ export async function exportElementToPdf(
       pdf.text(`${p} / ${total}`, pageW - 24, pageH - 10, { align: "right" });
     }
 
-    pdf.save(opts.filename);
+    const blob = pdf.output("blob");
+    const url = URL.createObjectURL(blob);
+    window.dispatchEvent(new CustomEvent("pdf-preview-ready", {
+      detail: { url, filename: opts.filename, title: opts.title },
+    }));
   } finally {
     element.classList.remove("pdf-exporting");
     if (wasDark) document.documentElement.classList.add("dark");
