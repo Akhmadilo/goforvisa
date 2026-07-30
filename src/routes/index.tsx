@@ -71,6 +71,7 @@ import { LogOut, Shield, FileText } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useT, format, localeOf } from "@/lib/i18n";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   component: Dashboard,
@@ -684,12 +685,35 @@ function Dashboard() {
     "var(--color-chart-5)",
   ];
 
+  const [pdfExporting, setPdfExporting] = useState(false);
   const [profileName, setProfileName] = useState<string>("");
   useEffect(() => {
     if (!user) { setProfileName(""); return; }
     supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle()
       .then(({ data }) => setProfileName((data as any)?.display_name ?? ""));
   }, [user]);
+
+  const exportDashboardPdf = async () => {
+    if (pdfExporting) return;
+    const el = document.getElementById("dashboard-pdf-root");
+    if (!el) return;
+    const toastId = toast.loading("PDF tayyorlanmoqda...");
+    setPdfExporting(true);
+    try {
+      const { exportElementToPdf } = await import("@/lib/pdf-export");
+      await exportElementToPdf(el, {
+        filename: `dashboard-${new Date().toISOString().slice(0,10)}.pdf`,
+        title: t("dash.title"),
+        subtitle: t("dash.subtitle"),
+      });
+      toast.success("PDF tayyor — preview oynasidan yuklab oling", { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error("PDF yaratishda xatolik. Sahifani yangilab qayta urinib ko'ring.", { id: toastId });
+    } finally {
+      setPdfExporting(false);
+    }
+  };
 
   const displayName =
     profileName ||
@@ -775,20 +799,12 @@ function Dashboard() {
               <RefreshCw className={`h-4 w-4 ${isFetching ? "animate-spin" : ""}`} />
             </button>
             <button
-              onClick={async () => {
-                const el = document.getElementById("dashboard-pdf-root");
-                if (!el) return;
-                const { exportElementToPdf } = await import("@/lib/pdf-export");
-                await exportElementToPdf(el, {
-                  filename: `dashboard-${new Date().toISOString().slice(0,10)}.pdf`,
-                  title: t("dash.title"),
-                  subtitle: t("dash.subtitle"),
-                });
-              }}
-              className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary transition-colors flex items-center justify-center pdf-hide"
+              onClick={exportDashboardPdf}
+              disabled={pdfExporting}
+              className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary transition-colors flex items-center justify-center disabled:opacity-50 pdf-hide"
               title="PDF"
             >
-              <FileText className="h-4 w-4" />
+              {pdfExporting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
             </button>
 
             {isAdmin && (

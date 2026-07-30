@@ -18,7 +18,7 @@ import {
   ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line, Legend, ReferenceLine,
   ComposedChart, Bar, Area, PieChart, Pie, Cell,
 } from "recharts";
-import { LineChart as LineChartIcon, LogOut, Shield, ChevronDown, TrendingUp, TrendingDown, DollarSign, Receipt, FileSpreadsheet, FileText, Sparkles, Printer, Download, Wallet, Award, Activity } from "lucide-react";
+import { LineChart as LineChartIcon, LogOut, Shield, ChevronDown, TrendingUp, TrendingDown, DollarSign, Receipt, FileSpreadsheet, FileText, Sparkles, Printer, Download, Wallet, Award, Activity, RefreshCw } from "lucide-react";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -33,6 +33,7 @@ import { useUsdRates } from "@/lib/usd-rates";
 import { useT, getMonthNames } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { FinanceInsights } from "@/components/finance-insights";
+import { toast } from "sonner";
 
 
 export const Route = createFileRoute("/moliya")({
@@ -146,6 +147,7 @@ function FinancePage() {
   const [year, setYear] = useState<string>("all");
   const [months, setMonths] = useState<number[]>([]);
   const [currency, setCurrency] = useState<"UZS" | "USD">("UZS");
+  const [pdfExporting, setPdfExporting] = useState(false);
   const fmt = useMemo(() => makeFmt(currency), [currency]);
   const canAccessFinance = !!user && !permsLoading && can("finance_section");
 
@@ -505,15 +507,26 @@ function FinancePage() {
   };
 
   const exportPdf = async () => {
+    if (pdfExporting) return;
     const el = document.getElementById("moliya-pdf-root");
     if (!el) return;
-    const { exportElementToPdf } = await import("@/lib/pdf-export");
-    await exportElementToPdf(el, {
-      filename: `moliya-${basis}-${currency}-${year}.pdf`,
-      title: t("finance.title"),
-      subtitle: `${basisLabel}  ·  ${currency}  ·  ${periodLabel}`,
-      meta: "Moliyaviy hisobot",
-    });
+    const toastId = toast.loading("PDF tayyorlanmoqda...");
+    setPdfExporting(true);
+    try {
+      const { exportElementToPdf } = await import("@/lib/pdf-export");
+      await exportElementToPdf(el, {
+        filename: `moliya-${basis}-${currency}-${year}.pdf`,
+        title: t("finance.title"),
+        subtitle: `${basisLabel}  ·  ${currency}  ·  ${periodLabel}`,
+        meta: "Moliyaviy hisobot",
+      });
+      toast.success("PDF tayyor — preview oynasidan yuklab oling", { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error("PDF yaratishda xatolik. Sahifani yangilab qayta urinib ko'ring.", { id: toastId });
+    } finally {
+      setPdfExporting(false);
+    }
   };
 
 
@@ -554,10 +567,12 @@ function FinancePage() {
               </button>
               <button
                 onClick={exportPdf}
-                className="h-9 px-2 md:px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-1.5 text-xs font-medium"
+                disabled={pdfExporting}
+                className="h-9 px-2 md:px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-1.5 text-xs font-medium disabled:opacity-50"
                 title="PDF"
               >
-                <FileText className="h-4 w-4" /> <span className="hidden sm:inline">PDF</span>
+                {pdfExporting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
+                <span className="hidden sm:inline">{pdfExporting ? "Tayyorlanmoqda" : "PDF"}</span>
               </button>
               <button
                 onClick={() => window.print()}
