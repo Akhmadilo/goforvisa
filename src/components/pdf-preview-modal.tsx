@@ -40,6 +40,17 @@ export function PdfPreviewModal() {
     });
   };
 
+  const downloadPreview = () => {
+    if (!preview?.url) return;
+    const link = document.createElement("a");
+    link.href = preview.url;
+    link.download = preview.filename || "hisobot.pdf";
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
   return (
     <Dialog open={Boolean(preview)} onOpenChange={(open) => !open && closePreview()}>
       <DialogContent className="h-[92vh] max-w-[min(96vw,1200px)] grid-rows-[auto_minmax(0,1fr)_auto]">
@@ -64,10 +75,8 @@ export function PdfPreviewModal() {
         <DialogFooter>
           <Button variant="outline" onClick={closePreview}>Yopish</Button>
           {preview && (
-            <Button asChild>
-              <a href={preview.url} download={preview.filename}>
-                <Download /> Yuklab olish
-              </a>
+            <Button onClick={downloadPreview}>
+              <Download /> Yuklab olish
             </Button>
           )}
         </DialogFooter>
