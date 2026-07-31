@@ -475,12 +475,12 @@ function CommissionKpi({
       bonus: number;
       completedAt: string;
     };
-    const groups = new Map<string, Item[]>();
+    const groups = new Map<string, { label: string; items: Item[] }>();
 
     for (const c of contracts as any[]) {
-      const name = (c[managerField] ?? "").trim();
+      const name = normalizeName(c[managerField]);
       if (!name) continue;
-      if (c.visa_result === "Bekor qilindi" || c.visa_result === "To'xtatildi") continue;
+      if (isCancelledResult(c.visa_result)) continue;
       const price = Number(c.price_usd ?? 0);
       const commissionUsd = Number(c.commission ?? 0);
       if (price <= 0 || commissionUsd <= 0) continue;
@@ -490,7 +490,8 @@ function CommissionKpi({
       for (const p of ps) {
         const amt = Number(p.amount ?? 0);
         const ym = (p.paid_at as string).slice(0, 7);
-        const usd = (p.currency ?? "UZS") === "USD" ? amt : amt / getRate(ym);
+        const rateUzs = getRate(ym);
+        const usd = (p.currency ?? "UZS") === "USD" ? amt : rateUzs > 0 ? amt / rateUzs : 0;
         running += usd;
         if (running >= price - 0.01) {
           completionDate = p.paid_at;
@@ -498,12 +499,14 @@ function CommissionKpi({
         }
       }
       if (!completionDate) continue;
-      const d = new Date(completionDate);
-      if (d.getFullYear() !== yNum || d.getMonth() + 1 !== mNum) continue;
+      // paid_at is a plain date string — parse it без timezone shifts.
+      const [cy, cm] = completionDate.slice(0, 10).split("-").map(Number);
+      if (cy !== yNum || cm !== mNum) continue;
       const rate = rateFor(name);
       const bonus = Math.round(commissionUsd * rate);
-      const arr = groups.get(name) ?? [];
-      arr.push({
+      const key = name.toLowerCase();
+      const g = groups.get(key) ?? { label: name, items: [] };
+      g.items.push({
         id: c.id,
         client: c.client_name,
         contractNo: c.contract_no,
@@ -511,13 +514,14 @@ function CommissionKpi({
         bonus,
         completedAt: completionDate,
       });
-      groups.set(name, arr);
+      groups.set(key, g);
     }
 
     const approvedSet = new Set((approvals ?? []).filter((a) => a.status === "approved").map((a) => a.contract_id));
     const rejectedSet = new Set((approvals ?? []).filter((a) => a.status === "rejected").map((a) => a.contract_id));
-    const list = Array.from(groups.entries())
-      .map(([name, items]) => {
+    const list = Array.from(groups.values())
+      .map(({ label: name, items }) => {
+
         const approvedTotal = items.filter((i) => approvedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
         const rejectedTotal = items.filter((i) => rejectedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
         const pendingTotal = items
