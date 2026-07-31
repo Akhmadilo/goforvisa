@@ -188,8 +188,9 @@ function CallCentreKpi() {
       if (o.is_active) put(o.name, 0);
     });
 
+    // Call-centre sotuv soni: operator shartnomani qilgan, keyin mijoz bekor qilsa ham
+    // operatorning oylik hisobiga kiradi — shuning uchun bekor qilinganlar chiqarilmaydi.
     (contracts ?? []).forEach((c: { call_centre: string | null; visa_result: string | null }) => {
-      if (isCancelledResult(c.visa_result)) return;
       put(c.call_centre ?? "", 1);
     });
 
