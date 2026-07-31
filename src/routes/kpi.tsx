@@ -396,9 +396,11 @@ function CommissionKpi({
   });
 
   const rateFor = (name: string): number => {
-    const r = (rates ?? []).find((x) => x.manager_name === name);
+    const key = normalizeName(name).toLowerCase();
+    const r = (rates ?? []).find((x) => normalizeName(x.manager_name).toLowerCase() === key);
     return r ? Number(r.rate_per_usd) : 500;
   };
+
 
   const setRate = useMutation({
     mutationFn: async ({ name, rate }: { name: string; rate: number }) => {
