@@ -76,6 +76,19 @@ export function callCentreKpiPctFor(count: number) {
 const baseFor = callCentreBaseFor;
 const kpiPctFor = callCentreKpiPctFor;
 
+/** Trim + collapse inner whitespace so "Ali  Vali " and "Ali Vali" group together. */
+export function normalizeName(v: string | null | undefined) {
+  return (v ?? "").replace(/\s+/g, " ").trim();
+}
+
+/** Cancelled/stopped contracts never earn KPI. Robust to case + apostrophe variants. */
+export function isCancelledResult(v: string | null | undefined) {
+  const s = normalizeName(v).toLowerCase().replace(/[’`ʻ']/g, "'");
+  if (!s) return false;
+  return s.includes("bekor") || s.includes("to'xtat") || s.includes("toxtat") || s.includes("rad etil");
+}
+
+
 
 function PeriodPicker({
   year, month, setYear, setMonth,
