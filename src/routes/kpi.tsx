@@ -338,35 +338,34 @@ function CommissionKpi({
         .select(`id, client_name, contract_no, ${managerField}, price_usd, commission, visa_result`)
         .not(managerField, "is", null)
         .gt("price_usd", 0)
-        .gt("commission", 0);
+        .gt("commission", 0)
+        .limit(20000);
       if (error) throw error;
       return data ?? [];
     },
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
+    placeholderData: (prev) => prev,
   });
 
-  const contractIdsKey = useMemo(
-    () => (contracts ?? []).map((c: any) => c.id).sort().join(","),
-    [contracts],
-  );
-  const contractIds = useMemo(() => (contracts ?? []).map((c: any) => c.id), [contracts]);
-
+  // One shared payments cache for both KPI tabs — avoids a huge `in(...)` URL
+  // and a second identical round-trip when switching tabs.
   const { data: payments } = useQuery({
-    queryKey: ["kpi-commission-payments", role, contractIdsKey],
-    enabled: contractIds.length > 0,
+    queryKey: ["kpi-contract-payments"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contract_payments")
         .select("contract_id, amount, currency, paid_at")
-        .in("contract_id", contractIds)
-        .order("paid_at", { ascending: true });
+        .order("paid_at", { ascending: true })
+        .limit(50000);
       if (error) throw error;
       return data ?? [];
     },
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
+    placeholderData: (prev) => prev,
   });
+
 
   const { data: rates } = useQuery({
     queryKey: ["sales_kpi_rates", role],
