@@ -76,6 +76,19 @@ export function callCentreKpiPctFor(count: number) {
 const baseFor = callCentreBaseFor;
 const kpiPctFor = callCentreKpiPctFor;
 
+/** Trim + collapse inner whitespace so "Ali  Vali " and "Ali Vali" group together. */
+export function normalizeName(v: string | null | undefined) {
+  return (v ?? "").replace(/\s+/g, " ").trim();
+}
+
+/** Cancelled/stopped contracts never earn KPI. Robust to case + apostrophe variants. */
+export function isCancelledResult(v: string | null | undefined) {
+  const s = normalizeName(v).toLowerCase().replace(/[’`ʻ']/g, "'");
+  if (!s) return false;
+  return s.includes("bekor") || s.includes("to'xtat") || s.includes("toxtat") || s.includes("rad etil");
+}
+
+
 
 function PeriodPicker({
   year, month, setYear, setMonth,
@@ -135,7 +148,8 @@ function CallCentreKpi() {
         .select("call_centre, visa_result")
         .eq("year", year)
         .eq("month", month)
-        .not("call_centre", "is", null);
+        .not("call_centre", "is", null)
+        .limit(5000);
       if (error) throw error;
       return data ?? [];
     },
@@ -144,31 +158,57 @@ function CallCentreKpi() {
     placeholderData: (prev) => prev,
   });
 
+  const { data: operators } = useQuery({
+    queryKey: ["kpi-cc-operators"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("operators")
+        .select("name, is_active")
+        .eq("kind", "call_centre");
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
+  });
+
   const allRows = useMemo(() => {
-    const map = new Map<string, number>();
-    (contracts ?? []).forEach((c: { call_centre: string | null; visa_result: string | null }) => {
-      const name = (c.call_centre ?? "").trim();
-      if (!name) return;
-      if (c.visa_result === "Bekor qilindi" || c.visa_result === "To'xtatildi") return;
-      map.set(name, (map.get(name) ?? 0) + 1);
-    });
-    const list = Array.from(map.entries()).map(([name, count]) => {
-      const base = baseFor(count);
-      const kpi = kpiPctFor(count);
-      const bonus = Math.round((base * kpi) / 100);
-      const total = base + bonus;
-      return { name, count, base, kpi, bonus, total };
+    // key = lowercased name so casing/spacing typos don't split one operator in two.
+    const counts = new Map<string, { label: string; count: number }>();
+    const put = (rawName: string, inc: number) => {
+      const label = normalizeName(rawName);
+      if (!label) return;
+      const key = label.toLowerCase();
+      const cur = counts.get(key) ?? { label, count: 0 };
+      cur.count += inc;
+      counts.set(key, cur);
+    };
+
+    (operators ?? []).forEach((o: { name: string; is_active: boolean }) => {
+      if (o.is_active) put(o.name, 0);
     });
 
-    list.sort((a, b) => b.count - a.count);
-    return list;
-  }, [contracts]);
+    (contracts ?? []).forEach((c: { call_centre: string | null; visa_result: string | null }) => {
+      if (isCancelledResult(c.visa_result)) return;
+      put(c.call_centre ?? "", 1);
+    });
+
+    return Array.from(counts.values())
+      .map(({ label, count }) => {
+        const base = baseFor(count);
+        const kpi = kpiPctFor(count);
+        const bonus = Math.round((base * kpi) / 100);
+        return { name: label, count, base, kpi, bonus, total: base + bonus };
+      })
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  }, [contracts, operators]);
 
   const rows = useMemo(
     () => (employee === "__all__" ? allRows : allRows.filter((r) => r.name === employee)),
     [allRows, employee],
   );
-  const names = useMemo(() => allRows.map((r) => r.name), [allRows]);
+  const names = useMemo(() => [...allRows].sort((a, b) => a.name.localeCompare(b.name)).map((r) => r.name), [allRows]);
+
 
   const fmt = (n: number) => n.toLocaleString(localeOf(lang));
 
@@ -298,35 +338,34 @@ function CommissionKpi({
         .select(`id, client_name, contract_no, ${managerField}, price_usd, commission, visa_result`)
         .not(managerField, "is", null)
         .gt("price_usd", 0)
-        .gt("commission", 0);
+        .gt("commission", 0)
+        .limit(20000);
       if (error) throw error;
       return data ?? [];
     },
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
+    placeholderData: (prev) => prev,
   });
 
-  const contractIdsKey = useMemo(
-    () => (contracts ?? []).map((c: any) => c.id).sort().join(","),
-    [contracts],
-  );
-  const contractIds = useMemo(() => (contracts ?? []).map((c: any) => c.id), [contracts]);
-
+  // One shared payments cache for both KPI tabs — avoids a huge `in(...)` URL
+  // and a second identical round-trip when switching tabs.
   const { data: payments } = useQuery({
-    queryKey: ["kpi-commission-payments", role, contractIdsKey],
-    enabled: contractIds.length > 0,
+    queryKey: ["kpi-contract-payments"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contract_payments")
         .select("contract_id, amount, currency, paid_at")
-        .in("contract_id", contractIds)
-        .order("paid_at", { ascending: true });
+        .order("paid_at", { ascending: true })
+        .limit(50000);
       if (error) throw error;
       return data ?? [];
     },
     staleTime: 5 * 60_000,
     gcTime: 10 * 60_000,
+    placeholderData: (prev) => prev,
   });
+
 
   const { data: rates } = useQuery({
     queryKey: ["sales_kpi_rates", role],
@@ -357,9 +396,11 @@ function CommissionKpi({
   });
 
   const rateFor = (name: string): number => {
-    const r = (rates ?? []).find((x) => x.manager_name === name);
+    const key = normalizeName(name).toLowerCase();
+    const r = (rates ?? []).find((x) => normalizeName(x.manager_name).toLowerCase() === key);
     return r ? Number(r.rate_per_usd) : 500;
   };
+
 
   const setRate = useMutation({
     mutationFn: async ({ name, rate }: { name: string; rate: number }) => {
@@ -434,12 +475,12 @@ function CommissionKpi({
       bonus: number;
       completedAt: string;
     };
-    const groups = new Map<string, Item[]>();
+    const groups = new Map<string, { label: string; items: Item[] }>();
 
     for (const c of contracts as any[]) {
-      const name = (c[managerField] ?? "").trim();
+      const name = normalizeName(c[managerField]);
       if (!name) continue;
-      if (c.visa_result === "Bekor qilindi" || c.visa_result === "To'xtatildi") continue;
+      if (isCancelledResult(c.visa_result)) continue;
       const price = Number(c.price_usd ?? 0);
       const commissionUsd = Number(c.commission ?? 0);
       if (price <= 0 || commissionUsd <= 0) continue;
@@ -449,7 +490,8 @@ function CommissionKpi({
       for (const p of ps) {
         const amt = Number(p.amount ?? 0);
         const ym = (p.paid_at as string).slice(0, 7);
-        const usd = (p.currency ?? "UZS") === "USD" ? amt : amt / getRate(ym);
+        const rateUzs = getRate(ym);
+        const usd = (p.currency ?? "UZS") === "USD" ? amt : rateUzs > 0 ? amt / rateUzs : 0;
         running += usd;
         if (running >= price - 0.01) {
           completionDate = p.paid_at;
@@ -457,12 +499,14 @@ function CommissionKpi({
         }
       }
       if (!completionDate) continue;
-      const d = new Date(completionDate);
-      if (d.getFullYear() !== yNum || d.getMonth() + 1 !== mNum) continue;
+      // paid_at is a plain date string — parse it without timezone shifts.
+      const [cy, cm] = completionDate.slice(0, 10).split("-").map(Number);
+      if (cy !== yNum || cm !== mNum) continue;
       const rate = rateFor(name);
       const bonus = Math.round(commissionUsd * rate);
-      const arr = groups.get(name) ?? [];
-      arr.push({
+      const key = name.toLowerCase();
+      const g = groups.get(key) ?? { label: name, items: [] };
+      g.items.push({
         id: c.id,
         client: c.client_name,
         contractNo: c.contract_no,
@@ -470,13 +514,14 @@ function CommissionKpi({
         bonus,
         completedAt: completionDate,
       });
-      groups.set(name, arr);
+      groups.set(key, g);
     }
 
     const approvedSet = new Set((approvals ?? []).filter((a) => a.status === "approved").map((a) => a.contract_id));
     const rejectedSet = new Set((approvals ?? []).filter((a) => a.status === "rejected").map((a) => a.contract_id));
-    const list = Array.from(groups.entries())
-      .map(([name, items]) => {
+    const list = Array.from(groups.values())
+      .map(({ label: name, items }) => {
+
         const approvedTotal = items.filter((i) => approvedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
         const rejectedTotal = items.filter((i) => rejectedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
         const pendingTotal = items
@@ -842,7 +887,8 @@ function VisaBonusKpi() {
   });
 
   const rateFor = (name: string): number => {
-    const r = (rates ?? []).find((x) => x.manager_name === name);
+    const key = normalizeName(name).toLowerCase();
+    const r = (rates ?? []).find((x) => normalizeName(x.manager_name).toLowerCase() === key);
     return r ? Number(r.rate_per_usd) : DEFAULT_RATE;
   };
 
@@ -900,29 +946,32 @@ function VisaBonusKpi() {
     const mNum = Number(month);
 
     type Item = { id: string; client: string; contractNo: string | null; commissionUsd: number; bonus: number; completedAt: string };
-    const groups = new Map<string, Item[]>();
+    const groups = new Map<string, { label: string; items: Item[] }>();
 
     for (const c of contracts as any[]) {
-      const name = (c.back_office_manager ?? "").trim();
+      const name = normalizeName(c.back_office_manager);
       if (!name) continue;
+      if (isCancelledResult(c.visa_result)) continue;
       const takenDate: string | null = c.visa_taken_date ?? null;
       if (!takenDate) continue;
-      const d = new Date(takenDate);
-      if (isNaN(d.getTime())) continue;
-      if (d.getFullYear() !== yNum || d.getMonth() + 1 !== mNum) continue;
+      const [ty, tm] = String(takenDate).slice(0, 10).split("-").map(Number);
+      if (!ty || !tm) continue;
+      if (ty !== yNum || tm !== mNum) continue;
       const commissionUsd = Number(c.commission ?? 0);
       if (commissionUsd <= 0) continue;
       const rate = rateFor(name);
       const bonus = Math.round(commissionUsd * rate);
-      const arr = groups.get(name) ?? [];
-      arr.push({ id: c.id, client: c.client_name, contractNo: c.contract_no, commissionUsd, bonus, completedAt: takenDate });
-      groups.set(name, arr);
+      const key = name.toLowerCase();
+      const g = groups.get(key) ?? { label: name, items: [] };
+      g.items.push({ id: c.id, client: c.client_name, contractNo: c.contract_no, commissionUsd, bonus, completedAt: takenDate });
+      groups.set(key, g);
     }
 
     const approvedSet = new Set((approvals ?? []).filter((a) => a.status === "approved").map((a) => a.contract_id));
     const rejectedSet = new Set((approvals ?? []).filter((a) => a.status === "rejected").map((a) => a.contract_id));
-    return Array.from(groups.entries())
-      .map(([name, items]) => {
+    return Array.from(groups.values())
+      .map(({ label: name, items }) => {
+
         const approvedTotal = items.filter((i) => approvedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
         const rejectedTotal = items.filter((i) => rejectedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
         const pendingTotal = items.filter((i) => !approvedSet.has(i.id) && !rejectedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
