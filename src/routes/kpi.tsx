@@ -148,7 +148,8 @@ function CallCentreKpi() {
         .select("call_centre, visa_result")
         .eq("year", year)
         .eq("month", month)
-        .not("call_centre", "is", null);
+        .not("call_centre", "is", null)
+        .limit(5000);
       if (error) throw error;
       return data ?? [];
     },
@@ -157,31 +158,57 @@ function CallCentreKpi() {
     placeholderData: (prev) => prev,
   });
 
+  const { data: operators } = useQuery({
+    queryKey: ["kpi-cc-operators"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("operators")
+        .select("name, is_active")
+        .eq("kind", "call_centre");
+      if (error) throw error;
+      return data ?? [];
+    },
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
+  });
+
   const allRows = useMemo(() => {
-    const map = new Map<string, number>();
-    (contracts ?? []).forEach((c: { call_centre: string | null; visa_result: string | null }) => {
-      const name = (c.call_centre ?? "").trim();
-      if (!name) return;
-      if (c.visa_result === "Bekor qilindi" || c.visa_result === "To'xtatildi") return;
-      map.set(name, (map.get(name) ?? 0) + 1);
-    });
-    const list = Array.from(map.entries()).map(([name, count]) => {
-      const base = baseFor(count);
-      const kpi = kpiPctFor(count);
-      const bonus = Math.round((base * kpi) / 100);
-      const total = base + bonus;
-      return { name, count, base, kpi, bonus, total };
+    // key = lowercased name so casing/spacing typos don't split one operator in two.
+    const counts = new Map<string, { label: string; count: number }>();
+    const put = (rawName: string, inc: number) => {
+      const label = normalizeName(rawName);
+      if (!label) return;
+      const key = label.toLowerCase();
+      const cur = counts.get(key) ?? { label, count: 0 };
+      cur.count += inc;
+      counts.set(key, cur);
+    };
+
+    (operators ?? []).forEach((o: { name: string; is_active: boolean }) => {
+      if (o.is_active) put(o.name, 0);
     });
 
-    list.sort((a, b) => b.count - a.count);
-    return list;
-  }, [contracts]);
+    (contracts ?? []).forEach((c: { call_centre: string | null; visa_result: string | null }) => {
+      if (isCancelledResult(c.visa_result)) return;
+      put(c.call_centre ?? "", 1);
+    });
+
+    return Array.from(counts.values())
+      .map(({ label, count }) => {
+        const base = baseFor(count);
+        const kpi = kpiPctFor(count);
+        const bonus = Math.round((base * kpi) / 100);
+        return { name: label, count, base, kpi, bonus, total: base + bonus };
+      })
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  }, [contracts, operators]);
 
   const rows = useMemo(
     () => (employee === "__all__" ? allRows : allRows.filter((r) => r.name === employee)),
     [allRows, employee],
   );
-  const names = useMemo(() => allRows.map((r) => r.name), [allRows]);
+  const names = useMemo(() => [...allRows].sort((a, b) => a.name.localeCompare(b.name)).map((r) => r.name), [allRows]);
+
 
   const fmt = (n: number) => n.toLocaleString(localeOf(lang));
 
