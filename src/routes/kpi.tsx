@@ -499,7 +499,7 @@ function CommissionKpi({
         }
       }
       if (!completionDate) continue;
-      // paid_at is a plain date string — parse it без timezone shifts.
+      // paid_at is a plain date string — parse it without timezone shifts.
       const [cy, cm] = completionDate.slice(0, 10).split("-").map(Number);
       if (cy !== yNum || cm !== mNum) continue;
       const rate = rateFor(name);
