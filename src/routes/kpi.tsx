@@ -946,29 +946,32 @@ function VisaBonusKpi() {
     const mNum = Number(month);
 
     type Item = { id: string; client: string; contractNo: string | null; commissionUsd: number; bonus: number; completedAt: string };
-    const groups = new Map<string, Item[]>();
+    const groups = new Map<string, { label: string; items: Item[] }>();
 
     for (const c of contracts as any[]) {
-      const name = (c.back_office_manager ?? "").trim();
+      const name = normalizeName(c.back_office_manager);
       if (!name) continue;
+      if (isCancelledResult(c.visa_result)) continue;
       const takenDate: string | null = c.visa_taken_date ?? null;
       if (!takenDate) continue;
-      const d = new Date(takenDate);
-      if (isNaN(d.getTime())) continue;
-      if (d.getFullYear() !== yNum || d.getMonth() + 1 !== mNum) continue;
+      const [ty, tm] = String(takenDate).slice(0, 10).split("-").map(Number);
+      if (!ty || !tm) continue;
+      if (ty !== yNum || tm !== mNum) continue;
       const commissionUsd = Number(c.commission ?? 0);
       if (commissionUsd <= 0) continue;
       const rate = rateFor(name);
       const bonus = Math.round(commissionUsd * rate);
-      const arr = groups.get(name) ?? [];
-      arr.push({ id: c.id, client: c.client_name, contractNo: c.contract_no, commissionUsd, bonus, completedAt: takenDate });
-      groups.set(name, arr);
+      const key = name.toLowerCase();
+      const g = groups.get(key) ?? { label: name, items: [] };
+      g.items.push({ id: c.id, client: c.client_name, contractNo: c.contract_no, commissionUsd, bonus, completedAt: takenDate });
+      groups.set(key, g);
     }
 
     const approvedSet = new Set((approvals ?? []).filter((a) => a.status === "approved").map((a) => a.contract_id));
     const rejectedSet = new Set((approvals ?? []).filter((a) => a.status === "rejected").map((a) => a.contract_id));
-    return Array.from(groups.entries())
-      .map(([name, items]) => {
+    return Array.from(groups.values())
+      .map(({ label: name, items }) => {
+
         const approvedTotal = items.filter((i) => approvedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
         const rejectedTotal = items.filter((i) => rejectedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
         const pendingTotal = items.filter((i) => !approvedSet.has(i.id) && !rejectedSet.has(i.id)).reduce((s, i) => s + i.bonus, 0);
