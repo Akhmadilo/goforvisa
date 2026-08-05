@@ -188,7 +188,7 @@ export function PayslipDialog({
           {/* Umumiy */}
           <section className="rounded-lg border border-border bg-card p-4">
             <div className="mb-2 text-sm font-semibold">1. Umumiy hisob</div>
-            <Row label="Fiksirovannqy (asosiy) oylik" value={nf(Number(target.fixed_amount))} />
+            <Row label="Belgilangan (asosiy) oylik" value={nf(Number(target.fixed_amount))} />
             <Row label="Bonus / KPI" value={`+ ${nf(Number(target.kpi_amount))}`} tone="primary" />
             <Row label="Jarimalar" value={`− ${nf(Number(target.penalty_amount))}`} tone="destructive" />
             <Row label="Hisoblangan oylik (jami)" value={nf(target.gross)} />
