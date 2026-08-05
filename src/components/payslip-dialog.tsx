@@ -6,7 +6,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { exportElementToPdf } from "@/lib/pdf-export";
+import { exportPayslipPdf } from "@/lib/payslip-pdf";
 import { getMonthNames, localeOf, useT } from "@/lib/i18n";
 import { toast } from "sonner";
 
