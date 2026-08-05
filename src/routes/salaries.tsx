@@ -16,9 +16,10 @@ import {
 } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Wallet, LogOut, Shield, Search, ChevronDown, Plus, Pencil, Trash2 } from "lucide-react";
+import { Wallet, LogOut, Shield, Search, ChevronDown, Plus, Pencil, Trash2, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { AppSidebar } from "@/components/app-sidebar";
+import { PayslipDialog, type PayslipTarget } from "@/components/payslip-dialog";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
@@ -157,6 +158,7 @@ function SalariesPage() {
   }, [canAccessSalaries, qc]);
 
   const [payFor, setPayFor] = useState<{ id: string; name: string; gross: number; paid: number } | null>(null);
+  const [payslipFor, setPayslipFor] = useState<PayslipTarget | null>(null);
 
   const enriched = useMemo(
     () => rowsAll.map((r) => {
@@ -426,6 +428,16 @@ function SalariesPage() {
                                     <Plus className="h-3.5 w-3.5 mr-1" /> To'lov
                                   </Button>
                                   <Button size="icon" variant="ghost" className="h-8 w-8"
+                                    title="Hisob varaqasi (PDF)"
+                                    onClick={() => setPayslipFor({
+                                      id: e.id, employee_name: e.employee_name, year: e.year, month: e.month,
+                                      fixed_amount: Number(e.fixed_amount), kpi_amount: Number(e.kpi_amount),
+                                      penalty_amount: Number(e.penalty_amount), advance: e.advance,
+                                      gross: e.gross, total: e.total, note: e.note,
+                                    })}>
+                                    <FileText className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button size="icon" variant="ghost" className="h-8 w-8"
                                     onClick={() => { setEditing(e); setOpenForm(true); }}>
                                     <Pencil className="h-3.5 w-3.5" />
                                   </Button>
@@ -455,6 +467,8 @@ function SalariesPage() {
         userId={user?.id ?? null}
         knownEmployees={employees}
       />
+
+      <PayslipDialog target={payslipFor} onClose={() => setPayslipFor(null)} />
 
       <PaymentDialog
         target={payFor}
