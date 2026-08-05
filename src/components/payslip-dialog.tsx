@@ -6,7 +6,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { exportElementToPdf } from "@/lib/pdf-export";
+import { exportPayslipPdf } from "@/lib/payslip-pdf";
 import { getMonthNames, localeOf, useT } from "@/lib/i18n";
 import { toast } from "sonner";
 
@@ -145,14 +145,82 @@ export function PayslipDialog({
   const paidTotal = (data?.payments ?? []).reduce((a, p) => a + p.amount, 0);
 
   const onExport = async () => {
-    if (!contentRef.current) return;
     setExporting(true);
     try {
-      await exportElementToPdf(contentRef.current, {
+      const d = data;
+      const tables = [] as any[];
+
+      if (d && (d.ccCount > 0 || d.kpiApprovals.length > 0)) {
+        const body: string[][] = [];
+        if (d.ccCount > 0) {
+          body.push(["Call-centre KPI", `${d.ccCount} ta shartnoma`, `bosqich: ${nf(d.ccBase)} × ${d.ccPct}%`, nf(d.ccBonus)]);
+        }
+        d.kpiApprovals.forEach((k) =>
+          body.push([`Shartnoma bonusi (${k.role})`, k.client, k.contractNo ?? "—", nf(k.bonus)]),
+        );
+        body.push(["Jami bonus", "", "", nf(d.ccBonus + d.kpiApprovals.reduce((a, k) => a + k.bonus, 0))]);
+        tables.push({
+          title: "Bonus qanday hisoblandi",
+          head: ["Manba", "Mijoz / hajm", "Izoh", "Summa"],
+          body,
+          align: ["left", "left", "left", "right"],
+        });
+      }
+
+      if (d && d.fines.length) {
+        tables.push({
+          title: "Jarimalar tafsiloti",
+          head: ["Sana", "Sabab", "Kechikish", "Izoh", "Summa"],
+          body: [
+            ...d.fines.map((f) => [f.date, f.reason, f.minutes > 0 ? `${f.minutes} daq` : "—", f.note ?? "—", `-${nf(f.amount)}`]),
+            ["Jami jarima", "", "", "", `-${nf(d.fines.reduce((a, f) => a + f.amount, 0))}`],
+          ],
+          align: ["left", "left", "left", "left", "right"],
+        });
+      }
+
+      if (d && d.advances.length) {
+        tables.push({
+          title: "Avanslar",
+          head: ["Sana", "Maqsad", "Holat", "Summa"],
+          body: [
+            ...d.advances.map((a) => [a.date, a.purpose, a.status, nf(a.amount)]),
+            ["Jami avans", "", "", nf(d.advances.reduce((a, x) => a + x.amount, 0))],
+          ],
+          align: ["left", "left", "left", "right"],
+        });
+      }
+
+      if (d && d.payments.length) {
+        tables.push({
+          title: "To'lovlar",
+          head: ["Sana", "Turi", "Izoh", "Summa"],
+          body: [
+            ...d.payments.map((p) => [p.date, p.kind === "advance" ? "avans" : "to'lov", p.note ?? "—", nf(p.amount)]),
+            ["Jami to'langan", "", "", nf(paidTotal)],
+            ["Qoldiq", "", "", nf(Math.max(0, target.gross - paidTotal))],
+          ],
+          align: ["left", "left", "left", "right"],
+        });
+      }
+
+      await exportPayslipPdf({
         filename: `oylik-${target.employee_name.replace(/\s+/g, "-")}-${target.year}-${String(target.month).padStart(2, "0")}.pdf`,
-        title: `Oylik hisob varaqasi — ${target.employee_name}`,
-        subtitle: periodLabel,
-        meta: `Hisoblangan: ${nf(target.gross)}`,
+        employee: target.employee_name,
+        period: periodLabel,
+        summary: [
+          { label: "Belgilangan (asosiy) oylik", value: nf(Number(target.fixed_amount)) },
+          { label: "Bonus / KPI", value: `+ ${nf(Number(target.kpi_amount))}`, tone: "primary" },
+          { label: "Jarimalar", value: `- ${nf(Number(target.penalty_amount))}`, tone: "danger" },
+          { label: "Hisoblangan oylik (jami)", value: nf(target.gross), strong: true },
+          { label: "Oldindan olingan avans", value: target.advance > 0 ? `- ${nf(target.advance)}` : "—", tone: "muted" },
+          { label: "Qo'lga beriladigan summa", value: nf(target.total), strong: true, tone: "primary" },
+        ],
+        notes: [
+          "Formula: Asosiy oylik + Bonus - Jarima = Hisoblangan oylik. Avans ilgari to'langani uchun faqat qo'lga beriladigan summani kamaytiradi.",
+        ],
+        tables,
+        footNote: target.note,
       });
     } catch (e: any) {
       toast.error(e?.message ?? "PDF yaratilmadi");
@@ -160,6 +228,7 @@ export function PayslipDialog({
       setExporting(false);
     }
   };
+
 
   const Row = ({ label, value, tone }: { label: string; value: string; tone?: "primary" | "destructive" | "muted" }) => (
     <div className="flex items-center justify-between border-b border-border py-1.5 text-sm last:border-0">
