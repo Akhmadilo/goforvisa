@@ -47,6 +47,7 @@ interface Detail {
   advances: { date: string; amount: number; purpose: string; status: string }[];
   payments: { date: string; amount: number; kind: string; note: string | null }[];
   kpiApprovals: { client: string; bonus: number; role: string; contractNo: string | null }[];
+  extras: { amount: number; description: string; date: string }[];
   ccCount: number;
   ccBase: number;
   ccPct: number;
@@ -64,7 +65,7 @@ async function fetchDetail(target: PayslipTarget): Promise<Detail> {
   const { data: emp } = await supabase
     .from("employees").select("id").eq("full_name", name).maybeSingle();
 
-  const [finesRes, advRes, payRes, ccRes, kpiRes] = await Promise.all([
+  const [finesRes, advRes, payRes, ccRes, kpiRes, extraRes] = await Promise.all([
     emp?.id
       ? supabase.from("fines")
           .select("date, amount_uzs, reason, note, minutes_late")
@@ -84,6 +85,10 @@ async function fetchDetail(target: PayslipTarget): Promise<Detail> {
       .select("bonus_uzs, role, contract_id, contracts(client_name, contract_no)")
       .eq("manager_name", name).eq("approved_year", year)
       .eq("approved_month", month).eq("status", "approved"),
+    (supabase as any).from("extra_bonuses")
+      .select("amount_uzs, description, created_at")
+      .eq("employee_name", name).eq("year", year).eq("month", month)
+      .order("created_at"),
   ]);
 
   const ccCount = (ccRes.data ?? []).filter(
@@ -119,6 +124,11 @@ async function fetchDetail(target: PayslipTarget): Promise<Detail> {
       bonus: Number(k.bonus_uzs || 0),
       role: k.role ?? "sales",
     })),
+    extras: ((extraRes as any).data ?? []).map((e: any) => ({
+      amount: Number(e.amount_uzs || 0),
+      description: e.description ?? "—",
+      date: String(e.created_at ?? "").slice(0, 10),
+    })),
     ccCount, ccBase, ccPct, ccBonus,
   };
 }
@@ -150,7 +160,7 @@ export function PayslipDialog({
       const d = data;
       const tables = [] as any[];
 
-      if (d && (d.ccCount > 0 || d.kpiApprovals.length > 0)) {
+      if (d && (d.ccCount > 0 || d.kpiApprovals.length > 0 || d.extras.length > 0)) {
         const body: string[][] = [];
         if (d.ccCount > 0) {
           body.push(["Call-centre KPI", `${d.ccCount} ta shartnoma`, `bosqich: ${nf(d.ccBase)} × ${d.ccPct}%`, nf(d.ccBonus)]);
@@ -158,10 +168,17 @@ export function PayslipDialog({
         d.kpiApprovals.forEach((k) =>
           body.push([`Shartnoma bonusi (${k.role})`, k.client, k.contractNo ?? "—", nf(k.bonus)]),
         );
-        body.push(["Jami bonus", "", "", nf(d.ccBonus + d.kpiApprovals.reduce((a, k) => a + k.bonus, 0))]);
+        d.extras.forEach((e) =>
+          body.push(["Qo'shimcha bonus", e.description, e.date || "—", nf(e.amount)]),
+        );
+        const extrasTotal = d.extras.reduce((a, e) => a + e.amount, 0);
+        body.push([
+          "Jami bonus", "", "",
+          nf(d.ccBonus + d.kpiApprovals.reduce((a, k) => a + k.bonus, 0) + extrasTotal),
+        ]);
         tables.push({
           title: "Bonus qanday hisoblandi",
-          head: ["Manba", "Mijoz / hajm", "Izoh", "Summa"],
+          head: ["Manba", "Mijoz / hajm / sabab", "Izoh", "Summa"],
           body,
           align: ["left", "left", "left", "right"],
         });
@@ -320,7 +337,39 @@ export function PayslipDialog({
                   </div>
                 )}
 
-                {data && data.ccCount === 0 && data.kpiApprovals.length === 0 && (
+                {data && data.extras.length > 0 && (
+                  <div className="rounded-md border border-border p-3">
+                    <div className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
+                      Qo‘shimcha bonus
+                    </div>
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-xs text-muted-foreground">
+                          <th className="py-1">Sana</th>
+                          <th className="py-1">Sabab / izoh</th>
+                          <th className="py-1 text-right">Summa</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.extras.map((e, i) => (
+                          <tr key={i} className="border-t border-border">
+                            <td className="py-1 text-muted-foreground">{e.date || "—"}</td>
+                            <td className="py-1">{e.description}</td>
+                            <td className="py-1 text-right font-medium text-primary">{nf(e.amount)}</td>
+                          </tr>
+                        ))}
+                        <tr className="border-t border-border">
+                          <td className="py-1 font-semibold" colSpan={2}>Jami qo‘shimcha bonus</td>
+                          <td className="py-1 text-right font-semibold text-primary">
+                            {nf(data.extras.reduce((a, e) => a + e.amount, 0))}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {data && data.ccCount === 0 && data.kpiApprovals.length === 0 && data.extras.length === 0 && (
                   <div className="text-sm text-muted-foreground">
                     Bu oy uchun avtomatik bonus manbasi topilmadi
                     {Number(target.kpi_amount) > 0
