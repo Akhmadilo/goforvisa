@@ -160,7 +160,7 @@ export function PayslipDialog({
       const d = data;
       const tables = [] as any[];
 
-      if (d && (d.ccCount > 0 || d.kpiApprovals.length > 0)) {
+      if (d && (d.ccCount > 0 || d.kpiApprovals.length > 0 || d.extras.length > 0)) {
         const body: string[][] = [];
         if (d.ccCount > 0) {
           body.push(["Call-centre KPI", `${d.ccCount} ta shartnoma`, `bosqich: ${nf(d.ccBase)} × ${d.ccPct}%`, nf(d.ccBonus)]);
@@ -168,10 +168,17 @@ export function PayslipDialog({
         d.kpiApprovals.forEach((k) =>
           body.push([`Shartnoma bonusi (${k.role})`, k.client, k.contractNo ?? "—", nf(k.bonus)]),
         );
-        body.push(["Jami bonus", "", "", nf(d.ccBonus + d.kpiApprovals.reduce((a, k) => a + k.bonus, 0))]);
+        d.extras.forEach((e) =>
+          body.push(["Qo'shimcha bonus", e.description, e.date || "—", nf(e.amount)]),
+        );
+        const extrasTotal = d.extras.reduce((a, e) => a + e.amount, 0);
+        body.push([
+          "Jami bonus", "", "",
+          nf(d.ccBonus + d.kpiApprovals.reduce((a, k) => a + k.bonus, 0) + extrasTotal),
+        ]);
         tables.push({
           title: "Bonus qanday hisoblandi",
-          head: ["Manba", "Mijoz / hajm", "Izoh", "Summa"],
+          head: ["Manba", "Mijoz / hajm / sabab", "Izoh", "Summa"],
           body,
           align: ["left", "left", "left", "right"],
         });
