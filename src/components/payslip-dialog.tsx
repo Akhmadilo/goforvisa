@@ -47,6 +47,7 @@ interface Detail {
   advances: { date: string; amount: number; purpose: string; status: string }[];
   payments: { date: string; amount: number; kind: string; note: string | null }[];
   kpiApprovals: { client: string; bonus: number; role: string; contractNo: string | null }[];
+  extras: { amount: number; description: string; date: string }[];
   ccCount: number;
   ccBase: number;
   ccPct: number;
