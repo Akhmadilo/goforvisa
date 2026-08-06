@@ -337,7 +337,39 @@ export function PayslipDialog({
                   </div>
                 )}
 
-                {data && data.ccCount === 0 && data.kpiApprovals.length === 0 && (
+                {data && data.extras.length > 0 && (
+                  <div className="rounded-md border border-border p-3">
+                    <div className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
+                      Qo‘shimcha bonus
+                    </div>
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-xs text-muted-foreground">
+                          <th className="py-1">Sana</th>
+                          <th className="py-1">Sabab / izoh</th>
+                          <th className="py-1 text-right">Summa</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.extras.map((e, i) => (
+                          <tr key={i} className="border-t border-border">
+                            <td className="py-1 text-muted-foreground">{e.date || "—"}</td>
+                            <td className="py-1">{e.description}</td>
+                            <td className="py-1 text-right font-medium text-primary">{nf(e.amount)}</td>
+                          </tr>
+                        ))}
+                        <tr className="border-t border-border">
+                          <td className="py-1 font-semibold" colSpan={2}>Jami qo‘shimcha bonus</td>
+                          <td className="py-1 text-right font-semibold text-primary">
+                            {nf(data.extras.reduce((a, e) => a + e.amount, 0))}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {data && data.ccCount === 0 && data.kpiApprovals.length === 0 && data.extras.length === 0 && (
                   <div className="text-sm text-muted-foreground">
                     Bu oy uchun avtomatik bonus manbasi topilmadi
                     {Number(target.kpi_amount) > 0
