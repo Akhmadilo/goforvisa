@@ -589,8 +589,14 @@ function SalaryFormDialog({
   const [autoPenalty, setAutoPenalty] = useState<number>(0);
   const [autoFixed, setAutoFixed] = useState<number>(0);
   const [autoBonus, setAutoBonus] = useState<number>(0);
+  const [extras, setExtras] = useState<any[]>([]);
+  const [extraAmount, setExtraAmount] = useState("");
+  const [extraDesc, setExtraDesc] = useState("");
+  const [extraSaving, setExtraSaving] = useState(false);
+  const [extraReload, setExtraReload] = useState(0);
   const [note, setNote] = useState<string>("");
   const [saving, setSaving] = useState(false);
+
 
   useEffect(() => {
     if (open) {
