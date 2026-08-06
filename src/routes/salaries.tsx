@@ -656,7 +656,7 @@ function SalaryFormDialog({
       const endDateStr = `${year}-${String(month).padStart(2, "0")}-${String(endDate).padStart(2, "0")}`;
       const end = `${endDateStr}T23:59:59`;
 
-      const [advRes, fineRes, ccRes, salesApprovedRes] = await Promise.all([
+      const [advRes, fineRes, ccRes, salesApprovedRes, baseRes, extraRes] = await Promise.all([
         emp?.id
           ? supabase
               .from("advance_requests")
@@ -685,6 +685,18 @@ function SalaryFormDialog({
           .eq("approved_year", year)
           .eq("approved_month", month)
           .eq("status", "approved"),
+        (supabase as any)
+          .from("employee_base_salaries")
+          .select("amount_uzs")
+          .eq("employee_name", name)
+          .maybeSingle(),
+        (supabase as any)
+          .from("extra_bonuses")
+          .select("id, amount_uzs, description, created_at")
+          .eq("employee_name", name)
+          .eq("year", year)
+          .eq("month", month)
+          .order("created_at", { ascending: false }),
       ]);
       if (cancelled) return;
 
@@ -714,21 +726,56 @@ function SalaryFormDialog({
         (acc: number, r: any) => acc + Number(r.bonus_uzs || 0), 0,
       );
 
-      const totalBonus = ccBonus + salesBonus;
+      // Extra (manual) bonuses for this employee & month
+      const extraRows = (extraRes?.data ?? []) as any[];
+      const extraSum = extraRows.reduce((acc: number, r: any) => acc + Number(r.amount_uzs || 0), 0);
+      setExtras(extraRows);
+
+      // Non call-centre employees: use configured base salary
+      const baseFixed = ccFixed > 0 ? ccFixed : Number(baseRes?.data?.amount_uzs || 0);
+
+      const totalBonus = ccBonus + salesBonus + extraSum;
       setAutoAdvance(advSum);
       setAutoPenalty(fineSum);
-      setAutoFixed(ccFixed);
+      setAutoFixed(baseFixed);
       setAutoBonus(totalBonus);
 
       if (!editing) {
         setAdvance(String(advSum));
         setPenalty(String(fineSum));
-        if (ccFixed > 0) setFixed(String(ccFixed));
+        if (baseFixed > 0) setFixed(String(baseFixed));
         if (totalBonus > 0) setKpi(String(totalBonus));
       }
     })();
     return () => { cancelled = true; };
-  }, [open, employeeName, year, month, editing]);
+  }, [open, employeeName, year, month, editing, extraReload]);
+
+  const addExtraBonus = async () => {
+    const amt = parseFloat(extraAmount);
+    if (!employeeName.trim()) { toast.error("Avval xodimni tanlang"); return; }
+    if (!amt) { toast.error("Bonus summasini kiriting"); return; }
+    setExtraSaving(true);
+    const { error } = await (supabase as any).from("extra_bonuses").insert({
+      employee_name: employeeName.trim(),
+      year, month,
+      amount_uzs: amt,
+      description: extraDesc.trim() || null,
+      created_by: userId,
+    });
+    setExtraSaving(false);
+    if (error) { toast.error(error.message); return; }
+    setExtraAmount(""); setExtraDesc("");
+    setExtraReload((v) => v + 1);
+    toast.success("Qo'shimcha bonus qo'shildi");
+  };
+
+  const removeExtraBonus = async (id: string) => {
+    const { error } = await (supabase as any).from("extra_bonuses").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    setExtraReload((v) => v + 1);
+  };
+
+
 
 
   const total =
