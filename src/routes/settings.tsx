@@ -80,8 +80,10 @@ function SettingsPage() {
           </div>
         </Card>
 
+        {isAdmin && <BaseSalariesCard />}
         {isAdmin && <UsdRatesCard />}
         {isAdmin && <OperatorsCard />}
+
         {isAdmin && <LookupCard tableName="contract_types" title="Shartnoma turlari" hint="Shartnoma yaratishda tanlanadigan turlar (Tourist, Student, Work…)." invalidateKey="contract_types" refTable="contracts" refColumn="contract_type" />}
         {isAdmin && <LookupCard tableName="companies" title="Kompaniyalar" hint="Shartnoma yaratishda tanlanadigan kompaniyalar (Dream, Go for Visa…)." invalidateKey="companies" refTable="contracts" refColumn="company" />}
           {isAdmin && <LookupCard tableName="expense_categories" title="Xarajat kategoriyalari" hint="Xarajat yaratishda tanlanadigan kategoriyalar." invalidateKey="expense_categories" refTable="expenses" refColumn="category" />}
@@ -422,6 +424,133 @@ function OperatorsCard() {
     </Card>
   );
 }
+
+type BaseSalaryRow = { id: string; employee_name: string; amount_uzs: number; note: string | null };
+
+function BaseSalariesCard() {
+  const qc = useQueryClient();
+  const [name, setName] = useState("");
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ["employees_names_base"],
+    queryFn: async (): Promise<string[]> => {
+      const { data } = await (supabase as any)
+        .from("employees")
+        .select("full_name")
+        .order("full_name");
+      return (data ?? []).map((e: any) => e.full_name as string);
+    },
+  });
+
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ["employee_base_salaries"],
+    queryFn: async (): Promise<BaseSalaryRow[]> => {
+      const { data, error } = await (supabase as any)
+        .from("employee_base_salaries")
+        .select("id, employee_name, amount_uzs, note")
+        .order("employee_name");
+      if (error) throw error;
+      return (data ?? []) as BaseSalaryRow[];
+    },
+  });
+
+  const onSave = async () => {
+    const amt = Number(amount);
+    if (!name.trim()) { toast.error("Xodim ismini kiriting"); return; }
+    if (!amt || amt <= 0) { toast.error("Oylik summasini to'g'ri kiriting"); return; }
+    setSaving(true);
+    const { error } = await (supabase as any)
+      .from("employee_base_salaries")
+      .upsert(
+        { employee_name: name.trim(), amount_uzs: amt, note: note.trim() || null },
+        { onConflict: "employee_name" },
+      );
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Saqlandi");
+    setName(""); setAmount(""); setNote("");
+    qc.invalidateQueries({ queryKey: ["employee_base_salaries"] });
+  };
+
+  const onDelete = async (id: string) => {
+    if (!confirm("O'chirishni tasdiqlaysizmi?")) return;
+    const { error } = await (supabase as any).from("employee_base_salaries").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ["employee_base_salaries"] });
+  };
+
+  const fmt = (n: number) => new Intl.NumberFormat("uz-UZ").format(Math.round(n));
+
+  return (
+    <Card className="p-6">
+      <div className="flex items-center gap-2">
+        <Coins className="h-5 w-5 text-primary" />
+        <h2 className="text-lg font-semibold">Xodimlar belgilangan oyligi</h2>
+      </div>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Call-centre'dan tashqari xodimlar uchun fiksirlangan oylik. Oylik qo'shishda avtomatik qo'yiladi.
+      </p>
+
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
+        <div className="sm:col-span-1">
+          <label className="text-xs text-muted-foreground mb-1 block">Xodim</label>
+          <Input list="base-salary-employees" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ism familiya" />
+          <datalist id="base-salary-employees">
+            {employees.map((n) => <option key={n} value={n} />)}
+          </datalist>
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Oylik (so'm)</label>
+          <Input type="number" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="3000000" />
+        </div>
+        <div>
+          <label className="text-xs text-muted-foreground mb-1 block">Izoh</label>
+          <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ixtiyoriy" />
+        </div>
+        <Button onClick={onSave} disabled={saving}>
+          <Plus className="h-4 w-4 mr-1" /> Saqlash
+        </Button>
+      </div>
+
+      <div className="mt-4">
+        {isLoading ? (
+          <div className="text-sm text-muted-foreground">Yuklanmoqda…</div>
+        ) : rows.length === 0 ? (
+          <div className="text-sm text-muted-foreground">Hozircha kiritilmagan.</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Xodim</TableHead>
+                <TableHead className="text-right">Oylik</TableHead>
+                <TableHead>Izoh</TableHead>
+                <TableHead className="w-10" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((r) => (
+                <TableRow key={r.id}>
+                  <TableCell className="font-medium">{r.employee_name}</TableCell>
+                  <TableCell className="text-right">{fmt(Number(r.amount_uzs))}</TableCell>
+                  <TableCell className="text-muted-foreground text-xs">{r.note || "—"}</TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="icon" onClick={() => onDelete(r.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 
 function UsdRatesCard() {
   const qc = useQueryClient();

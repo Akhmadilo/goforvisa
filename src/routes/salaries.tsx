@@ -589,8 +589,14 @@ function SalaryFormDialog({
   const [autoPenalty, setAutoPenalty] = useState<number>(0);
   const [autoFixed, setAutoFixed] = useState<number>(0);
   const [autoBonus, setAutoBonus] = useState<number>(0);
+  const [extras, setExtras] = useState<any[]>([]);
+  const [extraAmount, setExtraAmount] = useState("");
+  const [extraDesc, setExtraDesc] = useState("");
+  const [extraSaving, setExtraSaving] = useState(false);
+  const [extraReload, setExtraReload] = useState(0);
   const [note, setNote] = useState<string>("");
   const [saving, setSaving] = useState(false);
+
 
   useEffect(() => {
     if (open) {
@@ -650,7 +656,7 @@ function SalaryFormDialog({
       const endDateStr = `${year}-${String(month).padStart(2, "0")}-${String(endDate).padStart(2, "0")}`;
       const end = `${endDateStr}T23:59:59`;
 
-      const [advRes, fineRes, ccRes, salesApprovedRes] = await Promise.all([
+      const [advRes, fineRes, ccRes, salesApprovedRes, baseRes, extraRes] = await Promise.all([
         emp?.id
           ? supabase
               .from("advance_requests")
@@ -679,6 +685,18 @@ function SalaryFormDialog({
           .eq("approved_year", year)
           .eq("approved_month", month)
           .eq("status", "approved"),
+        (supabase as any)
+          .from("employee_base_salaries")
+          .select("amount_uzs")
+          .eq("employee_name", name)
+          .maybeSingle(),
+        (supabase as any)
+          .from("extra_bonuses")
+          .select("id, amount_uzs, description, created_at")
+          .eq("employee_name", name)
+          .eq("year", year)
+          .eq("month", month)
+          .order("created_at", { ascending: false }),
       ]);
       if (cancelled) return;
 
@@ -708,21 +726,56 @@ function SalaryFormDialog({
         (acc: number, r: any) => acc + Number(r.bonus_uzs || 0), 0,
       );
 
-      const totalBonus = ccBonus + salesBonus;
+      // Extra (manual) bonuses for this employee & month
+      const extraRows = (extraRes?.data ?? []) as any[];
+      const extraSum = extraRows.reduce((acc: number, r: any) => acc + Number(r.amount_uzs || 0), 0);
+      setExtras(extraRows);
+
+      // Non call-centre employees: use configured base salary
+      const baseFixed = ccFixed > 0 ? ccFixed : Number(baseRes?.data?.amount_uzs || 0);
+
+      const totalBonus = ccBonus + salesBonus + extraSum;
       setAutoAdvance(advSum);
       setAutoPenalty(fineSum);
-      setAutoFixed(ccFixed);
+      setAutoFixed(baseFixed);
       setAutoBonus(totalBonus);
 
       if (!editing) {
         setAdvance(String(advSum));
         setPenalty(String(fineSum));
-        if (ccFixed > 0) setFixed(String(ccFixed));
+        if (baseFixed > 0) setFixed(String(baseFixed));
         if (totalBonus > 0) setKpi(String(totalBonus));
       }
     })();
     return () => { cancelled = true; };
-  }, [open, employeeName, year, month, editing]);
+  }, [open, employeeName, year, month, editing, extraReload]);
+
+  const addExtraBonus = async () => {
+    const amt = parseFloat(extraAmount);
+    if (!employeeName.trim()) { toast.error("Avval xodimni tanlang"); return; }
+    if (!amt) { toast.error("Bonus summasini kiriting"); return; }
+    setExtraSaving(true);
+    const { error } = await (supabase as any).from("extra_bonuses").insert({
+      employee_name: employeeName.trim(),
+      year, month,
+      amount_uzs: amt,
+      description: extraDesc.trim() || null,
+      created_by: userId,
+    });
+    setExtraSaving(false);
+    if (error) { toast.error(error.message); return; }
+    setExtraAmount(""); setExtraDesc("");
+    setExtraReload((v) => v + 1);
+    toast.success("Qo'shimcha bonus qo'shildi");
+  };
+
+  const removeExtraBonus = async (id: string) => {
+    const { error } = await (supabase as any).from("extra_bonuses").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    setExtraReload((v) => v + 1);
+  };
+
+
 
 
   const total =
@@ -821,6 +874,51 @@ function SalaryFormDialog({
             </div>
             <Input type="number" inputMode="decimal" value={kpi} onChange={(e) => setKpi(e.target.value)} />
           </div>
+
+          {/* Qo'shimcha bonus */}
+          <div className="rounded-md border border-border p-3 space-y-2">
+            <div className="text-xs font-medium">Qo'shimcha bonus</div>
+            {extras.length > 0 && (
+              <div className="space-y-1">
+                {extras.map((b: any) => (
+                  <div key={b.id} className="flex items-start justify-between gap-2 rounded bg-secondary px-2 py-1">
+                    <div className="min-w-0">
+                      <div className="text-xs font-semibold">+{nf(Number(b.amount_uzs))} {t("sal.uzs")}</div>
+                      <div className="text-[11px] text-muted-foreground break-words">{b.description || "—"}</div>
+                    </div>
+                    <button
+                      type="button"
+                      className="text-[11px] text-destructive hover:underline shrink-0"
+                      onClick={() => removeExtraBonus(b.id)}
+                    >
+                      O'chirish
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="grid grid-cols-[1fr_1.4fr_auto] gap-2">
+              <Input
+                type="number"
+                inputMode="decimal"
+                placeholder="Summa"
+                value={extraAmount}
+                onChange={(e) => setExtraAmount(e.target.value)}
+              />
+              <Input
+                placeholder="Sababi (description)"
+                value={extraDesc}
+                onChange={(e) => setExtraDesc(e.target.value)}
+              />
+              <Button type="button" size="sm" onClick={addExtraBonus} disabled={extraSaving}>
+                Qo'shish
+              </Button>
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              Qo'shimcha bonuslar yuqoridagi "Avtomatik" bonus summasiga qo'shiladi.
+            </div>
+          </div>
+
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs text-muted-foreground">{t("sal.form.penalty")}</label>

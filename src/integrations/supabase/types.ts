@@ -315,6 +315,33 @@ export type Database = {
         }
         Relationships: []
       }
+      employee_base_salaries: {
+        Row: {
+          amount_uzs: number
+          created_at: string
+          employee_name: string
+          id: string
+          note: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_uzs?: number
+          created_at?: string
+          employee_name: string
+          id?: string
+          note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_uzs?: number
+          created_at?: string
+          employee_name?: string
+          id?: string
+          note?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       employee_schedules: {
         Row: {
           created_at: string
@@ -546,6 +573,42 @@ export type Database = {
           title?: string
           total_amount?: number
           vendor?: string | null
+        }
+        Relationships: []
+      }
+      extra_bonuses: {
+        Row: {
+          amount_uzs: number
+          created_at: string
+          created_by: string | null
+          description: string | null
+          employee_name: string
+          id: string
+          month: number
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          amount_uzs?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          employee_name: string
+          id?: string
+          month: number
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          amount_uzs?: number
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          employee_name?: string
+          id?: string
+          month?: number
+          updated_at?: string
+          year?: number
         }
         Relationships: []
       }
