@@ -65,7 +65,7 @@ async function fetchDetail(target: PayslipTarget): Promise<Detail> {
   const { data: emp } = await supabase
     .from("employees").select("id").eq("full_name", name).maybeSingle();
 
-  const [finesRes, advRes, payRes, ccRes, kpiRes] = await Promise.all([
+  const [finesRes, advRes, payRes, ccRes, kpiRes, extraRes] = await Promise.all([
     emp?.id
       ? supabase.from("fines")
           .select("date, amount_uzs, reason, note, minutes_late")
@@ -85,6 +85,10 @@ async function fetchDetail(target: PayslipTarget): Promise<Detail> {
       .select("bonus_uzs, role, contract_id, contracts(client_name, contract_no)")
       .eq("manager_name", name).eq("approved_year", year)
       .eq("approved_month", month).eq("status", "approved"),
+    (supabase as any).from("extra_bonuses")
+      .select("amount_uzs, description, created_at")
+      .eq("employee_name", name).eq("year", year).eq("month", month)
+      .order("created_at"),
   ]);
 
   const ccCount = (ccRes.data ?? []).filter(
