@@ -874,6 +874,51 @@ function SalaryFormDialog({
             </div>
             <Input type="number" inputMode="decimal" value={kpi} onChange={(e) => setKpi(e.target.value)} />
           </div>
+
+          {/* Qo'shimcha bonus */}
+          <div className="rounded-md border border-border p-3 space-y-2">
+            <div className="text-xs font-medium">Qo'shimcha bonus</div>
+            {extras.length > 0 && (
+              <div className="space-y-1">
+                {extras.map((b: any) => (
+                  <div key={b.id} className="flex items-start justify-between gap-2 rounded bg-secondary px-2 py-1">
+                    <div className="min-w-0">
+                      <div className="text-xs font-semibold">+{nf(Number(b.amount_uzs))} {t("sal.uzs")}</div>
+                      <div className="text-[11px] text-muted-foreground break-words">{b.description || "—"}</div>
+                    </div>
+                    <button
+                      type="button"
+                      className="text-[11px] text-destructive hover:underline shrink-0"
+                      onClick={() => removeExtraBonus(b.id)}
+                    >
+                      O'chirish
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="grid grid-cols-[1fr_1.4fr_auto] gap-2">
+              <Input
+                type="number"
+                inputMode="decimal"
+                placeholder="Summa"
+                value={extraAmount}
+                onChange={(e) => setExtraAmount(e.target.value)}
+              />
+              <Input
+                placeholder="Sababi (description)"
+                value={extraDesc}
+                onChange={(e) => setExtraDesc(e.target.value)}
+              />
+              <Button type="button" size="sm" onClick={addExtraBonus} disabled={extraSaving}>
+                Qo'shish
+              </Button>
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              Qo'shimcha bonuslar yuqoridagi "Avtomatik" bonus summasiga qo'shiladi.
+            </div>
+          </div>
+
           <div>
             <div className="flex items-center justify-between mb-1">
               <label className="text-xs text-muted-foreground">{t("sal.form.penalty")}</label>
