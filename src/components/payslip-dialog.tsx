@@ -124,6 +124,11 @@ async function fetchDetail(target: PayslipTarget): Promise<Detail> {
       bonus: Number(k.bonus_uzs || 0),
       role: k.role ?? "sales",
     })),
+    extras: ((extraRes as any).data ?? []).map((e: any) => ({
+      amount: Number(e.amount_uzs || 0),
+      description: e.description ?? "—",
+      date: String(e.created_at ?? "").slice(0, 10),
+    })),
     ccCount, ccBase, ccPct, ccBonus,
   };
 }
