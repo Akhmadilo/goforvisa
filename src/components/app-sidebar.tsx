@@ -12,9 +12,11 @@ import {
   AlertTriangle,
   CalendarDays,
   Menu,
+  Building2,
 } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
+import { useTenant } from "@/hooks/use-tenant";
 import { useT, LANGUAGES, type Lang } from "@/lib/i18n";
 import {
   Sheet,
@@ -26,6 +28,7 @@ function SidebarContent({ onClick }: { onClick?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { can, loading } = useWidgetPermissions();
   const { t, lang, setLang } = useT();
+  const { tenant, isPlatformAdmin } = useTenant();
 
   const items = [
     { to: "/", label: t("nav.dashboard"), icon: LayoutDashboard, widget: null as string | null },
@@ -41,12 +44,13 @@ function SidebarContent({ onClick }: { onClick?: () => void }) {
   return (
     <>
       <div className="h-16 px-4 flex items-center gap-2 border-b border-border">
-        <img src={logoUrl} alt="GoForVisa" className="h-8 w-8 rounded" />
+        <img src={logoUrl} alt={tenant?.name ?? "Logo"} className="h-8 w-8 rounded" />
         <div className="leading-tight">
-          <div className="text-sm font-semibold">GoForVisa</div>
+          <div className="text-sm font-semibold">{tenant?.name ?? "Platform"}</div>
           <div className="text-[11px] text-muted-foreground">Platform</div>
         </div>
       </div>
+
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {items.map(({ to, label, icon: Icon, widget }) => {
           if (widget && !loading && !can(widget)) return null;
@@ -79,6 +83,20 @@ function SidebarContent({ onClick }: { onClick?: () => void }) {
           <Settings className="h-4 w-4" />
           <span>{t("nav.settings")}</span>
         </Link>
+        {isPlatformAdmin && (
+          <Link
+            to="/platform"
+            onClick={onClick}
+            className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              pathname === "/platform"
+                ? "bg-primary text-primary-foreground"
+                : "text-foreground hover:bg-secondary"
+            }`}
+          >
+            <Building2 className="h-4 w-4" />
+            <span>Platforma</span>
+          </Link>
+        )}
       </nav>
       <div className="border-t border-border p-3">
         <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">
