@@ -1756,22 +1756,31 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
       <TableCell>
         <div className="flex flex-col gap-1">
           {statusBadge(r.status)}
-          {r.status === "paid" && r.deducted_month && r.deducted_year && (
+          {r.status === "paid" && (
             isAdm ? (
               <button
                 type="button"
-                onClick={() => setEditDeduct({ id: r.id, y: r.deducted_year, m: r.deducted_month })}
+                onClick={() => setEditDeduct({
+                  id: r.id,
+                  y: r.deducted_year ?? nowTash.getUTCFullYear(),
+                  m: r.deducted_month ?? (nowTash.getUTCMonth() + 1),
+                })}
                 className="text-[11px] text-muted-foreground hover:text-foreground hover:underline text-left"
-                title="Bosing — qaysi oylikdan ushlanishini o'zgartirish"
+                title="Bosing — qaysi oylikdan ushlanishini tanlash"
               >
-                📅 {monthNames[r.deducted_month - 1]} {r.deducted_year} oyligidan ✏️
+                {r.deducted_month && r.deducted_year
+                  ? `📅 ${monthNames[r.deducted_month - 1]} ${r.deducted_year} oyligidan ✏️`
+                  : "📅 Ushlash oyi belgilanmagan — tanlash ✏️"}
               </button>
             ) : (
               <span className="text-[11px] text-muted-foreground">
-                📅 {monthNames[r.deducted_month - 1]} {r.deducted_year} oyligidan
+                {r.deducted_month && r.deducted_year
+                  ? `📅 ${monthNames[r.deducted_month - 1]} ${r.deducted_year} oyligidan`
+                  : "📅 Ushlash oyi belgilanmagan"}
               </span>
             )
           )}
+
         </div>
       </TableCell>
       <TableCell className="text-xs text-muted-foreground tabular-nums">
