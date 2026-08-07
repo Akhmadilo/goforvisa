@@ -41,12 +41,13 @@ function SidebarContent({ onClick }: { onClick?: () => void }) {
   return (
     <>
       <div className="h-16 px-4 flex items-center gap-2 border-b border-border">
-        <img src={logoUrl} alt="GoForVisa" className="h-8 w-8 rounded" />
+        <img src={logoUrl} alt={tenant?.name ?? "Logo"} className="h-8 w-8 rounded" />
         <div className="leading-tight">
-          <div className="text-sm font-semibold">GoForVisa</div>
+          <div className="text-sm font-semibold">{tenant?.name ?? "Platform"}</div>
           <div className="text-[11px] text-muted-foreground">Platform</div>
         </div>
       </div>
+
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {items.map(({ to, label, icon: Icon, widget }) => {
           if (widget && !loading && !can(widget)) return null;
