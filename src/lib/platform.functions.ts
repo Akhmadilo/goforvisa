@@ -185,13 +185,13 @@ export const updateTenant = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertPlatformAdmin(context.supabase);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const patch: Record<string, unknown> = {};
+    const patch: Record<string, any> = {};
     if (data.name !== undefined) patch.name = data.name;
     if (data.isActive !== undefined) patch.is_active = data.isActive;
     if (data.contactEmail !== undefined) patch.contact_email = data.contactEmail || null;
     if (data.contactPhone !== undefined) patch.contact_phone = data.contactPhone || null;
     if (data.note !== undefined) patch.note = data.note || null;
-    const { error } = await supabaseAdmin.from("tenants").update(patch).eq("id", data.tenantId);
+    const { error } = await supabaseAdmin.from("tenants").update(patch as never).eq("id", data.tenantId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
