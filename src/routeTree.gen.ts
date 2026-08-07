@@ -14,6 +14,7 @@ import { Route as TrustRouteImport } from './routes/trust'
 import { Route as ShartnomalarRouteImport } from './routes/shartnomalar'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SalariesRouteImport } from './routes/salaries'
+import { Route as PlatformRouteImport } from './routes/platform'
 import { Route as MoliyaRouteImport } from './routes/moliya'
 import { Route as KpiRouteImport } from './routes/kpi'
 import { Route as JavoblarRouteImport } from './routes/javoblar'
@@ -48,6 +49,11 @@ const SettingsRoute = SettingsRouteImport.update({
 const SalariesRoute = SalariesRouteImport.update({
   id: '/salaries',
   path: '/salaries',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformRoute = PlatformRouteImport.update({
+  id: '/platform',
+  path: '/platform',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MoliyaRoute = MoliyaRouteImport.update({
@@ -112,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/javoblar': typeof JavoblarRoute
   '/kpi': typeof KpiRoute
   '/moliya': typeof MoliyaRoute
+  '/platform': typeof PlatformRoute
   '/salaries': typeof SalariesRoute
   '/settings': typeof SettingsRoute
   '/shartnomalar': typeof ShartnomalarRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/javoblar': typeof JavoblarRoute
   '/kpi': typeof KpiRoute
   '/moliya': typeof MoliyaRoute
+  '/platform': typeof PlatformRoute
   '/salaries': typeof SalariesRoute
   '/settings': typeof SettingsRoute
   '/shartnomalar': typeof ShartnomalarRoute
@@ -147,6 +155,7 @@ export interface FileRoutesById {
   '/javoblar': typeof JavoblarRoute
   '/kpi': typeof KpiRoute
   '/moliya': typeof MoliyaRoute
+  '/platform': typeof PlatformRoute
   '/salaries': typeof SalariesRoute
   '/settings': typeof SettingsRoute
   '/shartnomalar': typeof ShartnomalarRoute
@@ -166,6 +175,7 @@ export interface FileRouteTypes {
     | '/javoblar'
     | '/kpi'
     | '/moliya'
+    | '/platform'
     | '/salaries'
     | '/settings'
     | '/shartnomalar'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/javoblar'
     | '/kpi'
     | '/moliya'
+    | '/platform'
     | '/salaries'
     | '/settings'
     | '/shartnomalar'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/javoblar'
     | '/kpi'
     | '/moliya'
+    | '/platform'
     | '/salaries'
     | '/settings'
     | '/shartnomalar'
@@ -218,6 +230,7 @@ export interface RootRouteChildren {
   JavoblarRoute: typeof JavoblarRoute
   KpiRoute: typeof KpiRoute
   MoliyaRoute: typeof MoliyaRoute
+  PlatformRoute: typeof PlatformRoute
   SalariesRoute: typeof SalariesRoute
   SettingsRoute: typeof SettingsRoute
   ShartnomalarRoute: typeof ShartnomalarRoute
@@ -262,6 +275,13 @@ declare module '@tanstack/react-router' {
       path: '/salaries'
       fullPath: '/salaries'
       preLoaderRoute: typeof SalariesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform': {
+      id: '/platform'
+      path: '/platform'
+      fullPath: '/platform'
+      preLoaderRoute: typeof PlatformRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/moliya': {
@@ -346,6 +366,7 @@ const rootRouteChildren: RootRouteChildren = {
   JavoblarRoute: JavoblarRoute,
   KpiRoute: KpiRoute,
   MoliyaRoute: MoliyaRoute,
+  PlatformRoute: PlatformRoute,
   SalariesRoute: SalariesRoute,
   SettingsRoute: SettingsRoute,
   ShartnomalarRoute: ShartnomalarRoute,
@@ -357,13 +378,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
