@@ -1652,7 +1652,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_platform_admin: { Args: never; Returns: boolean }
       recompute_expense_status: {
         Args: { _expense_id: string }
         Returns: undefined
