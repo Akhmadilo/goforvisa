@@ -13,6 +13,13 @@ export type AdminUser = {
   widgets: string[];
 };
 
+async function currentTenantId(supabase: any): Promise<string> {
+  const { data, error } = await supabase.rpc("current_tenant_id");
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Kompaniya aniqlanmadi");
+  return data as string;
+}
+
 async function assertAdmin(supabase: any, userId: string) {
   const { data, error } = await supabase
     .from("user_roles")
@@ -28,12 +35,20 @@ export const listUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<AdminUser[]> => {
     await assertAdmin(context.supabase, context.userId);
+    const tenantId = await currentTenantId(context.supabase);
 
     const { data: list, error: lErr } =
-      await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 200 });
+      await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
     if (lErr) throw new Error(lErr.message);
 
-    const ids = list.users.map((u) => u.id);
+    const { data: memberRows } = await supabaseAdmin
+      .from("tenant_members")
+      .select("user_id")
+      .eq("tenant_id", tenantId);
+    const memberIds = new Set((memberRows ?? []).map((m: any) => m.user_id));
+    const users = list.users.filter((u) => memberIds.has(u.id));
+
+    const ids = users.map((u) => u.id);
     const [{ data: profiles }, { data: roles }, { data: widgets }] = await Promise.all([
       supabaseAdmin.from("profiles").select("id, display_name").in("id", ids),
       supabaseAdmin.from("user_roles").select("user_id, role").in("user_id", ids),
@@ -54,7 +69,7 @@ export const listUsers = createServerFn({ method: "GET" })
       wMap.set(w.user_id, arr);
     });
 
-    return list.users.map((u) => ({
+    return users.map((u) => ({
       id: u.id,
       email: u.email ?? null,
       display_name: pMap.get(u.id) ?? null,
@@ -79,6 +94,7 @@ export const createUser = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
+    const tenantId = await currentTenantId(context.supabase);
 
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
       email: data.email,
@@ -95,8 +111,12 @@ export const createUser = createServerFn({ method: "POST" })
       .from("profiles")
       .upsert({ id: newId, display_name: data.displayName });
 
+    await supabaseAdmin
+      .from("tenant_members")
+      .insert({ user_id: newId, tenant_id: tenantId } as any);
+
     if (data.widgets.length > 0) {
-      const rows = data.widgets.map((w) => ({ user_id: newId, widget_key: w }));
+      const rows = data.widgets.map((w) => ({ user_id: newId, widget_key: w, tenant_id: tenantId }));
       const { error: wErr } = await supabaseAdmin
         .from("widget_permissions")
         .insert(rows);
@@ -118,13 +138,15 @@ export const setUserWidgets = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
+    const tenantId = await currentTenantId(context.supabase);
     const { error: dErr } = await supabaseAdmin
       .from("widget_permissions")
       .delete()
-      .eq("user_id", data.userId);
+      .eq("user_id", data.userId)
+      .eq("tenant_id", tenantId);
     if (dErr) throw new Error(dErr.message);
     if (data.widgets.length > 0) {
-      const rows = data.widgets.map((w) => ({ user_id: data.userId, widget_key: w }));
+      const rows = data.widgets.map((w) => ({ user_id: data.userId, widget_key: w, tenant_id: tenantId }));
       const { error } = await supabaseAdmin
         .from("widget_permissions")
         .insert(rows);
@@ -146,10 +168,11 @@ export const setUserRole = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
+    const tenantId = await currentTenantId(context.supabase);
     if (data.enabled) {
       const { error } = await supabaseAdmin
         .from("user_roles")
-        .insert({ user_id: data.userId, role: data.role });
+        .insert({ user_id: data.userId, role: data.role, tenant_id: tenantId } as any);
       if (error && !error.message.includes("duplicate")) throw new Error(error.message);
     } else {
       if (data.userId === context.userId && data.role === "admin") {
