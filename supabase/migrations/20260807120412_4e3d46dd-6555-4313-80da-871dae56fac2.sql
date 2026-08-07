@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.enforce_advance_requests_role_columns() FROM PUBLIC, anon, authenticated;
