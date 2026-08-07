@@ -108,6 +108,10 @@ async function fetchDetail(target: PayslipTarget): Promise<Detail> {
     })),
     advances: (advRes.data ?? [])
       .filter((a: any) => {
+        const link = Array.isArray(a.salaries) ? a.salaries[0] : a.salaries;
+        if (link?.year != null && link?.month != null) {
+          return Number(link.year) === year && Number(link.month) === month;
+        }
         const ref = a.paid_at || a.created_at;
         return ref && ref >= start && ref <= end;
       })
