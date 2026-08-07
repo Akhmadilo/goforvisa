@@ -700,7 +700,15 @@ function SalaryFormDialog({
       ]);
       if (cancelled) return;
 
+      // Avans faqat ushlanadigan oyga tegishli bo'lsa hisoblanadi.
       const advSum = (advRes.data ?? []).reduce((acc: number, r: any) => {
+        const link = Array.isArray(r.salaries) ? r.salaries[0] : r.salaries;
+        if (link?.year != null && link?.month != null) {
+          return Number(link.year) === year && Number(link.month) === month
+            ? acc + Number(r.amount_uzs || 0)
+            : acc;
+        }
+        // Ushlash oyi belgilanmagan avanslar: to'langan sanasi bo'yicha
         const ref = r.paid_at || r.created_at;
         if (!ref) return acc;
         if (ref >= start && ref <= end) return acc + Number(r.amount_uzs || 0);
