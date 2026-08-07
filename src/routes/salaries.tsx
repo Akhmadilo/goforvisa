@@ -660,7 +660,7 @@ function SalaryFormDialog({
         emp?.id
           ? supabase
               .from("advance_requests")
-              .select("amount_uzs, status, created_at, paid_at")
+              .select("amount_uzs, status, created_at, paid_at, deducted_in_salary_id, salaries:deducted_in_salary_id(year, month)")
               .eq("employee_id", emp.id)
               .in("status", ["approved", "paid"])
           : Promise.resolve({ data: [] as any[] }),
