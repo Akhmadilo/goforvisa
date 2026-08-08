@@ -487,7 +487,8 @@ function PlatformPage() {
                       {t.contracts_count}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right whitespace-nowrap">
+                    <TenantUsersDialog tenantId={t.id} tenantName={t.name} />
                     <Button
                       size="icon"
                       variant="ghost"
