@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Building2, Plus, Trash2, Users, FileText } from "lucide-react";
+import { Building2, Plus, Trash2, Users, FileText, KeyRound, Tag } from "lucide-react";
 import {
   listTenants,
   listPlans,
@@ -11,6 +11,12 @@ import {
   updateTenant,
   setTenantSubscription,
   deleteTenant,
+  listTenantUsers,
+  createTenantUser,
+  setTenantUserPassword,
+  deleteTenantUser,
+  upsertPlan,
+  deletePlan,
 } from "@/lib/platform.functions";
 import { useTenant } from "@/hooks/use-tenant";
 import { Card } from "@/components/ui/card";
