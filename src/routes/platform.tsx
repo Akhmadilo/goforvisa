@@ -510,6 +510,333 @@ function PlatformPage() {
           </Table>
         </div>
       </Card>
+
+      <PlansCard />
     </div>
+  );
+}
+
+/* ---------------- Tarif rejalar (narxlar) ---------------- */
+
+function PlansCard() {
+  const qc = useQueryClient();
+  const fetchPlans = useServerFn(listPlans);
+  const save = useServerFn(upsertPlan);
+  const remove = useServerFn(deletePlan);
+
+  const plansQ = useQuery({ queryKey: ["platform-plans"], queryFn: () => fetchPlans() });
+  const plans = (plansQ.data ?? []) as any[];
+
+  const [draft, setDraft] = useState<Record<string, { name: string; price: string }>>({});
+  const [nw, setNw] = useState({ code: "", name: "", price: "" });
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["platform-plans"] });
+    qc.invalidateQueries({ queryKey: ["platform-tenants"] });
+  };
+
+  const saveM = useMutation({
+    mutationFn: (v: any) => save({ data: v }),
+    onSuccess: () => {
+      toast.success("Saqlandi");
+      invalidate();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
+  });
+  const delM = useMutation({
+    mutationFn: (planId: string) => remove({ data: { planId } }),
+    onSuccess: () => {
+      toast.success("O'chirildi");
+      invalidate();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
+  });
+
+  return (
+    <Card className="p-4 space-y-4">
+      <div className="flex items-center gap-2">
+        <Tag className="h-4 w-4 text-primary" />
+        <h2 className="font-semibold">Tarif rejalar va narxlar</h2>
+      </div>
+
+      <div className="space-y-2">
+        {plans.map((p) => {
+          const d = draft[p.id] ?? { name: p.name, price: String(p.price_uzs ?? 0) };
+          return (
+            <div key={p.id} className="flex flex-wrap items-end gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs">Kod</Label>
+                <Input className="w-[130px]" value={p.code} readOnly />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Nomi</Label>
+                <Input
+                  className="w-[180px]"
+                  value={d.name}
+                  onChange={(e) =>
+                    setDraft((s) => ({ ...s, [p.id]: { ...d, name: e.target.value } }))
+                  }
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Narx (so'm / oy)</Label>
+                <Input
+                  className="w-[170px]"
+                  type="number"
+                  value={d.price}
+                  onChange={(e) =>
+                    setDraft((s) => ({ ...s, [p.id]: { ...d, price: e.target.value } }))
+                  }
+                />
+              </div>
+              <Button
+                size="sm"
+                onClick={() =>
+                  saveM.mutate({
+                    id: p.id,
+                    code: p.code,
+                    name: d.name,
+                    priceUzs: Number(d.price) || 0,
+                    interval: p.interval ?? "month",
+                    maxUsers: p.max_users ?? null,
+                    isActive: p.is_active ?? true,
+                  })
+                }
+              >
+                Saqlash
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={() => {
+                  if (confirm(`"${p.name}" rejasi o'chirilsinmi?`)) delM.mutate(p.id);
+                }}
+              >
+                <Trash2 className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="border-t border-border pt-3 flex flex-wrap items-end gap-2">
+        <div className="space-y-1">
+          <Label className="text-xs">Yangi kod</Label>
+          <Input
+            className="w-[130px]"
+            value={nw.code}
+            onChange={(e) => setNw((s) => ({ ...s, code: e.target.value }))}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Nomi</Label>
+          <Input
+            className="w-[180px]"
+            value={nw.name}
+            onChange={(e) => setNw((s) => ({ ...s, name: e.target.value }))}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Narx (so'm / oy)</Label>
+          <Input
+            className="w-[170px]"
+            type="number"
+            value={nw.price}
+            onChange={(e) => setNw((s) => ({ ...s, price: e.target.value }))}
+          />
+        </div>
+        <Button
+          variant="secondary"
+          disabled={nw.code.length < 2 || nw.name.length < 2}
+          onClick={() => {
+            saveM.mutate({
+              code: nw.code,
+              name: nw.name,
+              priceUzs: Number(nw.price) || 0,
+              interval: "month",
+              isActive: true,
+            });
+            setNw({ code: "", name: "", price: "" });
+          }}
+        >
+          <Plus className="h-4 w-4 mr-1" /> Reja qo'shish
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+/* ---------------- Kompaniya foydalanuvchilari ---------------- */
+
+const ROLE_LABEL: Record<string, string> = {
+  admin: "Admin",
+  owner_ceo: "Direktor / CEO",
+  financier: "Moliyachi",
+  user: "Xodim",
+};
+
+function TenantUsersDialog({ tenantId, tenantName }: { tenantId: string; tenantName: string }) {
+  const [open, setOpen] = useState(false);
+  const qc = useQueryClient();
+  const fetchUsers = useServerFn(listTenantUsers);
+  const addUser = useServerFn(createTenantUser);
+  const setPass = useServerFn(setTenantUserPassword);
+  const delUser = useServerFn(deleteTenantUser);
+
+  const usersQ = useQuery({
+    queryKey: ["tenant-users", tenantId],
+    queryFn: () => fetchUsers({ data: { tenantId } }),
+    enabled: open,
+  });
+
+  const [form, setForm] = useState({ name: "", email: "", password: "", role: "user" });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["tenant-users", tenantId] });
+    qc.invalidateQueries({ queryKey: ["platform-tenants"] });
+  };
+
+  const addM = useMutation({
+    mutationFn: () => addUser({ data: { tenantId, ...form } as any }),
+    onSuccess: () => {
+      toast.success("Foydalanuvchi qo'shildi");
+      setForm({ name: "", email: "", password: "", role: "user" });
+      invalidate();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
+  });
+  const passM = useMutation({
+    mutationFn: (v: { userId: string; password: string }) => setPass({ data: v }),
+    onSuccess: () => toast.success("Parol yangilandi"),
+    onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
+  });
+  const delM = useMutation({
+    mutationFn: (userId: string) => delUser({ data: { userId, tenantId } }),
+    onSuccess: () => {
+      toast.success("O'chirildi");
+      invalidate();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="icon" variant="ghost" title="Foydalanuvchilar">
+          <Users className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{tenantName} — foydalanuvchilar</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+          {usersQ.isLoading && (
+            <div className="text-sm text-muted-foreground">Yuklanmoqda...</div>
+          )}
+          {(usersQ.data ?? []).map((u) => (
+            <div
+              key={u.user_id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border p-2"
+            >
+              <div className="min-w-[180px]">
+                <div className="text-sm font-medium">{u.display_name ?? "—"}</div>
+                <div className="text-xs text-muted-foreground">{u.email}</div>
+              </div>
+              <div className="flex flex-wrap items-center gap-1">
+                {u.is_owner && <Badge variant="secondary">Egasi</Badge>}
+                {u.roles.map((r) => (
+                  <Badge key={r} variant="outline">
+                    {ROLE_LABEL[r] ?? r}
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex items-center gap-1">
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  title="Parolni o'zgartirish"
+                  onClick={() => {
+                    const p = prompt("Yangi parol (kamida 6 belgi)");
+                    if (p && p.length >= 6) passM.mutate({ userId: u.user_id, password: p });
+                  }}
+                >
+                  <KeyRound className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => {
+                    if (confirm(`${u.email} o'chirilsinmi?`)) delM.mutate(u.user_id);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            </div>
+          ))}
+          {!usersQ.isLoading && (usersQ.data ?? []).length === 0 && (
+            <div className="text-sm text-muted-foreground">Foydalanuvchi yo'q</div>
+          )}
+        </div>
+
+        <div className="border-t border-border pt-3 space-y-3">
+          <div className="text-sm font-medium">Yangi foydalanuvchi (kod/parol)</div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Ism</Label>
+              <Input
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Email (login)</Label>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Parol</Label>
+              <Input
+                value={form.password}
+                onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Rol</Label>
+              <Select
+                value={form.role}
+                onValueChange={(v) => setForm((f) => ({ ...f, role: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(ROLE_LABEL).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>
+                      {v}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button
+            onClick={() => addM.mutate()}
+            disabled={
+              addM.isPending || !form.name || !form.email || form.password.length < 6
+            }
+          >
+            {addM.isPending ? "Qo'shilmoqda..." : "Qo'shish"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
