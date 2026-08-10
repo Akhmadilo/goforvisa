@@ -1202,12 +1202,19 @@ function Dashboard() {
               <p className="text-xs text-muted-foreground mb-3">Mijozlar soni va viza tasdiqlash darajasi</p>
               <div className="h-[260px] md:h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={managerSuccess} margin={{ right: 10 }}>
+                  <ComposedChart data={managerSuccess} margin={{ right: 10, bottom: 10 }}>
                     <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                    <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={10} interval={0} angle={-20} textAnchor="end" height={60} />
-                    <YAxis yAxisId="left" stroke="var(--color-muted-foreground)" fontSize={11} />
+                    <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={10} interval={0} angle={-35} textAnchor="end" height={80} />
+                    <YAxis yAxisId="left" stroke="var(--color-muted-foreground)" fontSize={11} allowDecimals={false} />
                     <YAxis yAxisId="right" orientation="right" stroke="var(--color-muted-foreground)" fontSize={11} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
                     <Tooltip
+                      cursor={{ fill: "var(--color-muted)", fillOpacity: 0.25 }}
+                      labelFormatter={(_l, p) => (p?.[0]?.payload?.fullName as string) ?? ""}
+                      formatter={(v: number | null, n: string) =>
+                        v === null || v === undefined
+                          ? ["Yetarli ma'lumot yo'q", n]
+                          : [n === "Tasdiqlash %" ? `${v}%` : `${v} ta`, n]
+                      }
                       contentStyle={{
                         background: "var(--color-card)",
                         border: "1px solid var(--color-border)",
@@ -1216,9 +1223,10 @@ function Dashboard() {
                     />
                     <Legend wrapperStyle={{ fontSize: "11px" }} />
                     <Bar yAxisId="left" dataKey="clients" name="Mijozlar" fill={VISA_STAGE_COLORS.submitted} radius={[4, 4, 0, 0]} />
-                    <Line yAxisId="right" dataKey="approvalRate" name="Tasdiqlash %" stroke={VISA_STAGE_COLORS.taken} strokeWidth={2.5} dot={{ r: 4, fill: VISA_STAGE_COLORS.taken }} />
+                    <Line yAxisId="right" dataKey="approvalRate" name="Tasdiqlash %" stroke={VISA_STAGE_COLORS.taken} strokeWidth={2.5} dot={{ r: 4, fill: VISA_STAGE_COLORS.taken }} connectNulls={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
+
               </div>
             </Card>
           </div>
