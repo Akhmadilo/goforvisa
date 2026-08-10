@@ -226,7 +226,15 @@ export function PayslipDialog({
       }
 
       await exportPayslipPdf({
-        filename: `oylik-${target.employee_name.replace(/\s+/g, "-")}-${target.year}-${String(target.month).padStart(2, "0")}.pdf`,
+        filename: `${target.employee_name
+          .trim()
+          .split(/\s+/)
+          .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+          .join("_")}_${
+          ["January","February","March","April","May","June","July","August","September","October","November","December"][
+            Math.min(11, Math.max(0, Number(target.month) - 1))
+          ]
+        }_Salary_${target.year}.pdf`,
         employee: target.employee_name,
         period: periodLabel,
         summary: [
