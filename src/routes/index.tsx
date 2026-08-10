@@ -618,20 +618,23 @@ function Dashboard() {
 
   // Monthly stacked outcomes (business quality trend)
   const visaMonthlyStack = useMemo(() => {
-    const map = new Map<string, { name: string; taken: number; inProcess: number; submitted: number; rejected: number; cancelled: number }>();
+    const map = new Map<string, { name: string; label: string; taken: number; inProcess: number; submitted: number; rejected: number; cancelled: number }>();
     for (const c of filtered) {
       const name = `${c.year} ${c.month}`;
-      const row = map.get(name) ?? { name, taken: 0, inProcess: 0, submitted: 0, rejected: 0, cancelled: 0 };
+      const label = `${String(c.month).slice(0, 3)} '${String(c.year).slice(-2)}`;
+      const row = map.get(name) ?? { name, label, taken: 0, inProcess: 0, submitted: 0, rejected: 0, cancelled: 0 };
       const s = visaStage(c.visaResult);
       if (s !== "unknown") row[s] += 1;
       map.set(name, row);
     }
-    return Array.from(map.values()).sort((a, b) => {
-      const [ya, ma] = a.name.split(" ");
-      const [yb, mb] = b.name.split(" ");
-      if (ya !== yb) return Number(ya) - Number(yb);
-      return MONTH_ORDER.indexOf(ma) - MONTH_ORDER.indexOf(mb);
-    });
+    return Array.from(map.values())
+      .sort((a, b) => {
+        const [ya, ma] = a.name.split(" ");
+        const [yb, mb] = b.name.split(" ");
+        if (ya !== yb) return Number(ya) - Number(yb);
+        return MONTH_ORDER.indexOf(ma) - MONTH_ORDER.indexOf(mb);
+      })
+      .slice(-12);
   }, [filtered]);
 
   // Approval rate by sales manager (composed: clients + line success%)
@@ -648,14 +651,23 @@ function Dashboard() {
     }
     return Array.from(map.values())
       .filter((m) => m.clients >= 2)
-      .map((m) => ({
-        name: m.name,
-        clients: m.clients,
-        approvalRate: m.decided > 0 ? +((m.taken / m.decided) * 100).toFixed(1) : 0,
-      }))
+      .map((m) => {
+        const parts = m.name.split(/\s+/).filter(Boolean);
+        const short = parts.length > 1 ? `${parts[0]} ${parts[1][0]}.` : m.name;
+        return {
+          name: short.length > 14 ? `${short.slice(0, 13)}…` : short,
+          fullName: m.name,
+          clients: m.clients,
+          decided: m.decided,
+          // Only show a rate when at least 3 decisions exist — otherwise the
+          // line swings between 0% and 100% on one or two contracts.
+          approvalRate: m.decided >= 3 ? +((m.taken / m.decided) * 100).toFixed(1) : null,
+        };
+      })
       .sort((a, b) => b.clients - a.clients)
       .slice(0, 10);
   }, [filteredForManagers]);
+
 
 
 
