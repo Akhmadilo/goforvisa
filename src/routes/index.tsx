@@ -1210,7 +1210,7 @@ function Dashboard() {
                     <Tooltip
                       cursor={{ fill: "var(--color-muted)", fillOpacity: 0.25 }}
                       labelFormatter={(_l, p) => (p?.[0]?.payload?.fullName as string) ?? ""}
-                      formatter={(v: number | null, n: string) =>
+                      formatter={(v: unknown, n: string) =>
                         v === null || v === undefined
                           ? ["Yetarli ma'lumot yo'q", n]
                           : [n === "Tasdiqlash %" ? `${v}%` : `${v} ta`, n]
