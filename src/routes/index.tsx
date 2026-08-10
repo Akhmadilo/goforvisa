@@ -1148,16 +1148,21 @@ function Dashboard() {
                       }}
                       formatter={(v: number, k: string) => (k === "revenue" ? fmtUsd(v) : `${v} ta`)}
                     />
+                    <Tooltip
+                      cursor={{ fill: "var(--color-muted)", fillOpacity: 0.25 }}
+                      contentStyle={{
+                        background: "var(--color-card)",
+                        border: "1px solid var(--color-border)",
+                        borderRadius: "8px",
+                      }}
+                      formatter={(v: number) => fmtUsd(v)}
+                    />
                     <Bar dataKey="revenue" name="Daromad" radius={[6, 6, 0, 0]}>
                       {visaBI.revenueByStage.map((d, i) => (
                         <Cell key={i} fill={d.fill} />
                       ))}
                     </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </Card>
-          </div>
+
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Monthly stacked outcomes */}
