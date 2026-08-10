@@ -34,6 +34,8 @@ import { useT, getMonthNames } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { FinanceInsights } from "@/components/finance-insights";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { exportReceivablesPdf } from "@/lib/receivables-pdf";
 
 
 export const Route = createFileRoute("/moliya")({
