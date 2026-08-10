@@ -34,6 +34,8 @@ import { useT, getMonthNames } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { FinanceInsights } from "@/components/finance-insights";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { exportReceivablesPdf } from "@/lib/receivables-pdf";
 
 
 export const Route = createFileRoute("/moliya")({
@@ -1430,7 +1432,47 @@ function AgedReceivablesCard({ contracts, t }: { contracts: Contract[]; t: Retur
             Qarzdorlar shartnoma sanasiga qarab guruhlangan. Jami qarzdorlik: <span className="font-semibold text-foreground">{fmtUsd(grand)}</span> ({rows.length} ta)
           </p>
         </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="gap-2"
+          onClick={async () => {
+            const list = shown;
+            if (!list.length) {
+              toast.error("Qarzdorlar topilmadi");
+              return;
+            }
+            try {
+              await exportReceivablesPdf({
+                filename: `Qarzdorlar_${activeBucket === "all" ? "Barchasi" : activeBucket.replace("+", "plus")}_${new Date().toISOString().slice(0, 10)}.pdf`,
+                subtitle:
+                  activeBucket === "all"
+                    ? "GoForVisa - barcha qarzdorlar (aged receivables)"
+                    : `GoForVisa - ${buckets.find((b) => b.key === activeBucket)?.label ?? activeBucket} guruhi`,
+                buckets: summary.map((b) => ({ label: b.label, count: b.count, total: b.total })),
+                rows: list.map((r) => ({
+                  client: r.c.name,
+                  contractNo: r.c.contractNo,
+                  date: r.c.contractDate?.slice(0, 10) || "",
+                  phone: r.c.phone,
+                  manager: r.c.salesManager,
+                  days: r.days,
+                  bucket: buckets.find((b) => b.key === r.bucket)?.label ?? r.bucket,
+                  totalUsd: r.c.total || 0,
+                  paidUsd: r.c.paidUsd || 0,
+                  remainingUsd: r.c.remainingUsd || 0,
+                })),
+              });
+              toast.success("PDF tayyorlandi");
+            } catch (e) {
+              toast.error("PDF yaratishda xatolik");
+            }
+          }}
+        >
+          <FileText className="h-4 w-4" /> PDF yuklab olish
+        </Button>
       </div>
+
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <button
