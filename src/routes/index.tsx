@@ -618,20 +618,23 @@ function Dashboard() {
 
   // Monthly stacked outcomes (business quality trend)
   const visaMonthlyStack = useMemo(() => {
-    const map = new Map<string, { name: string; taken: number; inProcess: number; submitted: number; rejected: number; cancelled: number }>();
+    const map = new Map<string, { name: string; label: string; taken: number; inProcess: number; submitted: number; rejected: number; cancelled: number }>();
     for (const c of filtered) {
       const name = `${c.year} ${c.month}`;
-      const row = map.get(name) ?? { name, taken: 0, inProcess: 0, submitted: 0, rejected: 0, cancelled: 0 };
+      const label = `${String(c.month).slice(0, 3)} '${String(c.year).slice(-2)}`;
+      const row = map.get(name) ?? { name, label, taken: 0, inProcess: 0, submitted: 0, rejected: 0, cancelled: 0 };
       const s = visaStage(c.visaResult);
       if (s !== "unknown") row[s] += 1;
       map.set(name, row);
     }
-    return Array.from(map.values()).sort((a, b) => {
-      const [ya, ma] = a.name.split(" ");
-      const [yb, mb] = b.name.split(" ");
-      if (ya !== yb) return Number(ya) - Number(yb);
-      return MONTH_ORDER.indexOf(ma) - MONTH_ORDER.indexOf(mb);
-    });
+    return Array.from(map.values())
+      .sort((a, b) => {
+        const [ya, ma] = a.name.split(" ");
+        const [yb, mb] = b.name.split(" ");
+        if (ya !== yb) return Number(ya) - Number(yb);
+        return MONTH_ORDER.indexOf(ma) - MONTH_ORDER.indexOf(mb);
+      })
+      .slice(-12);
   }, [filtered]);
 
   // Approval rate by sales manager (composed: clients + line success%)
@@ -648,14 +651,23 @@ function Dashboard() {
     }
     return Array.from(map.values())
       .filter((m) => m.clients >= 2)
-      .map((m) => ({
-        name: m.name,
-        clients: m.clients,
-        approvalRate: m.decided > 0 ? +((m.taken / m.decided) * 100).toFixed(1) : 0,
-      }))
+      .map((m) => {
+        const parts = m.name.split(/\s+/).filter(Boolean);
+        const short = parts.length > 1 ? `${parts[0]} ${parts[1][0]}.` : m.name;
+        return {
+          name: short.length > 14 ? `${short.slice(0, 13)}…` : short,
+          fullName: m.name,
+          clients: m.clients,
+          decided: m.decided,
+          // Only show a rate when at least 3 decisions exist — otherwise the
+          // line swings between 0% and 100% on one or two contracts.
+          approvalRate: m.decided >= 3 ? +((m.taken / m.decided) * 100).toFixed(1) : null,
+        };
+      })
       .sort((a, b) => b.clients - a.clients)
       .slice(0, 10);
   }, [filteredForManagers]);
+
 
 
 
@@ -1129,12 +1141,13 @@ function Dashboard() {
                     <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} />
                     <YAxis stroke="var(--color-muted-foreground)" fontSize={11} tickFormatter={(v) => `$${Math.round(v / 1000)}k`} />
                     <Tooltip
+                      cursor={{ fill: "var(--color-muted)", fillOpacity: 0.25 }}
                       contentStyle={{
                         background: "var(--color-card)",
                         border: "1px solid var(--color-border)",
                         borderRadius: "8px",
                       }}
-                      formatter={(v: number, k: string) => (k === "revenue" ? fmtUsd(v) : `${v} ta`)}
+                      formatter={(v: number) => fmtUsd(v)}
                     />
                     <Bar dataKey="revenue" name="Daromad" radius={[6, 6, 0, 0]}>
                       {visaBI.revenueByStage.map((d, i) => (
@@ -1147,6 +1160,9 @@ function Dashboard() {
             </Card>
           </div>
 
+
+
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Monthly stacked outcomes */}
             <Card className="p-4 md:p-5 shadow-[var(--shadow-card)] print-keep">
@@ -1156,15 +1172,19 @@ function Dashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={visaMonthlyStack}>
                     <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                    <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={10} />
-                    <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
+                    <XAxis dataKey="label" stroke="var(--color-muted-foreground)" fontSize={10} interval={0} />
+                    <YAxis stroke="var(--color-muted-foreground)" fontSize={11} allowDecimals={false} />
                     <Tooltip
+                      cursor={{ fill: "var(--color-muted)", fillOpacity: 0.25 }}
+                      labelFormatter={(_l, p) => (p?.[0]?.payload?.name as string) ?? ""}
+                      formatter={(v: number) => `${v} ta`}
                       contentStyle={{
                         background: "var(--color-card)",
                         border: "1px solid var(--color-border)",
                         borderRadius: "8px",
                       }}
                     />
+
                     <Legend wrapperStyle={{ fontSize: "11px" }} />
                     <Bar dataKey="taken" name={t("visa.Olindi")} stackId="v" fill={VISA_STAGE_COLORS.taken} />
                     <Bar dataKey="inProcess" name={t("visa.Jarayonda")} stackId="v" fill={VISA_STAGE_COLORS.inProcess} />
@@ -1182,12 +1202,19 @@ function Dashboard() {
               <p className="text-xs text-muted-foreground mb-3">Mijozlar soni va viza tasdiqlash darajasi</p>
               <div className="h-[260px] md:h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={managerSuccess} margin={{ right: 10 }}>
+                  <ComposedChart data={managerSuccess} margin={{ right: 10, bottom: 10 }}>
                     <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                    <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={10} interval={0} angle={-20} textAnchor="end" height={60} />
-                    <YAxis yAxisId="left" stroke="var(--color-muted-foreground)" fontSize={11} />
+                    <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={10} interval={0} angle={-35} textAnchor="end" height={80} />
+                    <YAxis yAxisId="left" stroke="var(--color-muted-foreground)" fontSize={11} allowDecimals={false} />
                     <YAxis yAxisId="right" orientation="right" stroke="var(--color-muted-foreground)" fontSize={11} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
                     <Tooltip
+                      cursor={{ fill: "var(--color-muted)", fillOpacity: 0.25 }}
+                      labelFormatter={(_l, p) => (p?.[0]?.payload?.fullName as string) ?? ""}
+                      formatter={(v: unknown, n: string) =>
+                        v === null || v === undefined
+                          ? ["Yetarli ma'lumot yo'q", n]
+                          : [n === "Tasdiqlash %" ? `${v}%` : `${v} ta`, n]
+                      }
                       contentStyle={{
                         background: "var(--color-card)",
                         border: "1px solid var(--color-border)",
@@ -1196,9 +1223,10 @@ function Dashboard() {
                     />
                     <Legend wrapperStyle={{ fontSize: "11px" }} />
                     <Bar yAxisId="left" dataKey="clients" name="Mijozlar" fill={VISA_STAGE_COLORS.submitted} radius={[4, 4, 0, 0]} />
-                    <Line yAxisId="right" dataKey="approvalRate" name="Tasdiqlash %" stroke={VISA_STAGE_COLORS.taken} strokeWidth={2.5} dot={{ r: 4, fill: VISA_STAGE_COLORS.taken }} />
+                    <Line yAxisId="right" dataKey="approvalRate" name="Tasdiqlash %" stroke={VISA_STAGE_COLORS.taken} strokeWidth={2.5} dot={{ r: 4, fill: VISA_STAGE_COLORS.taken }} connectNulls={false} />
                   </ComposedChart>
                 </ResponsiveContainer>
+
               </div>
             </Card>
           </div>
