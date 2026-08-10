@@ -1172,15 +1172,19 @@ function Dashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={visaMonthlyStack}>
                     <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                    <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={10} />
-                    <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
+                    <XAxis dataKey="label" stroke="var(--color-muted-foreground)" fontSize={10} interval={0} />
+                    <YAxis stroke="var(--color-muted-foreground)" fontSize={11} allowDecimals={false} />
                     <Tooltip
+                      cursor={{ fill: "var(--color-muted)", fillOpacity: 0.25 }}
+                      labelFormatter={(_l, p) => (p?.[0]?.payload?.name as string) ?? ""}
+                      formatter={(v: number) => `${v} ta`}
                       contentStyle={{
                         background: "var(--color-card)",
                         border: "1px solid var(--color-border)",
                         borderRadius: "8px",
                       }}
                     />
+
                     <Legend wrapperStyle={{ fontSize: "11px" }} />
                     <Bar dataKey="taken" name={t("visa.Olindi")} stackId="v" fill={VISA_STAGE_COLORS.taken} />
                     <Bar dataKey="inProcess" name={t("visa.Jarayonda")} stackId="v" fill={VISA_STAGE_COLORS.inProcess} />
