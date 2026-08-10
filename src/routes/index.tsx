@@ -1141,14 +1141,6 @@ function Dashboard() {
                     <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} />
                     <YAxis stroke="var(--color-muted-foreground)" fontSize={11} tickFormatter={(v) => `$${Math.round(v / 1000)}k`} />
                     <Tooltip
-                      contentStyle={{
-                        background: "var(--color-card)",
-                        border: "1px solid var(--color-border)",
-                        borderRadius: "8px",
-                      }}
-                      formatter={(v: number, k: string) => (k === "revenue" ? fmtUsd(v) : `${v} ta`)}
-                    />
-                    <Tooltip
                       cursor={{ fill: "var(--color-muted)", fillOpacity: 0.25 }}
                       contentStyle={{
                         background: "var(--color-card)",
@@ -1162,6 +1154,13 @@ function Dashboard() {
                         <Cell key={i} fill={d.fill} />
                       ))}
                     </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </Card>
+          </div>
+
+
 
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
