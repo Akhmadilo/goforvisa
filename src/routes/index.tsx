@@ -1196,42 +1196,6 @@ function Dashboard() {
               </div>
             </Card>
 
-            {/* Approval rate by manager */}
-            <Card className="p-4 md:p-5 shadow-[var(--shadow-card)] print-keep">
-              <h3 className="font-semibold text-sm md:text-base mb-1">Menejerlar bo'yicha tasdiqlash %</h3>
-              <p className="text-xs text-muted-foreground mb-3">Mijozlar soni va viza tasdiqlash darajasi</p>
-              <div className="h-[260px] md:h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={managerSuccess} margin={{ right: 10, bottom: 10 }}>
-                    <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                    <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={10} interval={0} angle={-35} textAnchor="end" height={80} />
-                    <YAxis yAxisId="left" stroke="var(--color-muted-foreground)" fontSize={11} allowDecimals={false} />
-                    <YAxis yAxisId="right" orientation="right" stroke="var(--color-muted-foreground)" fontSize={11} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-                    <Tooltip
-                      cursor={{ fill: "var(--color-muted)", fillOpacity: 0.25 }}
-                      labelFormatter={(_l, p) => (p?.[0]?.payload?.fullName as string) ?? ""}
-                      formatter={(v: unknown, n: string) =>
-                        v === null || v === undefined
-                          ? ["Yetarli ma'lumot yo'q", n]
-                          : [n === "Tasdiqlash %" ? `${v}%` : `${v} ta`, n]
-                      }
-                      contentStyle={{
-                        background: "var(--color-card)",
-                        border: "1px solid var(--color-border)",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: "11px" }} />
-                    <Bar yAxisId="left" dataKey="clients" name="Mijozlar" fill={VISA_STAGE_COLORS.submitted} radius={[4, 4, 0, 0]} />
-                    <Line yAxisId="right" dataKey="approvalRate" name="Tasdiqlash %" stroke={VISA_STAGE_COLORS.taken} strokeWidth={2.5} dot={{ r: 4, fill: VISA_STAGE_COLORS.taken }} connectNulls={false} />
-                  </ComposedChart>
-                </ResponsiveContainer>
-
-              </div>
-            </Card>
-          </div>
-        </section>
-        )}
 
 
 
