@@ -309,17 +309,27 @@ function ExpensesPage() {
   }, [periodFilteredAll, getRate]);
 
   // Final rows for table: period + status + category + search (expenses only)
-  const rows = periodFiltered
-    .filter((e) => status === "all" || e.status === status)
-    .filter((e) => category === "all" || e.category === category)
-    .filter((e) => {
-      if (!query) return true;
-      const q = query.toLowerCase();
+  const deferredQuery = useDeferredValue(query);
+  const rows = useMemo(() => {
+    const q = deferredQuery.trim().toLowerCase();
+    return periodFiltered.filter((e) => {
+      if (status !== "all" && e.status !== status) return false;
+      if (category !== "all" && e.category !== category) return false;
+      if (!q) return true;
       return (
         e.title.toLowerCase().includes(q) ||
         (e.vendor ?? "").toLowerCase().includes(q)
       );
     });
+  }, [periodFiltered, status, category, deferredQuery]);
+
+  const PAGE_SIZE = 60;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [status, category, deferredQuery, selectedYear, selectedMonths]);
+  const visibleRows = useMemo(() => rows.slice(0, visibleCount), [rows, visibleCount]);
+
 
 
 
