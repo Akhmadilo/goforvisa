@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -133,6 +133,13 @@ function ExpensesPage() {
   const [query, setQuery] = useState("");
 
   // Data
+  const cacheOpts = {
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  } as const;
+
   const { data: expenses = [] } = useQuery({
     queryKey: ["expenses"],
     queryFn: async () => {
@@ -144,6 +151,7 @@ function ExpensesPage() {
       return (data ?? []) as Expense[];
     },
     enabled: canAccessExpenses,
+    ...cacheOpts,
   });
 
   const { data: payments = [] } = useQuery({
@@ -157,6 +165,7 @@ function ExpensesPage() {
       return (data ?? []) as Payment[];
     },
     enabled: canAccessExpenses,
+    ...cacheOpts,
   });
 
   const { data: categories = [] } = useQuery({
@@ -170,6 +179,7 @@ function ExpensesPage() {
       return (data ?? []).map((r: any) => r.name as string);
     },
     enabled: canAccessExpenses,
+    ...cacheOpts,
   });
 
   // Profiles for creator names
@@ -185,6 +195,7 @@ function ExpensesPage() {
       return m;
     },
     enabled: canAccessExpenses,
+    ...cacheOpts,
   });
 
   // Salaries — included as synthetic "Oyliklar" expenses for stats/dashboard/pivot
@@ -211,7 +222,9 @@ function ExpensesPage() {
       }));
     },
     enabled: canAccessExpenses,
+    ...cacheOpts,
   });
+
 
   const { getRate } = useUsdRates();
   const toUzs = (e: Expense) => {
@@ -296,17 +309,27 @@ function ExpensesPage() {
   }, [periodFilteredAll, getRate]);
 
   // Final rows for table: period + status + category + search (expenses only)
-  const rows = periodFiltered
-    .filter((e) => status === "all" || e.status === status)
-    .filter((e) => category === "all" || e.category === category)
-    .filter((e) => {
-      if (!query) return true;
-      const q = query.toLowerCase();
+  const deferredQuery = useDeferredValue(query);
+  const rows = useMemo(() => {
+    const q = deferredQuery.trim().toLowerCase();
+    return periodFiltered.filter((e) => {
+      if (status !== "all" && e.status !== status) return false;
+      if (category !== "all" && e.category !== category) return false;
+      if (!q) return true;
       return (
         e.title.toLowerCase().includes(q) ||
         (e.vendor ?? "").toLowerCase().includes(q)
       );
     });
+  }, [periodFiltered, status, category, deferredQuery]);
+
+  const PAGE_SIZE = 60;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [status, category, deferredQuery, selectedYear, selectedMonths]);
+  const visibleRows = useMemo(() => rows.slice(0, visibleCount), [rows, visibleCount]);
+
 
 
 
@@ -520,7 +543,7 @@ function ExpensesPage() {
                         {t("exp.list.empty")}
                       </TableCell>
                     </TableRow>
-                  ) : rows.map((e) => {
+                  ) : visibleRows.map((e) => {
                     const paid = paidByExpense.get(e.id) ?? 0;
                     const remaining = Number(e.total_amount) - paid;
                     const creator = e.created_by ? (profileMap.get(e.created_by) ?? "—") : "—";
@@ -600,6 +623,18 @@ function ExpensesPage() {
                 </TableBody>
               </Table>
             </div>
+            {visibleRows.length < rows.length && (
+              <div className="mt-3 flex justify-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                >
+                  Yana ko'rsatish ({rows.length - visibleRows.length})
+                </Button>
+              </div>
+            )}
+
           </Card>
         </main>
 
