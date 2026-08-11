@@ -637,36 +637,6 @@ function Dashboard() {
       .slice(-12);
   }, [filtered]);
 
-  // Approval rate by sales manager (composed: clients + line success%)
-  const managerSuccess = useMemo(() => {
-    const map = new Map<string, { name: string; clients: number; taken: number; decided: number }>();
-    for (const c of filteredForManagers) {
-      const key = c.salesManager || "—";
-      const m = map.get(key) ?? { name: key, clients: 0, taken: 0, decided: 0 };
-      m.clients++;
-      const s = visaStage(c.visaResult);
-      if (s === "taken") { m.taken++; m.decided++; }
-      else if (s === "rejected") { m.decided++; }
-      map.set(key, m);
-    }
-    return Array.from(map.values())
-      .filter((m) => m.clients >= 2)
-      .map((m) => {
-        const parts = m.name.split(/\s+/).filter(Boolean);
-        const short = parts.length > 1 ? `${parts[0]} ${parts[1][0]}.` : m.name;
-        return {
-          name: short.length > 14 ? `${short.slice(0, 13)}…` : short,
-          fullName: m.name,
-          clients: m.clients,
-          decided: m.decided,
-          // Only show a rate when at least 3 decisions exist — otherwise the
-          // line swings between 0% and 100% on one or two contracts.
-          approvalRate: m.decided >= 3 ? +((m.taken / m.decided) * 100).toFixed(1) : null,
-        };
-      })
-      .sort((a, b) => b.clients - a.clients)
-      .slice(0, 10);
-  }, [filteredForManagers]);
 
 
 
