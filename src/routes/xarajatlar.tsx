@@ -133,6 +133,13 @@ function ExpensesPage() {
   const [query, setQuery] = useState("");
 
   // Data
+  const cacheOpts = {
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  } as const;
+
   const { data: expenses = [] } = useQuery({
     queryKey: ["expenses"],
     queryFn: async () => {
@@ -144,6 +151,7 @@ function ExpensesPage() {
       return (data ?? []) as Expense[];
     },
     enabled: canAccessExpenses,
+    ...cacheOpts,
   });
 
   const { data: payments = [] } = useQuery({
@@ -157,6 +165,7 @@ function ExpensesPage() {
       return (data ?? []) as Payment[];
     },
     enabled: canAccessExpenses,
+    ...cacheOpts,
   });
 
   const { data: categories = [] } = useQuery({
@@ -170,6 +179,7 @@ function ExpensesPage() {
       return (data ?? []).map((r: any) => r.name as string);
     },
     enabled: canAccessExpenses,
+    ...cacheOpts,
   });
 
   // Profiles for creator names
@@ -185,6 +195,7 @@ function ExpensesPage() {
       return m;
     },
     enabled: canAccessExpenses,
+    ...cacheOpts,
   });
 
   // Salaries — included as synthetic "Oyliklar" expenses for stats/dashboard/pivot
@@ -211,7 +222,9 @@ function ExpensesPage() {
       }));
     },
     enabled: canAccessExpenses,
+    ...cacheOpts,
   });
+
 
   const { getRate } = useUsdRates();
   const toUzs = (e: Expense) => {
