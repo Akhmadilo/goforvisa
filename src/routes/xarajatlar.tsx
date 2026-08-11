@@ -543,7 +543,7 @@ function ExpensesPage() {
                         {t("exp.list.empty")}
                       </TableCell>
                     </TableRow>
-                  ) : rows.map((e) => {
+                  ) : visibleRows.map((e) => {
                     const paid = paidByExpense.get(e.id) ?? 0;
                     const remaining = Number(e.total_amount) - paid;
                     const creator = e.created_by ? (profileMap.get(e.created_by) ?? "—") : "—";
