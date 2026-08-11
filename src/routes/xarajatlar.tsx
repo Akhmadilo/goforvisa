@@ -623,6 +623,18 @@ function ExpensesPage() {
                 </TableBody>
               </Table>
             </div>
+            {visibleRows.length < rows.length && (
+              <div className="mt-3 flex justify-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                >
+                  Yana ko'rsatish ({rows.length - visibleRows.length})
+                </Button>
+              </div>
+            )}
+
           </Card>
         </main>
 
