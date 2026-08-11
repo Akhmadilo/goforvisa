@@ -1195,11 +1195,9 @@ function Dashboard() {
                 </ResponsiveContainer>
               </div>
             </Card>
-
-
-
-
-
+          </div>
+        </section>
+        )}
 
         {(can("managers_revenue") || can("contract_types")) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
