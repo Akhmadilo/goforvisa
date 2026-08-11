@@ -637,36 +637,6 @@ function Dashboard() {
       .slice(-12);
   }, [filtered]);
 
-  // Approval rate by sales manager (composed: clients + line success%)
-  const managerSuccess = useMemo(() => {
-    const map = new Map<string, { name: string; clients: number; taken: number; decided: number }>();
-    for (const c of filteredForManagers) {
-      const key = c.salesManager || "—";
-      const m = map.get(key) ?? { name: key, clients: 0, taken: 0, decided: 0 };
-      m.clients++;
-      const s = visaStage(c.visaResult);
-      if (s === "taken") { m.taken++; m.decided++; }
-      else if (s === "rejected") { m.decided++; }
-      map.set(key, m);
-    }
-    return Array.from(map.values())
-      .filter((m) => m.clients >= 2)
-      .map((m) => {
-        const parts = m.name.split(/\s+/).filter(Boolean);
-        const short = parts.length > 1 ? `${parts[0]} ${parts[1][0]}.` : m.name;
-        return {
-          name: short.length > 14 ? `${short.slice(0, 13)}…` : short,
-          fullName: m.name,
-          clients: m.clients,
-          decided: m.decided,
-          // Only show a rate when at least 3 decisions exist — otherwise the
-          // line swings between 0% and 100% on one or two contracts.
-          approvalRate: m.decided >= 3 ? +((m.taken / m.decided) * 100).toFixed(1) : null,
-        };
-      })
-      .sort((a, b) => b.clients - a.clients)
-      .slice(0, 10);
-  }, [filteredForManagers]);
 
 
 
@@ -1195,47 +1165,9 @@ function Dashboard() {
                 </ResponsiveContainer>
               </div>
             </Card>
-
-            {/* Approval rate by manager */}
-            <Card className="p-4 md:p-5 shadow-[var(--shadow-card)] print-keep">
-              <h3 className="font-semibold text-sm md:text-base mb-1">Menejerlar bo'yicha tasdiqlash %</h3>
-              <p className="text-xs text-muted-foreground mb-3">Mijozlar soni va viza tasdiqlash darajasi</p>
-              <div className="h-[260px] md:h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={managerSuccess} margin={{ right: 10, bottom: 10 }}>
-                    <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
-                    <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={10} interval={0} angle={-35} textAnchor="end" height={80} />
-                    <YAxis yAxisId="left" stroke="var(--color-muted-foreground)" fontSize={11} allowDecimals={false} />
-                    <YAxis yAxisId="right" orientation="right" stroke="var(--color-muted-foreground)" fontSize={11} domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-                    <Tooltip
-                      cursor={{ fill: "var(--color-muted)", fillOpacity: 0.25 }}
-                      labelFormatter={(_l, p) => (p?.[0]?.payload?.fullName as string) ?? ""}
-                      formatter={(v: unknown, n: string) =>
-                        v === null || v === undefined
-                          ? ["Yetarli ma'lumot yo'q", n]
-                          : [n === "Tasdiqlash %" ? `${v}%` : `${v} ta`, n]
-                      }
-                      contentStyle={{
-                        background: "var(--color-card)",
-                        border: "1px solid var(--color-border)",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Legend wrapperStyle={{ fontSize: "11px" }} />
-                    <Bar yAxisId="left" dataKey="clients" name="Mijozlar" fill={VISA_STAGE_COLORS.submitted} radius={[4, 4, 0, 0]} />
-                    <Line yAxisId="right" dataKey="approvalRate" name="Tasdiqlash %" stroke={VISA_STAGE_COLORS.taken} strokeWidth={2.5} dot={{ r: 4, fill: VISA_STAGE_COLORS.taken }} connectNulls={false} />
-                  </ComposedChart>
-                </ResponsiveContainer>
-
-              </div>
-            </Card>
           </div>
         </section>
         )}
-
-
-
-
 
         {(can("managers_revenue") || can("contract_types")) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
