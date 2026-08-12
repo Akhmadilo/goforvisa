@@ -661,9 +661,9 @@ function FinancePage() {
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             <KpiCard label={t("finance.revenue")} value={fmt(totals.revenue)} icon={<DollarSign className="h-4 w-4" />} tone="green" />
-            <KpiCard label={t("finance.pnl.docCosts")} value={fmt(totals.docCosts)} icon={<Receipt className="h-4 w-4" />} />
-            <KpiCard label={t("finance.grossProfit")} value={fmt(totals.grossProfit)} icon={<TrendingUp className="h-4 w-4" />} tone="green" />
-            <KpiCard label={t("finance.expense")} value={fmt(totals.expense)} icon={<Receipt className="h-4 w-4" />} />
+            <KpiCard label={t("finance.pnl.docCosts")} value={fmt(totals.docCosts)} icon={<Receipt className="h-4 w-4" />} tone="amber" />
+            <KpiCard label={t("finance.grossProfit")} value={fmt(totals.grossProfit)} icon={<TrendingUp className="h-4 w-4" />} tone="blue" />
+            <KpiCard label={t("finance.expense")} value={fmt(totals.expense)} icon={<Receipt className="h-4 w-4" />} tone="red" />
             <KpiCard
               label={t("finance.profit")}
               value={fmt(totals.profit)}
@@ -679,6 +679,7 @@ function FinancePage() {
               label="O'rtacha oylik daromad"
               value={fmt(extras.avgRev)}
               icon={<Activity className="h-4 w-4" />}
+              tone="blue"
               sub={`${allMonths.length} oy asosida`}
             />
             <KpiCard
@@ -688,6 +689,7 @@ function FinancePage() {
               tone="red"
               sub={extras.bufferMonths !== null ? `Zaxira: ${extras.bufferMonths.toFixed(1)} oy` : "Foyda musbat"}
             />
+
             <KpiCard
               label="Eng yaxshi oy"
               value={extras.bestKey ? `${MONTHS[Number(extras.bestKey.split("-")[1]) - 1].slice(0,3)} ${extras.bestKey.split("-")[0].slice(2)}` : "—"}
