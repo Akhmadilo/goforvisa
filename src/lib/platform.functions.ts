@@ -416,3 +416,71 @@ export const deletePlan = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+/* ---------------- Per-tenant settings ---------------- */
+
+export type TenantSettings = {
+  tenant_id: string;
+  enabled_modules: string[];
+  brand_name: string | null;
+  brand_logo_url: string | null;
+  brand_primary: string | null;
+  currency: string;
+  business_rules: Record<string, any>;
+};
+
+export const getTenantSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ tenantId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }): Promise<TenantSettings> => {
+    await assertPlatformAdmin(context.supabase);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: row, error } = await supabaseAdmin
+      .from("tenant_settings")
+      .select("*")
+      .eq("tenant_id", data.tenantId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (row) return row as unknown as TenantSettings;
+    const { data: created, error: cErr } = await supabaseAdmin
+      .from("tenant_settings")
+      .insert({ tenant_id: data.tenantId } as any)
+      .select("*")
+      .single();
+    if (cErr) throw new Error(cErr.message);
+    return created as unknown as TenantSettings;
+  });
+
+export const saveTenantSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        tenantId: z.string().uuid(),
+        enabledModules: z.array(z.string().min(1).max(60)).max(50),
+        brandName: z.string().max(120).nullable().optional(),
+        brandLogoUrl: z.string().max(500).nullable().optional(),
+        brandPrimary: z.string().max(40).nullable().optional(),
+        currency: z.string().min(1).max(8).default("UZS"),
+        businessRules: z.record(z.string(), z.any()).default({}),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertPlatformAdmin(context.supabase);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("tenant_settings").upsert(
+      {
+        tenant_id: data.tenantId,
+        enabled_modules: data.enabledModules,
+        brand_name: data.brandName || null,
+        brand_logo_url: data.brandLogoUrl || null,
+        brand_primary: data.brandPrimary || null,
+        currency: data.currency,
+        business_rules: data.businessRules,
+      } as any,
+      { onConflict: "tenant_id" },
+    );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
