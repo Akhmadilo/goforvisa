@@ -536,13 +536,21 @@ function FinancePage() {
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0 opacity-[0.35] print:hidden"
+        style={{
+          background:
+            "radial-gradient(60rem 30rem at 15% -10%, color-mix(in oklch, var(--primary) 22%, transparent), transparent 60%), radial-gradient(50rem 26rem at 100% 0%, color-mix(in oklch, var(--chart-2) 18%, transparent), transparent 60%)",
+        }}
+      />
       <AppSidebar />
       <div className="relative z-10 md:pl-56">
-        <header className="border-b border-border bg-card/40 backdrop-blur sticky top-0 z-20">
+        <header className="border-b border-border/70 bg-card/60 backdrop-blur-xl sticky top-0 z-20 shadow-sm">
           <div className="mx-auto max-w-[1500px] px-4 sm:px-6 py-3 md:py-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 pl-10 md:pl-0">
               <div
-                className="h-9 w-9 md:h-10 md:w-10 rounded-lg flex items-center justify-center shrink-0"
+                className="h-9 w-9 md:h-10 md:w-10 rounded-xl flex items-center justify-center shrink-0 shadow-md shadow-primary/20"
                 style={{ background: "var(--gradient-primary)" }}
               >
                 <LineChartIcon className="h-4 w-4 md:h-5 md:w-5 text-primary-foreground" />
@@ -552,17 +560,18 @@ function FinancePage() {
                 <p className="text-[11px] md:text-xs text-muted-foreground">{t("finance.subtitle")}</p>
               </div>
             </div>
+
             <div className="flex items-center gap-2 print:hidden">
               <button
                 onClick={exportExcel}
-                className="h-9 px-2 md:px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-1.5 text-xs font-medium"
+                className="h-9 px-2 md:px-3 rounded-lg border border-border/70 bg-card/70 hover:bg-secondary hover:border-primary/40 transition-colors flex items-center gap-1.5 text-xs font-medium"
                 title="Excel"
               >
                 <FileSpreadsheet className="h-4 w-4" /> <span className="hidden sm:inline">Excel</span>
               </button>
               <button
                 onClick={exportCsv}
-                className="h-9 px-2 md:px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-1.5 text-xs font-medium"
+                className="h-9 px-2 md:px-3 rounded-lg border border-border/70 bg-card/70 hover:bg-secondary hover:border-primary/40 transition-colors flex items-center gap-1.5 text-xs font-medium"
                 title="CSV"
               >
                 <Download className="h-4 w-4" /> <span className="hidden sm:inline">CSV</span>
@@ -570,7 +579,7 @@ function FinancePage() {
               <button
                 onClick={exportPdf}
                 disabled={pdfExporting}
-                className="h-9 px-2 md:px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-1.5 text-xs font-medium disabled:opacity-50"
+                className="h-9 px-2 md:px-3 rounded-lg border border-border/70 bg-card/70 hover:bg-secondary hover:border-primary/40 transition-colors flex items-center gap-1.5 text-xs font-medium disabled:opacity-50"
                 title="PDF"
               >
                 {pdfExporting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
@@ -578,19 +587,19 @@ function FinancePage() {
               </button>
               <button
                 onClick={() => window.print()}
-                className="h-9 px-2 md:px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-1.5 text-xs font-medium"
+                className="h-9 px-2 md:px-3 rounded-lg border border-border/70 bg-card/70 hover:bg-secondary hover:border-primary/40 transition-colors flex items-center gap-1.5 text-xs font-medium"
                 title="Print"
               >
                 <Printer className="h-4 w-4" /> <span className="hidden sm:inline">Print</span>
               </button>
               {isAdmin && (
-                <Link to="/admin" className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary flex items-center justify-center" title={t("nav.admin")}>
+                <Link to="/admin" className="h-9 w-9 rounded-lg border border-border/70 bg-card/70 hover:bg-secondary hover:border-primary/40 transition-colors flex items-center justify-center" title={t("nav.admin")}>
                   <Shield className="h-4 w-4" />
                 </Link>
               )}
               <button
                 onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/auth" }); }}
-                className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary flex items-center justify-center"
+                className="h-9 w-9 rounded-lg border border-border/70 bg-card/70 hover:bg-secondary hover:border-primary/40 transition-colors flex items-center justify-center"
                 title={t("common.logout")}
               >
                 <LogOut className="h-4 w-4" />
@@ -600,7 +609,7 @@ function FinancePage() {
         </header>
 
         <main id="moliya-pdf-root" className="mx-auto max-w-[1500px] px-4 sm:px-6 py-4 md:py-6 space-y-4 md:space-y-6">
-          <Card className="p-4">
+          <Card className="p-4 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">{t("finance.basis")}</label>
@@ -661,9 +670,9 @@ function FinancePage() {
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             <KpiCard label={t("finance.revenue")} value={fmt(totals.revenue)} icon={<DollarSign className="h-4 w-4" />} tone="green" />
-            <KpiCard label={t("finance.pnl.docCosts")} value={fmt(totals.docCosts)} icon={<Receipt className="h-4 w-4" />} />
-            <KpiCard label={t("finance.grossProfit")} value={fmt(totals.grossProfit)} icon={<TrendingUp className="h-4 w-4" />} tone="green" />
-            <KpiCard label={t("finance.expense")} value={fmt(totals.expense)} icon={<Receipt className="h-4 w-4" />} />
+            <KpiCard label={t("finance.pnl.docCosts")} value={fmt(totals.docCosts)} icon={<Receipt className="h-4 w-4" />} tone="amber" />
+            <KpiCard label={t("finance.grossProfit")} value={fmt(totals.grossProfit)} icon={<TrendingUp className="h-4 w-4" />} tone="blue" />
+            <KpiCard label={t("finance.expense")} value={fmt(totals.expense)} icon={<Receipt className="h-4 w-4" />} tone="red" />
             <KpiCard
               label={t("finance.profit")}
               value={fmt(totals.profit)}
@@ -679,6 +688,7 @@ function FinancePage() {
               label="O'rtacha oylik daromad"
               value={fmt(extras.avgRev)}
               icon={<Activity className="h-4 w-4" />}
+              tone="blue"
               sub={`${allMonths.length} oy asosida`}
             />
             <KpiCard
@@ -688,6 +698,7 @@ function FinancePage() {
               tone="red"
               sub={extras.bufferMonths !== null ? `Zaxira: ${extras.bufferMonths.toFixed(1)} oy` : "Foyda musbat"}
             />
+
             <KpiCard
               label="Eng yaxshi oy"
               value={extras.bestKey ? `${MONTHS[Number(extras.bestKey.split("-")[1]) - 1].slice(0,3)} ${extras.bestKey.split("-")[0].slice(2)}` : "—"}
@@ -704,8 +715,8 @@ function FinancePage() {
             />
           </div>
 
-          <Card className="p-4">
-            <div className="text-sm font-semibold mb-3">Daromad, xarajat va sof foyda</div>
+          <Card className="p-4 md:p-5 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
+            <div className="text-sm font-semibold mb-3 flex items-center gap-2 before:h-4 before:w-1 before:rounded-full before:bg-primary">Daromad, xarajat va sof foyda</div>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData}>
@@ -728,8 +739,8 @@ function FinancePage() {
 
           {/* YoY comparison */}
           {(extras.yoyRevPrev > 0 || extras.yoyExpPrev > 0) && (
-            <Card className="p-4">
-              <div className="text-sm font-semibold mb-3">Yildan-yilga taqqoslash (tanlangan oylar)</div>
+            <Card className="p-4 md:p-5 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-sm font-semibold mb-3 flex items-center gap-2 before:h-4 before:w-1 before:rounded-full before:bg-primary">Yildan-yilga taqqoslash (tanlangan oylar)</div>
               <div className="overflow-auto">
                 <Table>
                   <TableHeader>
@@ -770,8 +781,8 @@ function FinancePage() {
             </Card>
           )}
 
-          <Card className="p-4">
-            <div className="text-sm font-semibold mb-3">{t("finance.profitTrend")}</div>
+          <Card className="p-4 md:p-5 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
+            <div className="text-sm font-semibold mb-3 flex items-center gap-2 before:h-4 before:w-1 before:rounded-full before:bg-primary">{t("finance.profitTrend")}</div>
             <div className="h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData}>
@@ -798,8 +809,8 @@ function FinancePage() {
             fmtShort={fmtShort}
           />
 
-          <Card className="p-4">
-            <div className="text-sm font-semibold mb-3">{t("finance.pnl")}</div>
+          <Card className="p-4 md:p-5 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
+            <div className="text-sm font-semibold mb-3 flex items-center gap-2 before:h-4 before:w-1 before:rounded-full before:bg-primary">{t("finance.pnl")}</div>
             <div className="overflow-auto">
               <Table>
                 <TableHeader>
@@ -866,7 +877,7 @@ function FinancePage() {
           </Card>
 
           {/* Monthly comparison — CFO view */}
-          <Card className="p-4">
+          <Card className="p-4 md:p-5 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-3">
               <div className="text-sm font-semibold">{t("finance.monthlyComparison")}</div>
               <div className="text-[11px] text-muted-foreground">{allMonths.length} {t("finance.months")}</div>
@@ -969,8 +980,8 @@ function FinancePage() {
             </div>
           </Card>
 
-          <Card className="p-4">
-            <div className="text-sm font-semibold mb-3">{t("finance.topCategories")}</div>
+          <Card className="p-4 md:p-5 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
+            <div className="text-sm font-semibold mb-3 flex items-center gap-2 before:h-4 before:w-1 before:rounded-full before:bg-primary">{t("finance.topCategories")}</div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {topExpenses.length > 0 && (
                 <div className="h-[280px]">
@@ -1045,29 +1056,61 @@ function FinancePage() {
   );
 }
 
+const KPI_TONES = {
+  green: {
+    accent: "bg-emerald-500",
+    chip: "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20",
+    value: "text-emerald-600 dark:text-emerald-400",
+    glow: "hover:border-emerald-500/40",
+  },
+  red: {
+    accent: "bg-rose-500",
+    chip: "bg-rose-500/12 text-rose-600 dark:text-rose-400 ring-rose-500/20",
+    value: "text-rose-600 dark:text-rose-400",
+    glow: "hover:border-rose-500/40",
+  },
+  blue: {
+    accent: "bg-sky-500",
+    chip: "bg-sky-500/12 text-sky-600 dark:text-sky-400 ring-sky-500/20",
+    value: "text-foreground",
+    glow: "hover:border-sky-500/40",
+  },
+  amber: {
+    accent: "bg-amber-500",
+    chip: "bg-amber-500/12 text-amber-600 dark:text-amber-400 ring-amber-500/20",
+    value: "text-foreground",
+    glow: "hover:border-amber-500/40",
+  },
+  neutral: {
+    accent: "bg-primary/60",
+    chip: "bg-primary/10 text-primary ring-primary/20",
+    value: "text-foreground",
+    glow: "hover:border-primary/40",
+  },
+} as const;
+
 function KpiCard({
   label, value, icon, tone, sub,
 }: {
   label: string;
   value: string;
   icon: React.ReactNode;
-  tone?: "green" | "red";
+  tone?: "green" | "red" | "blue" | "amber";
   sub?: string;
 }) {
+  const s = KPI_TONES[tone ?? "neutral"];
   return (
-    <Card className="p-4">
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>{label}</span>
-        <span className={cn(
-          tone === "green" && "text-emerald-600 dark:text-emerald-400",
-          tone === "red" && "text-destructive"
-        )}>{icon}</span>
+    <Card className={cn(
+      "relative overflow-hidden p-4 pl-5 transition-all duration-200 border-border/70",
+      "bg-card/80 backdrop-blur-sm hover:shadow-lg hover:-translate-y-0.5",
+      s.glow,
+    )}>
+      <span className={cn("absolute inset-y-0 left-0 w-1", s.accent)} />
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-[11px] md:text-xs font-medium text-muted-foreground leading-tight">{label}</span>
+        <span className={cn("h-8 w-8 shrink-0 rounded-lg flex items-center justify-center ring-1", s.chip)}>{icon}</span>
       </div>
-      <div className={cn(
-        "mt-1 text-lg font-bold tabular-nums",
-        tone === "green" && "text-emerald-600 dark:text-emerald-400",
-        tone === "red" && "text-destructive"
-      )}>{value}</div>
+      <div className={cn("mt-2 text-lg md:text-xl font-bold tabular-nums tracking-tight", s.value)}>{value}</div>
       {sub && <div className="mt-1 text-[11px] text-muted-foreground">{sub}</div>}
     </Card>
   );
@@ -1280,7 +1323,7 @@ function ForecastCard({
 
   if (history.length < 2) {
     return (
-      <Card className="p-4">
+      <Card className="p-4 md:p-5 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
         <div className="flex items-center gap-2 mb-2">
           <Sparkles className="h-4 w-4 text-primary" />
           <span className="text-sm font-semibold">Sotuv prognozi (kelasi 3 oy)</span>
@@ -1293,7 +1336,7 @@ function ForecastCard({
   }
 
   return (
-    <Card className="p-4">
+    <Card className="p-4 md:p-5 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
