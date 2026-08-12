@@ -1045,29 +1045,61 @@ function FinancePage() {
   );
 }
 
+const KPI_TONES = {
+  green: {
+    accent: "bg-emerald-500",
+    chip: "bg-emerald-500/12 text-emerald-600 dark:text-emerald-400 ring-emerald-500/20",
+    value: "text-emerald-600 dark:text-emerald-400",
+    glow: "hover:border-emerald-500/40",
+  },
+  red: {
+    accent: "bg-rose-500",
+    chip: "bg-rose-500/12 text-rose-600 dark:text-rose-400 ring-rose-500/20",
+    value: "text-rose-600 dark:text-rose-400",
+    glow: "hover:border-rose-500/40",
+  },
+  blue: {
+    accent: "bg-sky-500",
+    chip: "bg-sky-500/12 text-sky-600 dark:text-sky-400 ring-sky-500/20",
+    value: "text-foreground",
+    glow: "hover:border-sky-500/40",
+  },
+  amber: {
+    accent: "bg-amber-500",
+    chip: "bg-amber-500/12 text-amber-600 dark:text-amber-400 ring-amber-500/20",
+    value: "text-foreground",
+    glow: "hover:border-amber-500/40",
+  },
+  neutral: {
+    accent: "bg-primary/60",
+    chip: "bg-primary/10 text-primary ring-primary/20",
+    value: "text-foreground",
+    glow: "hover:border-primary/40",
+  },
+} as const;
+
 function KpiCard({
   label, value, icon, tone, sub,
 }: {
   label: string;
   value: string;
   icon: React.ReactNode;
-  tone?: "green" | "red";
+  tone?: "green" | "red" | "blue" | "amber";
   sub?: string;
 }) {
+  const s = KPI_TONES[tone ?? "neutral"];
   return (
-    <Card className="p-4">
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>{label}</span>
-        <span className={cn(
-          tone === "green" && "text-emerald-600 dark:text-emerald-400",
-          tone === "red" && "text-destructive"
-        )}>{icon}</span>
+    <Card className={cn(
+      "relative overflow-hidden p-4 pl-5 transition-all duration-200 border-border/70",
+      "bg-card/80 backdrop-blur-sm hover:shadow-lg hover:-translate-y-0.5",
+      s.glow,
+    )}>
+      <span className={cn("absolute inset-y-0 left-0 w-1", s.accent)} />
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-[11px] md:text-xs font-medium text-muted-foreground leading-tight">{label}</span>
+        <span className={cn("h-8 w-8 shrink-0 rounded-lg flex items-center justify-center ring-1", s.chip)}>{icon}</span>
       </div>
-      <div className={cn(
-        "mt-1 text-lg font-bold tabular-nums",
-        tone === "green" && "text-emerald-600 dark:text-emerald-400",
-        tone === "red" && "text-destructive"
-      )}>{value}</div>
+      <div className={cn("mt-2 text-lg md:text-xl font-bold tabular-nums tracking-tight", s.value)}>{value}</div>
       {sub && <div className="mt-1 text-[11px] text-muted-foreground">{sub}</div>}
     </Card>
   );
