@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
@@ -17,6 +17,7 @@ import {
 import logoUrl from "@/assets/logo.png";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { useTenant } from "@/hooks/use-tenant";
+import { useTenantSettings } from "@/hooks/use-tenant-settings";
 import { useT, LANGUAGES, type Lang } from "@/lib/i18n";
 import {
   Sheet,
@@ -29,6 +30,21 @@ function SidebarContent({ onClick }: { onClick?: () => void }) {
   const { can, loading } = useWidgetPermissions();
   const { t, lang, setLang } = useT();
   const { tenant, isPlatformAdmin } = useTenant();
+  const { settings, moduleEnabled } = useTenantSettings();
+
+  // Per-company branding colour, applied globally for this tenant.
+  useEffect(() => {
+    const color = settings?.brand_primary;
+    if (!color) return;
+    const root = document.documentElement;
+    root.style.setProperty("--primary", color);
+    return () => {
+      root.style.removeProperty("--primary");
+    };
+  }, [settings?.brand_primary]);
+
+  const brandName = settings?.brand_name || tenant?.name || "Platform";
+  const brandLogo = settings?.brand_logo_url || tenant?.logo_url || logoUrl;
 
   const items = [
     { to: "/", label: t("nav.dashboard"), icon: LayoutDashboard, widget: null as string | null },
@@ -44,15 +60,16 @@ function SidebarContent({ onClick }: { onClick?: () => void }) {
   return (
     <>
       <div className="h-16 px-4 flex items-center gap-2 border-b border-border">
-        <img src={logoUrl} alt={tenant?.name ?? "Logo"} className="h-8 w-8 rounded" />
+        <img src={brandLogo} alt={brandName} className="h-8 w-8 rounded" />
         <div className="leading-tight">
-          <div className="text-sm font-semibold">{tenant?.name ?? "Platform"}</div>
+          <div className="text-sm font-semibold">{brandName}</div>
           <div className="text-[11px] text-muted-foreground">Platform</div>
         </div>
       </div>
 
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {items.map(({ to, label, icon: Icon, widget }) => {
+          if (widget && !moduleEnabled(widget)) return null;
           if (widget && !loading && !can(widget)) return null;
           const active = pathname === to;
           return (

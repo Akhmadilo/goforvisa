@@ -1447,6 +1447,50 @@ export type Database = {
           },
         ]
       }
+      tenant_settings: {
+        Row: {
+          brand_logo_url: string | null
+          brand_name: string | null
+          brand_primary: string | null
+          business_rules: Json
+          created_at: string
+          currency: string
+          enabled_modules: string[]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          brand_logo_url?: string | null
+          brand_name?: string | null
+          brand_primary?: string | null
+          business_rules?: Json
+          created_at?: string
+          currency?: string
+          enabled_modules?: string[]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          brand_logo_url?: string | null
+          brand_name?: string | null
+          brand_primary?: string | null
+          business_rules?: Json
+          created_at?: string
+          currency?: string
+          enabled_modules?: string[]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           contact_email: string | null
