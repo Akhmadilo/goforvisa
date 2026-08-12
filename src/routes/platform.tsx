@@ -19,6 +19,7 @@ import {
   deletePlan,
 } from "@/lib/platform.functions";
 import { useTenant } from "@/hooks/use-tenant";
+import { TenantSettingsDialog } from "@/components/tenant-settings-dialog";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
