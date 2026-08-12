@@ -38,7 +38,9 @@ function SidebarContent({ onClick }: { onClick?: () => void }) {
     if (!color) return;
     const root = document.documentElement;
     root.style.setProperty("--primary", color);
-    return () => root.style.removeProperty("--primary");
+    return () => {
+      root.style.removeProperty("--primary");
+    };
   }, [settings?.brand_primary]);
 
   const brandName = settings?.brand_name || tenant?.name || "Platform";
