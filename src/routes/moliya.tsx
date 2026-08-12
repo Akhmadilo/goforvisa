@@ -536,13 +536,21 @@ function FinancePage() {
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0 opacity-[0.35] print:hidden"
+        style={{
+          background:
+            "radial-gradient(60rem 30rem at 15% -10%, color-mix(in oklch, var(--primary) 22%, transparent), transparent 60%), radial-gradient(50rem 26rem at 100% 0%, color-mix(in oklch, var(--chart-2) 18%, transparent), transparent 60%)",
+        }}
+      />
       <AppSidebar />
       <div className="relative z-10 md:pl-56">
-        <header className="border-b border-border bg-card/40 backdrop-blur sticky top-0 z-20">
+        <header className="border-b border-border/70 bg-card/60 backdrop-blur-xl sticky top-0 z-20 shadow-sm">
           <div className="mx-auto max-w-[1500px] px-4 sm:px-6 py-3 md:py-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 pl-10 md:pl-0">
               <div
-                className="h-9 w-9 md:h-10 md:w-10 rounded-lg flex items-center justify-center shrink-0"
+                className="h-9 w-9 md:h-10 md:w-10 rounded-xl flex items-center justify-center shrink-0 shadow-md shadow-primary/20"
                 style={{ background: "var(--gradient-primary)" }}
               >
                 <LineChartIcon className="h-4 w-4 md:h-5 md:w-5 text-primary-foreground" />
@@ -552,6 +560,7 @@ function FinancePage() {
                 <p className="text-[11px] md:text-xs text-muted-foreground">{t("finance.subtitle")}</p>
               </div>
             </div>
+
             <div className="flex items-center gap-2 print:hidden">
               <button
                 onClick={exportExcel}
