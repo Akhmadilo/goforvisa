@@ -564,14 +564,14 @@ function FinancePage() {
             <div className="flex items-center gap-2 print:hidden">
               <button
                 onClick={exportExcel}
-                className="h-9 px-2 md:px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-1.5 text-xs font-medium"
+                className="h-9 px-2 md:px-3 rounded-lg border border-border/70 bg-card/70 hover:bg-secondary hover:border-primary/40 transition-colors flex items-center gap-1.5 text-xs font-medium"
                 title="Excel"
               >
                 <FileSpreadsheet className="h-4 w-4" /> <span className="hidden sm:inline">Excel</span>
               </button>
               <button
                 onClick={exportCsv}
-                className="h-9 px-2 md:px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-1.5 text-xs font-medium"
+                className="h-9 px-2 md:px-3 rounded-lg border border-border/70 bg-card/70 hover:bg-secondary hover:border-primary/40 transition-colors flex items-center gap-1.5 text-xs font-medium"
                 title="CSV"
               >
                 <Download className="h-4 w-4" /> <span className="hidden sm:inline">CSV</span>
@@ -579,7 +579,7 @@ function FinancePage() {
               <button
                 onClick={exportPdf}
                 disabled={pdfExporting}
-                className="h-9 px-2 md:px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-1.5 text-xs font-medium disabled:opacity-50"
+                className="h-9 px-2 md:px-3 rounded-lg border border-border/70 bg-card/70 hover:bg-secondary hover:border-primary/40 transition-colors flex items-center gap-1.5 text-xs font-medium disabled:opacity-50"
                 title="PDF"
               >
                 {pdfExporting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
@@ -587,19 +587,19 @@ function FinancePage() {
               </button>
               <button
                 onClick={() => window.print()}
-                className="h-9 px-2 md:px-3 rounded-md border border-border bg-card hover:bg-secondary flex items-center gap-1.5 text-xs font-medium"
+                className="h-9 px-2 md:px-3 rounded-lg border border-border/70 bg-card/70 hover:bg-secondary hover:border-primary/40 transition-colors flex items-center gap-1.5 text-xs font-medium"
                 title="Print"
               >
                 <Printer className="h-4 w-4" /> <span className="hidden sm:inline">Print</span>
               </button>
               {isAdmin && (
-                <Link to="/admin" className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary flex items-center justify-center" title={t("nav.admin")}>
+                <Link to="/admin" className="h-9 w-9 rounded-lg border border-border/70 bg-card/70 hover:bg-secondary hover:border-primary/40 transition-colors flex items-center justify-center" title={t("nav.admin")}>
                   <Shield className="h-4 w-4" />
                 </Link>
               )}
               <button
                 onClick={async () => { await supabase.auth.signOut(); navigate({ to: "/auth" }); }}
-                className="h-9 w-9 rounded-md border border-border bg-card hover:bg-secondary flex items-center justify-center"
+                className="h-9 w-9 rounded-lg border border-border/70 bg-card/70 hover:bg-secondary hover:border-primary/40 transition-colors flex items-center justify-center"
                 title={t("common.logout")}
               >
                 <LogOut className="h-4 w-4" />
@@ -609,7 +609,7 @@ function FinancePage() {
         </header>
 
         <main id="moliya-pdf-root" className="mx-auto max-w-[1500px] px-4 sm:px-6 py-4 md:py-6 space-y-4 md:space-y-6">
-          <Card className="p-4">
+          <Card className="p-4 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">{t("finance.basis")}</label>
