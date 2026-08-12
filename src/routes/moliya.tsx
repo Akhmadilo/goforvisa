@@ -715,8 +715,8 @@ function FinancePage() {
             />
           </div>
 
-          <Card className="p-4">
-            <div className="text-sm font-semibold mb-3">Daromad, xarajat va sof foyda</div>
+          <Card className="p-4 md:p-5 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
+            <div className="text-sm font-semibold mb-3 flex items-center gap-2 before:h-4 before:w-1 before:rounded-full before:bg-primary">Daromad, xarajat va sof foyda</div>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData}>
@@ -739,8 +739,8 @@ function FinancePage() {
 
           {/* YoY comparison */}
           {(extras.yoyRevPrev > 0 || extras.yoyExpPrev > 0) && (
-            <Card className="p-4">
-              <div className="text-sm font-semibold mb-3">Yildan-yilga taqqoslash (tanlangan oylar)</div>
+            <Card className="p-4 md:p-5 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-sm font-semibold mb-3 flex items-center gap-2 before:h-4 before:w-1 before:rounded-full before:bg-primary">Yildan-yilga taqqoslash (tanlangan oylar)</div>
               <div className="overflow-auto">
                 <Table>
                   <TableHeader>
@@ -781,8 +781,8 @@ function FinancePage() {
             </Card>
           )}
 
-          <Card className="p-4">
-            <div className="text-sm font-semibold mb-3">{t("finance.profitTrend")}</div>
+          <Card className="p-4 md:p-5 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
+            <div className="text-sm font-semibold mb-3 flex items-center gap-2 before:h-4 before:w-1 before:rounded-full before:bg-primary">{t("finance.profitTrend")}</div>
             <div className="h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData}>
@@ -809,8 +809,8 @@ function FinancePage() {
             fmtShort={fmtShort}
           />
 
-          <Card className="p-4">
-            <div className="text-sm font-semibold mb-3">{t("finance.pnl")}</div>
+          <Card className="p-4 md:p-5 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
+            <div className="text-sm font-semibold mb-3 flex items-center gap-2 before:h-4 before:w-1 before:rounded-full before:bg-primary">{t("finance.pnl")}</div>
             <div className="overflow-auto">
               <Table>
                 <TableHeader>
@@ -877,7 +877,7 @@ function FinancePage() {
           </Card>
 
           {/* Monthly comparison — CFO view */}
-          <Card className="p-4">
+          <Card className="p-4 md:p-5 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-3">
               <div className="text-sm font-semibold">{t("finance.monthlyComparison")}</div>
               <div className="text-[11px] text-muted-foreground">{allMonths.length} {t("finance.months")}</div>
@@ -980,8 +980,8 @@ function FinancePage() {
             </div>
           </Card>
 
-          <Card className="p-4">
-            <div className="text-sm font-semibold mb-3">{t("finance.topCategories")}</div>
+          <Card className="p-4 md:p-5 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
+            <div className="text-sm font-semibold mb-3 flex items-center gap-2 before:h-4 before:w-1 before:rounded-full before:bg-primary">{t("finance.topCategories")}</div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {topExpenses.length > 0 && (
                 <div className="h-[280px]">
@@ -1323,7 +1323,7 @@ function ForecastCard({
 
   if (history.length < 2) {
     return (
-      <Card className="p-4">
+      <Card className="p-4 md:p-5 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
         <div className="flex items-center gap-2 mb-2">
           <Sparkles className="h-4 w-4 text-primary" />
           <span className="text-sm font-semibold">Sotuv prognozi (kelasi 3 oy)</span>
@@ -1336,7 +1336,7 @@ function ForecastCard({
   }
 
   return (
-    <Card className="p-4">
+    <Card className="p-4 md:p-5 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
