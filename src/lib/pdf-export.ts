@@ -98,8 +98,33 @@ const PDF_COLOR_FALLBACKS = `
     animation: none !important;
     transition: none !important;
     caret-color: transparent !important;
+    /* html2canvas renders blur/filters as flat grey plates — drop them */
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    filter: none !important;
+    mix-blend-mode: normal !important;
+    opacity: 1 !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Decorative blurred/gradient overlays become grey rectangles — hide them */
+  [class*="backdrop-blur"], [class*="blur-"], .animate-pulse,
+  [class*="bg-gradient"], [class*="bg-linear"] {
+    background-image: none !important;
+  }
+
+  [aria-hidden="true"][class*="blur"],
+  [class*="pointer-events-none"][class*="blur"] {
+    display: none !important;
+  }
+
+  /* Force plain, crisp surfaces */
+  .recharts-wrapper, .recharts-surface, svg {
+    background: transparent !important;
   }
 `;
+
 
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
@@ -379,6 +404,14 @@ export async function exportElementToPdf(
           doc.documentElement.classList.remove("dark");
           const body = doc.body;
           if (body) body.style.background = "#ffffff";
+          // Flatten semi-transparent surfaces so nothing renders as grey haze
+          doc.querySelectorAll<HTMLElement>("*").forEach((el) => {
+            const bg = el.style.backgroundColor || "";
+            if (bg.startsWith("rgba")) el.style.backgroundColor = "#ffffff";
+            el.style.backdropFilter = "none";
+            el.style.filter = "none";
+          });
+
         },
       });
 
