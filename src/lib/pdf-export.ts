@@ -103,63 +103,130 @@ const PDF_COLOR_FALLBACKS = `
 
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
-function visibleExportBlocks(element: HTMLElement): HTMLElement[] {
-  const blocks = Array.from(element.children).filter((child): child is HTMLElement => {
-    if (!(child instanceof HTMLElement)) return false;
-    if (child.matches("[data-pdf-hide], .pdf-hide, .print\\:hidden")) return false;
-    const style = window.getComputedStyle(child);
-    if (style.display === "none" || style.visibility === "hidden") return false;
-    const rect = child.getBoundingClientRect();
-    return rect.width > 1 && rect.height > 1;
-  });
-
-  return blocks.length > 0 ? blocks : [element];
+function isExportable(child: Element): child is HTMLElement {
+  if (!(child instanceof HTMLElement)) return false;
+  if (child.matches("[data-pdf-hide], .pdf-hide, .print\\:hidden")) return false;
+  const style = window.getComputedStyle(child);
+  if (style.display === "none" || style.visibility === "hidden") return false;
+  const rect = child.getBoundingClientRect();
+  return rect.width > 1 && rect.height > 1;
 }
 
-function addFooter(pdf: jsPDF, title: string) {
+/**
+ * Collect printable blocks. Containers taller than one PDF page are broken down
+ * into their children so charts/tables are never sliced across pages.
+ */
+function collectExportBlocks(
+  element: HTMLElement,
+  maxBlockPx: number,
+  depth = 0,
+): HTMLElement[] {
+  const children = Array.from(element.children).filter(isExportable);
+  if (children.length === 0) return [element];
+
+  const out: HTMLElement[] = [];
+  for (const child of children) {
+    const h = child.getBoundingClientRect().height;
+    const canSplit =
+      depth < 3 &&
+      h > maxBlockPx &&
+      Array.from(child.children).filter(isExportable).length > 1;
+    if (canSplit) {
+      out.push(...collectExportBlocks(child, maxBlockPx, depth + 1));
+    } else {
+      out.push(child);
+    }
+  }
+  return out.length > 0 ? out : [element];
+}
+
+
+function addChrome(pdf: jsPDF, opts: ExportOptions) {
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
   const total = pdf.getNumberOfPages();
 
   for (let p = 1; p <= total; p++) {
     pdf.setPage(p);
+
+    // Running header on content pages (page 1 is the cover).
+    if (p > 1) {
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+      pdf.setTextColor(16, 129, 108);
+      pdf.text("GoForVisa", 28, 28);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(100, 116, 139);
+      pdf.text(opts.title, 92, 28, { maxWidth: pageW - 240 });
+      if (opts.subtitle) {
+        pdf.text(opts.subtitle, pageW - 28, 28, { align: "right", maxWidth: pageW - 260 });
+      }
+      pdf.setDrawColor(226, 232, 240);
+      pdf.line(28, 36, pageW - 28, 36);
+    }
+
     pdf.setDrawColor(226, 232, 240);
-    pdf.line(24, pageH - 22, pageW - 24, pageH - 22);
+    pdf.line(28, pageH - 24, pageW - 28, pageH - 24);
+    pdf.setFont("helvetica", "normal");
     pdf.setFontSize(8);
     pdf.setTextColor(100, 116, 139);
-    pdf.text(`GoForVisa — ${title}`, 24, pageH - 10);
-    pdf.text(`${p} / ${total}`, pageW - 24, pageH - 10, { align: "right" });
+    pdf.text(`GoForVisa — ${opts.title}`, 28, pageH - 12);
+    pdf.text(`${p} / ${total}`, pageW - 28, pageH - 12, { align: "right" });
   }
 }
 
+
 function addCover(pdf: jsPDF, opts: ExportOptions) {
   const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
 
   const brand: [number, number, number] = [16, 129, 108];
   const brandDark: [number, number, number] = [10, 90, 74];
   pdf.setFillColor(...brand);
-  pdf.rect(0, 0, pageW, 90, "F");
+  pdf.rect(0, 0, pageW, 96, "F");
   pdf.setFillColor(...brandDark);
-  pdf.rect(0, 82, pageW, 8, "F");
+  pdf.rect(0, 88, pageW, 8, "F");
 
   pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(22);
-  pdf.text("GoForVisa", 96, 44);
+  pdf.setFontSize(24);
+  pdf.text("GoForVisa", 96, 52);
   pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(13);
-  pdf.text(opts.title, 96, 64, { maxWidth: pageW - 230 });
+  pdf.setFontSize(10);
+  pdf.text(opts.meta || "Hisobot", 96, 72);
+
+  // Centered title block
+  const midY = pageH / 2 - 30;
+  pdf.setTextColor(24, 33, 48);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(26);
+  pdf.text(opts.title, pageW / 2, midY, { align: "center", maxWidth: pageW - 120 });
   if (opts.subtitle) {
-    pdf.setFontSize(9);
-    pdf.text(opts.subtitle, 96, 80, { maxWidth: pageW - 230 });
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(12);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text(opts.subtitle, pageW / 2, midY + 26, {
+      align: "center",
+      maxWidth: pageW - 140,
+    });
   }
-  const genStr = new Date().toLocaleString();
-  pdf.setFontSize(8);
-  pdf.text(genStr, pageW - 32, 78, { align: "right" });
-  if (opts.meta) {
-    pdf.text(opts.meta, pageW - 32, 66, { align: "right" });
-  }
+  pdf.setDrawColor(...brand);
+  pdf.setLineWidth(2);
+  pdf.line(pageW / 2 - 60, midY + 46, pageW / 2 + 60, midY + 46);
+  pdf.setLineWidth(1);
+
+  // Meta strip at the bottom of the cover
+  pdf.setFontSize(9);
+  pdf.setTextColor(100, 116, 139);
+  pdf.text(
+    `Tayyorlandi: ${new Date().toLocaleString()}`,
+    pageW / 2,
+    pageH - 70,
+    { align: "center" },
+  );
+  pdf.text("A4 · print uchun tayyor", pageW / 2, pageH - 54, { align: "center" });
 }
+
 
 function addCanvasPaged(
   pdf: jsPDF,
@@ -211,7 +278,7 @@ function addCanvasPaged(
     );
 
     pdf.addImage(
-      sliceCanvas.toDataURL("image/jpeg", 0.9),
+      sliceCanvas.toDataURL("image/jpeg", 0.96),
       "JPEG",
       opts.marginX,
       cursor.y,
@@ -270,11 +337,20 @@ export async function exportElementToPdf(
       }
     }
 
-    const blocks = visibleExportBlocks(element);
-    const cursor = { y: 106 };
-    const page = { top: 24, marginX: 24, bottom: 34, gap: 12 };
+    // Clean cover page, content starts on page 2 (print-friendly).
+    pdf.addPage();
+
+    const pageWpt = pdf.internal.pageSize.getWidth();
+    const pageHpt = pdf.internal.pageSize.getHeight();
+    const page = { top: 54, marginX: 28, bottom: 38, gap: 14 };
+    const cursor = { y: page.top };
     const exportWidth = Math.max(element.scrollWidth, element.clientWidth, 1200);
-    const scale = Math.min(1.35, Math.max(1.1, window.devicePixelRatio || 1));
+    const usableWpt = pageWpt - page.marginX * 2;
+    const maxBlockPx =
+      ((pageHpt - page.top - page.bottom) / usableWpt) * exportWidth;
+    const blocks = collectExportBlocks(element, maxBlockPx);
+    const scale = Math.min(2, Math.max(1.5, window.devicePixelRatio || 1.5));
+
 
     for (const block of blocks) {
       await nextFrame();
@@ -309,7 +385,7 @@ export async function exportElementToPdf(
       addCanvasPaged(pdf, canvas, cursor, page);
     }
 
-    addFooter(pdf, opts.title);
+    addChrome(pdf, opts);
 
     const blob = pdf.output("blob");
     if (blob.size < 1024) throw new Error("PDF fayl yaratilmadi");

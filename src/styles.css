@@ -177,3 +177,24 @@
   page-break-inside: avoid;
   break-inside: avoid;
 }
+/* Print-friendly card / table styling for the exported snapshot */
+.pdf-exporting [data-slot="card"] {
+  box-shadow: none !important;
+  border: 1px solid rgb(214, 222, 232) !important;
+  background: #ffffff !important;
+}
+.pdf-exporting .shadow-lg,
+.pdf-exporting .shadow-md,
+.pdf-exporting .shadow-sm,
+.pdf-exporting .shadow { box-shadow: none !important; }
+.pdf-exporting th,
+.pdf-exporting td {
+  border-color: rgb(220, 227, 235) !important;
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+}
+.pdf-exporting .text-xs { font-size: 11px !important; }
+.pdf-exporting .text-\[10px\] { font-size: 10px !important; }
+.pdf-exporting .recharts-text { font-size: 11px !important; }
+.pdf-exporting .recharts-cartesian-axis-tick text { fill: rgb(51, 65, 85) !important; }
+
