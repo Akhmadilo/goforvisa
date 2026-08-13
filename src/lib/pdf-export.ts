@@ -362,7 +362,7 @@ export async function exportElementToPdf(
       addCanvasPaged(pdf, canvas, cursor, page);
     }
 
-    addFooter(pdf, opts.title);
+    addChrome(pdf, opts);
 
     const blob = pdf.output("blob");
     if (blob.size < 1024) throw new Error("PDF fayl yaratilmadi");
