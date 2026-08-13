@@ -178,32 +178,55 @@ function addChrome(pdf: jsPDF, opts: ExportOptions) {
 
 function addCover(pdf: jsPDF, opts: ExportOptions) {
   const pageW = pdf.internal.pageSize.getWidth();
+  const pageH = pdf.internal.pageSize.getHeight();
 
   const brand: [number, number, number] = [16, 129, 108];
   const brandDark: [number, number, number] = [10, 90, 74];
   pdf.setFillColor(...brand);
-  pdf.rect(0, 0, pageW, 90, "F");
+  pdf.rect(0, 0, pageW, 96, "F");
   pdf.setFillColor(...brandDark);
-  pdf.rect(0, 82, pageW, 8, "F");
+  pdf.rect(0, 88, pageW, 8, "F");
 
   pdf.setTextColor(255, 255, 255);
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(22);
-  pdf.text("GoForVisa", 96, 44);
+  pdf.setFontSize(24);
+  pdf.text("GoForVisa", 96, 52);
   pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(13);
-  pdf.text(opts.title, 96, 64, { maxWidth: pageW - 230 });
+  pdf.setFontSize(10);
+  pdf.text(opts.meta || "Hisobot", 96, 72);
+
+  // Centered title block
+  const midY = pageH / 2 - 30;
+  pdf.setTextColor(24, 33, 48);
+  pdf.setFont("helvetica", "bold");
+  pdf.setFontSize(26);
+  pdf.text(opts.title, pageW / 2, midY, { align: "center", maxWidth: pageW - 120 });
   if (opts.subtitle) {
-    pdf.setFontSize(9);
-    pdf.text(opts.subtitle, 96, 80, { maxWidth: pageW - 230 });
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(12);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text(opts.subtitle, pageW / 2, midY + 26, {
+      align: "center",
+      maxWidth: pageW - 140,
+    });
   }
-  const genStr = new Date().toLocaleString();
-  pdf.setFontSize(8);
-  pdf.text(genStr, pageW - 32, 78, { align: "right" });
-  if (opts.meta) {
-    pdf.text(opts.meta, pageW - 32, 66, { align: "right" });
-  }
+  pdf.setDrawColor(...brand);
+  pdf.setLineWidth(2);
+  pdf.line(pageW / 2 - 60, midY + 46, pageW / 2 + 60, midY + 46);
+  pdf.setLineWidth(1);
+
+  // Meta strip at the bottom of the cover
+  pdf.setFontSize(9);
+  pdf.setTextColor(100, 116, 139);
+  pdf.text(
+    `Tayyorlandi: ${new Date().toLocaleString()}`,
+    pageW / 2,
+    pageH - 70,
+    { align: "center" },
+  );
+  pdf.text("A4 · print uchun tayyor", pageW / 2, pageH - 54, { align: "center" });
 }
+
 
 function addCanvasPaged(
   pdf: jsPDF,
