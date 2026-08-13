@@ -295,11 +295,20 @@ export async function exportElementToPdf(
       }
     }
 
-    const blocks = visibleExportBlocks(element);
-    const cursor = { y: 106 };
-    const page = { top: 24, marginX: 24, bottom: 34, gap: 12 };
+    // Clean cover page, content starts on page 2 (print-friendly).
+    pdf.addPage();
+
+    const pageWpt = pdf.internal.pageSize.getWidth();
+    const pageHpt = pdf.internal.pageSize.getHeight();
+    const page = { top: 54, marginX: 28, bottom: 38, gap: 14 };
+    const cursor = { y: page.top };
     const exportWidth = Math.max(element.scrollWidth, element.clientWidth, 1200);
-    const scale = Math.min(1.35, Math.max(1.1, window.devicePixelRatio || 1));
+    const usableWpt = pageWpt - page.marginX * 2;
+    const maxBlockPx =
+      ((pageHpt - page.top - page.bottom) / usableWpt) * exportWidth;
+    const blocks = collectExportBlocks(element, maxBlockPx);
+    const scale = Math.min(2, Math.max(1.5, window.devicePixelRatio || 1.5));
+
 
     for (const block of blocks) {
       await nextFrame();
