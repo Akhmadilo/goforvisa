@@ -255,7 +255,7 @@ function addCanvasPaged(
     );
 
     pdf.addImage(
-      sliceCanvas.toDataURL("image/jpeg", 0.9),
+      sliceCanvas.toDataURL("image/jpeg", 0.96),
       "JPEG",
       opts.marginX,
       cursor.y,
