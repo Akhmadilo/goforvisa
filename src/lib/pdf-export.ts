@@ -141,21 +141,40 @@ function collectExportBlocks(
 }
 
 
-function addFooter(pdf: jsPDF, title: string) {
+function addChrome(pdf: jsPDF, opts: ExportOptions) {
   const pageW = pdf.internal.pageSize.getWidth();
   const pageH = pdf.internal.pageSize.getHeight();
   const total = pdf.getNumberOfPages();
 
   for (let p = 1; p <= total; p++) {
     pdf.setPage(p);
+
+    // Running header on content pages (page 1 is the cover).
+    if (p > 1) {
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+      pdf.setTextColor(16, 129, 108);
+      pdf.text("GoForVisa", 28, 28);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(100, 116, 139);
+      pdf.text(opts.title, 92, 28, { maxWidth: pageW - 240 });
+      if (opts.subtitle) {
+        pdf.text(opts.subtitle, pageW - 28, 28, { align: "right", maxWidth: pageW - 260 });
+      }
+      pdf.setDrawColor(226, 232, 240);
+      pdf.line(28, 36, pageW - 28, 36);
+    }
+
     pdf.setDrawColor(226, 232, 240);
-    pdf.line(24, pageH - 22, pageW - 24, pageH - 22);
+    pdf.line(28, pageH - 24, pageW - 28, pageH - 24);
+    pdf.setFont("helvetica", "normal");
     pdf.setFontSize(8);
     pdf.setTextColor(100, 116, 139);
-    pdf.text(`GoForVisa — ${title}`, 24, pageH - 10);
-    pdf.text(`${p} / ${total}`, pageW - 24, pageH - 10, { align: "right" });
+    pdf.text(`GoForVisa — ${opts.title}`, 28, pageH - 12);
+    pdf.text(`${p} / ${total}`, pageW - 28, pageH - 12, { align: "right" });
   }
 }
+
 
 function addCover(pdf: jsPDF, opts: ExportOptions) {
   const pageW = pdf.internal.pageSize.getWidth();
