@@ -404,6 +404,14 @@ export async function exportElementToPdf(
           doc.documentElement.classList.remove("dark");
           const body = doc.body;
           if (body) body.style.background = "#ffffff";
+          // Flatten semi-transparent surfaces so nothing renders as grey haze
+          doc.querySelectorAll<HTMLElement>("*").forEach((el) => {
+            const bg = el.style.backgroundColor || "";
+            if (bg.startsWith("rgba")) el.style.backgroundColor = "#ffffff";
+            el.style.backdropFilter = "none";
+            el.style.filter = "none";
+          });
+
         },
       });
 
