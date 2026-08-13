@@ -103,18 +103,43 @@ const PDF_COLOR_FALLBACKS = `
 
 const nextFrame = () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 
-function visibleExportBlocks(element: HTMLElement): HTMLElement[] {
-  const blocks = Array.from(element.children).filter((child): child is HTMLElement => {
-    if (!(child instanceof HTMLElement)) return false;
-    if (child.matches("[data-pdf-hide], .pdf-hide, .print\\:hidden")) return false;
-    const style = window.getComputedStyle(child);
-    if (style.display === "none" || style.visibility === "hidden") return false;
-    const rect = child.getBoundingClientRect();
-    return rect.width > 1 && rect.height > 1;
-  });
-
-  return blocks.length > 0 ? blocks : [element];
+function isExportable(child: Element): child is HTMLElement {
+  if (!(child instanceof HTMLElement)) return false;
+  if (child.matches("[data-pdf-hide], .pdf-hide, .print\\:hidden")) return false;
+  const style = window.getComputedStyle(child);
+  if (style.display === "none" || style.visibility === "hidden") return false;
+  const rect = child.getBoundingClientRect();
+  return rect.width > 1 && rect.height > 1;
 }
+
+/**
+ * Collect printable blocks. Containers taller than one PDF page are broken down
+ * into their children so charts/tables are never sliced across pages.
+ */
+function collectExportBlocks(
+  element: HTMLElement,
+  maxBlockPx: number,
+  depth = 0,
+): HTMLElement[] {
+  const children = Array.from(element.children).filter(isExportable);
+  if (children.length === 0) return [element];
+
+  const out: HTMLElement[] = [];
+  for (const child of children) {
+    const h = child.getBoundingClientRect().height;
+    const canSplit =
+      depth < 3 &&
+      h > maxBlockPx &&
+      Array.from(child.children).filter(isExportable).length > 1;
+    if (canSplit) {
+      out.push(...collectExportBlocks(child, maxBlockPx, depth + 1));
+    } else {
+      out.push(child);
+    }
+  }
+  return out.length > 0 ? out : [element];
+}
+
 
 function addFooter(pdf: jsPDF, title: string) {
   const pageW = pdf.internal.pageSize.getWidth();
