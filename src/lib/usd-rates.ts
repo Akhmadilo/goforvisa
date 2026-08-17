@@ -23,8 +23,8 @@ export function useUsdRates() {
         rate: Number(r.rate),
       }));
     },
-    staleTime: 10 * 60_000,
-    gcTime: 30 * 60_000,
+    staleTime: 60 * 60_000,
+    gcTime: 2 * 60 * 60_000,
   });
 
   const map = useMemo(() => {
