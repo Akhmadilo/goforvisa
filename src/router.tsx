@@ -6,9 +6,9 @@ export const getRouter = () => {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
-        // Cache data for 1 minute — avoids hammering the DB on every mount/nav
-        staleTime: 60_000,
-        gcTime: 5 * 60_000,
+        // Cache data for 5 minutes — avoids hammering the DB on every mount/nav
+        staleTime: 5 * 60_000,
+        gcTime: 30 * 60_000,
         refetchOnWindowFocus: false,
         refetchOnReconnect: false,
         refetchOnMount: false,
