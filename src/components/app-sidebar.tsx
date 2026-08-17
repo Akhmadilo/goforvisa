@@ -70,7 +70,9 @@ function SidebarContent({ onClick }: { onClick?: () => void }) {
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {items.map(({ to, label, icon: Icon, widget }) => {
           if (widget && !moduleEnabled(widget)) return null;
-          if (widget && !loading && !can(widget)) return null;
+          // Fail closed: while permissions are still loading, keep gated
+          // links hidden instead of briefly showing them to everyone.
+          if (widget && (loading || !can(widget))) return null;
           const active = pathname === to;
           return (
             <Link
