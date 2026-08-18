@@ -1044,6 +1044,16 @@ function FinancePage() {
             t={t as (k: string) => string}
           />
 
+          <CashFlowStatement
+            year={year}
+            months={months}
+            currency={currency}
+            getRate={getRate}
+            fmt={fmt}
+            monthNames={MONTHS}
+            enabled={canAccessFinance}
+          />
+
           <AgedReceivablesCard contracts={contracts} t={t} />
 
           <div className="text-xs text-muted-foreground text-center pb-4">
