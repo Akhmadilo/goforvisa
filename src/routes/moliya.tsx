@@ -33,6 +33,7 @@ import { useUsdRates } from "@/lib/usd-rates";
 import { useT, getMonthNames } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { FinanceInsights } from "@/components/finance-insights";
+import { CashFlowStatement } from "@/components/cash-flow-statement";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { exportReceivablesPdf } from "@/lib/receivables-pdf";
@@ -1042,6 +1043,16 @@ function FinancePage() {
             fmt={fmt}
             monthNames={MONTHS}
             t={t as (k: string) => string}
+          />
+
+          <CashFlowStatement
+            year={year}
+            months={months}
+            currency={currency}
+            getRate={getRate}
+            fmt={fmt}
+            monthNames={MONTHS}
+            enabled={canAccessFinance}
           />
 
           <AgedReceivablesCard contracts={contracts} t={t} />
