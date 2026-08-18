@@ -33,6 +33,7 @@ import { useUsdRates } from "@/lib/usd-rates";
 import { useT, getMonthNames } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { FinanceInsights } from "@/components/finance-insights";
+import { CashFlowStatement } from "@/components/cash-flow-statement";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { exportReceivablesPdf } from "@/lib/receivables-pdf";
