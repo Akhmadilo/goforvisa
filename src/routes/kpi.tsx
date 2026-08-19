@@ -77,9 +77,13 @@ const baseFor = callCentreBaseFor;
 const kpiPctFor = callCentreKpiPctFor;
 
 /** Trim + collapse inner whitespace so "Ali  Vali " and "Ali Vali" group together. */
+/** Special row in sales_kpi_rates holding the fallback rate for a role. */
+export const DEFAULT_RATE_KEY = "__default__";
+
 export function normalizeName(v: string | null | undefined) {
   return (v ?? "").replace(/\s+/g, " ").trim();
 }
+
 
 /** Cancelled/stopped contracts never earn KPI. Robust to case + apostrophe variants. */
 export function isCancelledResult(v: string | null | undefined) {
