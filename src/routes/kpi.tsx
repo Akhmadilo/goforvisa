@@ -396,11 +396,17 @@ function CommissionKpi({
     gcTime: 10 * 60_000,
   });
 
+  const defaultRate = useMemo(() => {
+    const r = (rates ?? []).find((x) => x.manager_name === DEFAULT_RATE_KEY);
+    return r ? Number(r.rate_per_usd) : 500;
+  }, [rates]);
+
   const rateFor = (name: string): number => {
     const key = normalizeName(name).toLowerCase();
     const r = (rates ?? []).find((x) => normalizeName(x.manager_name).toLowerCase() === key);
-    return r ? Number(r.rate_per_usd) : 500;
+    return r ? Number(r.rate_per_usd) : defaultRate;
   };
+
 
 
   const setRate = useMutation({
@@ -586,9 +592,17 @@ function CommissionKpi({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredGroups.length === 0 ? (
-                    <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-4">Bu oyda xodimlar yo'q</TableCell></TableRow>
-                  ) : filteredGroups.map((g) => {
+                  <TableRow className="bg-muted/40">
+                    <TableCell className="font-medium">Standart (barcha xodimlar)</TableCell>
+                    <TableCell>
+                      <RateEditor
+                        initial={defaultRate}
+                        onSave={(v) => setRate.mutate({ name: DEFAULT_RATE_KEY, rate: v })}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right text-muted-foreground text-sm">{fmt(defaultRate * 100)} so'm / $100</TableCell>
+                  </TableRow>
+                  {filteredGroups.map((g) => {
                     const cur = rateFor(g.name);
                     return (
                       <TableRow key={g.name}>
@@ -603,6 +617,7 @@ function CommissionKpi({
                       </TableRow>
                     );
                   })}
+
                 </TableBody>
               </Table>
             </div>
@@ -676,6 +691,8 @@ function CommissionKpi({
 
 function RateEditor({ initial, onSave }: { initial: number; onSave: (v: number) => void }) {
   const [val, setVal] = useState<string>(String(initial));
+  useEffect(() => setVal(String(initial)), [initial]);
+
   return (
     <div className="flex gap-2">
       <Input
@@ -887,10 +904,16 @@ function VisaBonusKpi() {
     gcTime: 10 * 60_000,
   });
 
+  const defaultRate = useMemo(() => {
+    const r = (rates ?? []).find((x) => x.manager_name === DEFAULT_RATE_KEY);
+    return r ? Number(r.rate_per_usd) : DEFAULT_RATE;
+  }, [rates]);
+
   const rateFor = (name: string): number => {
     const key = normalizeName(name).toLowerCase();
     const r = (rates ?? []).find((x) => normalizeName(x.manager_name).toLowerCase() === key);
-    return r ? Number(r.rate_per_usd) : DEFAULT_RATE;
+    return r ? Number(r.rate_per_usd) : defaultRate;
+
   };
 
   const setRate = useMutation({
@@ -1011,7 +1034,7 @@ function VisaBonusKpi() {
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Formula</CardTitle></CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Viza olingan (Olindi) shartnomalar uchun bonus. Komissiyaning har $1 iga {DEFAULT_RATE} so'm (default). Davr - viza olingan sana bo'yicha.
+          Viza olingan (Olindi) shartnomalar uchun bonus. Komissiyaning har $1 iga {fmt(defaultRate)} so'm (standart stavka, quyida o'zgartirsa bo'ladi). Davr - viza olingan sana bo'yicha.
         </CardContent>
       </Card>
 
@@ -1023,9 +1046,12 @@ function VisaBonusKpi() {
               <Table>
                 <TableHeader><TableRow><TableHead>Xodim</TableHead><TableHead className="w-48">Stavka (so'm/$)</TableHead><TableHead className="text-right">Ekvivalent</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {filteredGroups.length === 0 ? (
-                    <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-4">Bu oyda xodimlar yo'q</TableCell></TableRow>
-                  ) : filteredGroups.map((g) => {
+                  <TableRow className="bg-muted/40">
+                    <TableCell className="font-medium">Standart (barcha xodimlar)</TableCell>
+                    <TableCell><RateEditor initial={defaultRate} onSave={(v) => setRate.mutate({ name: DEFAULT_RATE_KEY, rate: v })} /></TableCell>
+                    <TableCell className="text-right text-muted-foreground text-sm">{fmt(defaultRate * 100)} so'm / $100</TableCell>
+                  </TableRow>
+                  {filteredGroups.map((g) => {
                     const cur = rateFor(g.name);
                     return (
                       <TableRow key={g.name}>
@@ -1035,6 +1061,7 @@ function VisaBonusKpi() {
                       </TableRow>
                     );
                   })}
+
                 </TableBody>
               </Table>
             </div>
