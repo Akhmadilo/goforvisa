@@ -259,6 +259,9 @@ function CallCentreKpi() {
   const [year, setYear] = useState<string>(String(now.getFullYear()));
   const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
   const [employee, setEmployee] = useState<string>("__all__");
+  const { data: tiers } = useCcTiers();
+
+
 
   const { data: contracts } = useQuery({
     queryKey: ["kpi-cc-contracts", year, month],
