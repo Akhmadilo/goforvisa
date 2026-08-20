@@ -1,6 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchCcTiers, ccBaseFor, ccKpiPctFor } from "@/lib/cc-tiers";
+
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -619,23 +621,8 @@ function SalaryFormDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editing]);
 
-  // Call-centre tiers (mirror src/routes/kpi.tsx)
-  const CC_BASE = [
-    { min: 1, max: 4, base: 1_000_000 },
-    { min: 5, max: 9, base: 1_500_000 },
-    { min: 10, max: 14, base: 2_000_000 },
-    { min: 15, max: 19, base: 2_500_000 },
-    { min: 20, max: 24, base: 3_000_000 },
-    { min: 25, max: 29, base: 3_500_000 },
-    { min: 30, max: Infinity, base: 4_000_000 },
-  ];
-  const CC_KPI = [
-    { min: 10, max: 14, kpi: 5 },
-    { min: 15, max: 19, kpi: 10 },
-    { min: 20, max: 24, kpi: 15 },
-    { min: 25, max: 29, kpi: 20 },
-    { min: 30, max: Infinity, kpi: 25 },
-  ];
+  // Call-centre tiers are stored in the DB (call_centre_tiers), editable on the KPI page.
+
 
   // Auto-fetch advances, fines, and call-centre / sales bonuses for this employee/month
   useEffect(() => {
@@ -724,10 +711,12 @@ function SalaryFormDialog({
       ).length;
       let ccFixed = 0, ccBonus = 0;
       if (ccCount > 0) {
-        ccFixed = (CC_BASE.find((t) => ccCount >= t.min && ccCount <= t.max) ?? CC_BASE[0]).base;
-        const pct = (CC_KPI.find((t) => ccCount >= t.min && ccCount <= t.max)?.kpi) ?? 0;
+        const ccTiers = await fetchCcTiers().catch(() => []);
+        ccFixed = ccBaseFor(ccTiers, ccCount);
+        const pct = ccKpiPctFor(ccTiers, ccCount);
         ccBonus = Math.round((ccFixed * pct) / 100);
       }
+
 
       // Sales approved bonus (adds to bonus)
       const salesBonus = (salesApprovedRes.data ?? []).reduce(

@@ -45,36 +45,152 @@ export const Route = createFileRoute("/kpi")({
 });
 
 
-// Call-centre: base salary and KPI % are independent ladders.
-const BASE_TIERS: { min: number; max: number; base: number }[] = [
-  { min: 1, max: 4, base: 1_000_000 },
-  { min: 5, max: 9, base: 1_500_000 },
-  { min: 10, max: 14, base: 2_000_000 },
-  { min: 15, max: 19, base: 2_500_000 },
-  { min: 20, max: 24, base: 3_000_000 },
-  { min: 25, max: 29, base: 3_500_000 },
-  { min: 30, max: Infinity, base: 4_000_000 },
-];
+// Call-centre: base salary and KPI % ladders now live in the DB (call_centre_tiers).
+import { ccBaseFor, ccKpiPctFor, useCcTiers, CC_TIERS_KEY, type CcTier } from "@/lib/cc-tiers";
+export { ccBaseFor, ccKpiPctFor } from "@/lib/cc-tiers";
 
-const KPI_PCT_TIERS: { min: number; max: number; kpi: number }[] = [
-  { min: 1, max: 4, kpi: 0 },
-  { min: 5, max: 9, kpi: 0 },
-  { min: 10, max: 14, kpi: 5 },
-  { min: 15, max: 19, kpi: 10 },
-  { min: 20, max: 24, kpi: 15 },
-  { min: 25, max: 29, kpi: 20 },
-  { min: 30, max: Infinity, kpi: 25 },
-];
+/** Admin-editable Call-centre ladder: sales count -> base salary + KPI %. */
+function CcTierEditor() {
+  const { lang } = useT();
+  const isAdmin = useIsAdmin();
+  const qc = useQueryClient();
+  const { data: tiers } = useCcTiers();
+  const [draft, setDraft] = useState<Record<string, { min: string; max: string; base: string; kpi: string }>>({});
 
-export function callCentreBaseFor(count: number) {
-  if (count <= 0) return 0;
-  return (BASE_TIERS.find((t) => count >= t.min && count <= t.max) ?? BASE_TIERS[0]).base;
+  const fmt = (n: number) => n.toLocaleString(localeOf(lang));
+  const val = (t: CcTier, k: "min" | "max" | "base" | "kpi") =>
+    draft[t.id]?.[k] ??
+    (k === "min" ? String(t.min_count)
+      : k === "max" ? (t.max_count === null ? "" : String(t.max_count))
+      : k === "base" ? String(t.base_uzs)
+      : String(t.kpi_pct));
+
+  const setVal = (t: CcTier, k: "min" | "max" | "base" | "kpi", v: string) =>
+    setDraft((d) => ({
+      ...d,
+      [t.id]: {
+        min: val(t, "min"), max: val(t, "max"), base: val(t, "base"), kpi: val(t, "kpi"),
+        [k]: v,
+      },
+    }));
+
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: CC_TIERS_KEY });
+    qc.invalidateQueries({ queryKey: ["kpi-cc-contracts"] });
+  };
+
+  const saveMut = useMutation({
+    mutationFn: async (t: CcTier) => {
+      const maxRaw = val(t, "max").trim();
+      const { error } = await (supabase as any)
+        .from("call_centre_tiers")
+        .update({
+          min_count: Number(val(t, "min")) || 0,
+          max_count: maxRaw === "" ? null : Number(maxRaw),
+          base_uzs: Number(val(t, "base")) || 0,
+          kpi_pct: Number(val(t, "kpi")) || 0,
+        })
+        .eq("id", t.id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, t) => {
+      setDraft((d) => { const n = { ...d }; delete n[t.id]; return n; });
+      invalidate();
+      toast.success("Saqlandi");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
+  });
+
+  const addMut = useMutation({
+    mutationFn: async () => {
+      const last = (tiers ?? [])[(tiers ?? []).length - 1];
+      const { error } = await (supabase as any)
+        .from("call_centre_tiers")
+        .insert({ min_count: last ? last.min_count + 5 : 1, max_count: null, base_uzs: 0, kpi_pct: 0 });
+      if (error) throw error;
+    },
+    onSuccess: () => { invalidate(); toast.success("Bosqich qo'shildi"); },
+    onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
+  });
+
+  const delMut = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("call_centre_tiers").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { invalidate(); toast.success("O'chirildi"); },
+    onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
+  });
+
+  return (
+    <Card>
+      <CardHeader className="pb-3 flex flex-row items-center justify-between gap-2">
+        <CardTitle className="text-base">Oylik jadvali (sotuv soni bo'yicha)</CardTitle>
+        {isAdmin && (
+          <Button size="sm" variant="outline" onClick={() => addMut.mutate()} disabled={addMut.isPending}>
+            Bosqich qo'shish
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Sotuv soni (dan)</TableHead>
+                <TableHead>Sotuv soni (gacha)</TableHead>
+                <TableHead>Asosiy oylik</TableHead>
+                <TableHead>KPI %</TableHead>
+                {isAdmin && <TableHead className="text-right">Amal</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {(tiers ?? []).length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={isAdmin ? 5 : 4} className="text-center text-muted-foreground py-6">
+                    Jadval bo'sh
+                  </TableCell>
+                </TableRow>
+              ) : (tiers ?? []).map((t) => {
+                const dirty = !!draft[t.id];
+                return (
+                  <TableRow key={t.id}>
+                    {isAdmin ? (
+                      <>
+                        <TableCell><Input className="w-24" value={val(t, "min")} onChange={(e) => setVal(t, "min", e.target.value)} /></TableCell>
+                        <TableCell><Input className="w-24" placeholder="∞" value={val(t, "max")} onChange={(e) => setVal(t, "max", e.target.value)} /></TableCell>
+                        <TableCell><Input className="w-36" value={val(t, "base")} onChange={(e) => setVal(t, "base", e.target.value)} /></TableCell>
+                        <TableCell><Input className="w-20" value={val(t, "kpi")} onChange={(e) => setVal(t, "kpi", e.target.value)} /></TableCell>
+                        <TableCell className="text-right whitespace-nowrap">
+                          <Button size="sm" variant={dirty ? "default" : "ghost"} disabled={!dirty || saveMut.isPending} onClick={() => saveMut.mutate(t)}>
+                            Saqlash
+                          </Button>
+                          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => delMut.mutate(t.id)}>
+                            O'chirish
+                          </Button>
+                        </TableCell>
+                      </>
+                    ) : (
+                      <>
+                        <TableCell>{t.min_count}</TableCell>
+                        <TableCell>{t.max_count === null ? "∞" : t.max_count}</TableCell>
+                        <TableCell>{fmt(t.base_uzs)} so'm</TableCell>
+                        <TableCell>{t.kpi_pct}%</TableCell>
+                      </>
+                    )}
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
-export function callCentreKpiPctFor(count: number) {
-  return (KPI_PCT_TIERS.find((t) => count >= t.min && count <= t.max)?.kpi) ?? 0;
-}
-const baseFor = callCentreBaseFor;
-const kpiPctFor = callCentreKpiPctFor;
+
+
 
 /** Trim + collapse inner whitespace so "Ali  Vali " and "Ali Vali" group together. */
 /** Special row in sales_kpi_rates holding the fallback rate for a role. */
@@ -143,6 +259,9 @@ function CallCentreKpi() {
   const [year, setYear] = useState<string>(String(now.getFullYear()));
   const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
   const [employee, setEmployee] = useState<string>("__all__");
+  const { data: tiers } = useCcTiers();
+
+
 
   const { data: contracts } = useQuery({
     queryKey: ["kpi-cc-contracts", year, month],
@@ -200,13 +319,13 @@ function CallCentreKpi() {
 
     return Array.from(counts.values())
       .map(({ label, count }) => {
-        const base = baseFor(count);
-        const kpi = kpiPctFor(count);
+        const base = ccBaseFor(tiers, count);
+        const kpi = ccKpiPctFor(tiers, count);
         const bonus = Math.round((base * kpi) / 100);
         return { name: label, count, base, kpi, bonus, total: base + bonus };
       })
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-  }, [contracts, operators]);
+  }, [contracts, operators, tiers]);
 
   const rows = useMemo(
     () => (employee === "__all__" ? allRows : allRows.filter((r) => r.name === employee)),
@@ -222,53 +341,8 @@ function CallCentreKpi() {
       <PeriodPicker year={year} month={month} setYear={setYear} setMonth={setMonth} />
       <EmployeeFilter value={employee} onChange={setEmployee} names={names} />
 
-      <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base">Asosiy oylik (sotuv soni bo'yicha)</CardTitle></CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Sotuv soni</TableHead>
-                  <TableHead>Asosiy oylik</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {BASE_TIERS.map((t) => (
-                  <TableRow key={t.min}>
-                    <TableCell>{t.max === Infinity ? `${t.min}+` : `${t.min}–${t.max}`}</TableCell>
-                    <TableCell>{fmt(t.base)} so'm</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      <CcTierEditor />
 
-      <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base">KPI % (sotuv soni bo'yicha)</CardTitle></CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Sotuv soni</TableHead>
-                  <TableHead>KPI %</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {KPI_PCT_TIERS.map((t) => (
-                  <TableRow key={t.min}>
-                    <TableCell>{t.max === Infinity ? `${t.min}+` : `${t.min}–${t.max}`}</TableCell>
-                    <TableCell>{t.kpi}%</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
 
 
       <Card>
