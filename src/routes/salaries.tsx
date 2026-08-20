@@ -724,10 +724,12 @@ function SalaryFormDialog({
       ).length;
       let ccFixed = 0, ccBonus = 0;
       if (ccCount > 0) {
-        ccFixed = (CC_BASE.find((t) => ccCount >= t.min && ccCount <= t.max) ?? CC_BASE[0]).base;
-        const pct = (CC_KPI.find((t) => ccCount >= t.min && ccCount <= t.max)?.kpi) ?? 0;
+        const ccTiers = await fetchCcTiers().catch(() => []);
+        ccFixed = ccBaseFor(ccTiers, ccCount);
+        const pct = ccKpiPctFor(ccTiers, ccCount);
         ccBonus = Math.round((ccFixed * pct) / 100);
       }
+
 
       // Sales approved bonus (adds to bonus)
       const salesBonus = (salesApprovedRes.data ?? []).reduce(
