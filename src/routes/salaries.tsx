@@ -619,23 +619,8 @@ function SalaryFormDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, editing]);
 
-  // Call-centre tiers (mirror src/routes/kpi.tsx)
-  const CC_BASE = [
-    { min: 1, max: 4, base: 1_000_000 },
-    { min: 5, max: 9, base: 1_500_000 },
-    { min: 10, max: 14, base: 2_000_000 },
-    { min: 15, max: 19, base: 2_500_000 },
-    { min: 20, max: 24, base: 3_000_000 },
-    { min: 25, max: 29, base: 3_500_000 },
-    { min: 30, max: Infinity, base: 4_000_000 },
-  ];
-  const CC_KPI = [
-    { min: 10, max: 14, kpi: 5 },
-    { min: 15, max: 19, kpi: 10 },
-    { min: 20, max: 24, kpi: 15 },
-    { min: 25, max: 29, kpi: 20 },
-    { min: 30, max: Infinity, kpi: 25 },
-  ];
+  // Call-centre tiers are stored in the DB (call_centre_tiers), editable on the KPI page.
+
 
   // Auto-fetch advances, fines, and call-centre / sales bonuses for this employee/month
   useEffect(() => {
