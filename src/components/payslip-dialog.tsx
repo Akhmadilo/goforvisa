@@ -82,10 +82,12 @@ async function fetchDetail(target: PayslipTarget): Promise<Detail> {
   ).length;
   let ccBase = 0, ccPct = 0, ccBonus = 0;
   if (ccCount > 0) {
-    ccBase = (CC_BASE.find((t) => ccCount >= t.min && ccCount <= t.max) ?? CC_BASE[0]).base;
-    ccPct = CC_KPI.find((t) => ccCount >= t.min && ccCount <= t.max)?.kpi ?? 0;
+    const tiers = await fetchCcTiers().catch(() => []);
+    ccBase = ccBaseFor(tiers, ccCount);
+    ccPct = ccKpiPctFor(tiers, ccCount);
     ccBonus = Math.round((ccBase * ccPct) / 100);
   }
+
 
   return {
     fines: (finesRes.data ?? []).map((f: any) => ({
