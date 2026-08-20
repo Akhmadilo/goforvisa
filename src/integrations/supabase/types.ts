@@ -165,6 +165,47 @@ export type Database = {
           },
         ]
       }
+      call_centre_tiers: {
+        Row: {
+          base_uzs: number
+          created_at: string
+          id: string
+          kpi_pct: number
+          max_count: number | null
+          min_count: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          base_uzs?: number
+          created_at?: string
+          id?: string
+          kpi_pct?: number
+          max_count?: number | null
+          min_count: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          base_uzs?: number
+          created_at?: string
+          id?: string
+          kpi_pct?: number
+          max_count?: number | null
+          min_count?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_centre_tiers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       companies: {
         Row: {
           created_at: string
