@@ -173,13 +173,13 @@ function CallCentreKpi() {
 
     return Array.from(counts.values())
       .map(({ label, count }) => {
-        const base = baseFor(count);
-        const kpi = kpiPctFor(count);
+        const base = ccBaseFor(tiers, count);
+        const kpi = ccKpiPctFor(tiers, count);
         const bonus = Math.round((base * kpi) / 100);
         return { name: label, count, base, kpi, bonus, total: base + bonus };
       })
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-  }, [contracts, operators]);
+  }, [contracts, operators, tiers]);
 
   const rows = useMemo(
     () => (employee === "__all__" ? allRows : allRows.filter((r) => r.name === employee)),
@@ -195,53 +195,8 @@ function CallCentreKpi() {
       <PeriodPicker year={year} month={month} setYear={setYear} setMonth={setMonth} />
       <EmployeeFilter value={employee} onChange={setEmployee} names={names} />
 
-      <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base">Asosiy oylik (sotuv soni bo'yicha)</CardTitle></CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Sotuv soni</TableHead>
-                  <TableHead>Asosiy oylik</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {BASE_TIERS.map((t) => (
-                  <TableRow key={t.min}>
-                    <TableCell>{t.max === Infinity ? `${t.min}+` : `${t.min}–${t.max}`}</TableCell>
-                    <TableCell>{fmt(t.base)} so'm</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      <CcTierEditor />
 
-      <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base">KPI % (sotuv soni bo'yicha)</CardTitle></CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Sotuv soni</TableHead>
-                  <TableHead>KPI %</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {KPI_PCT_TIERS.map((t) => (
-                  <TableRow key={t.min}>
-                    <TableCell>{t.max === Infinity ? `${t.min}+` : `${t.min}–${t.max}`}</TableCell>
-                    <TableCell>{t.kpi}%</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
 
 
       <Card>
