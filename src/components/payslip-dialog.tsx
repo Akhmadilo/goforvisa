@@ -24,23 +24,9 @@ export interface PayslipTarget {
   note: string | null;
 }
 
-// Call-centre bosqichlari (kpi.tsx bilan bir xil)
-const CC_BASE = [
-  { min: 1, max: 4, base: 1_000_000 },
-  { min: 5, max: 9, base: 1_500_000 },
-  { min: 10, max: 14, base: 2_000_000 },
-  { min: 15, max: 19, base: 2_500_000 },
-  { min: 20, max: 24, base: 3_000_000 },
-  { min: 25, max: 29, base: 3_500_000 },
-  { min: 30, max: Infinity, base: 4_000_000 },
-];
-const CC_KPI = [
-  { min: 10, max: 14, kpi: 5 },
-  { min: 15, max: 19, kpi: 10 },
-  { min: 20, max: 24, kpi: 15 },
-  { min: 25, max: 29, kpi: 20 },
-  { min: 30, max: Infinity, kpi: 25 },
-];
+// Call-centre bosqichlari DB'dan olinadi (call_centre_tiers) — KPI bo'limida tahrirlanadi.
+import { fetchCcTiers, ccBaseFor, ccKpiPctFor } from "@/lib/cc-tiers";
+
 
 interface Detail {
   fines: { date: string; amount: number; reason: string; note: string | null; minutes: number }[];
