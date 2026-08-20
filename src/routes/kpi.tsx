@@ -70,9 +70,10 @@ function CcTierEditor() {
       ...d,
       [t.id]: {
         min: val(t, "min"), max: val(t, "max"), base: val(t, "base"), kpi: val(t, "kpi"),
-        ...d[t.id], [k]: v,
+        [k]: v,
       },
     }));
+
 
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: CC_TIERS_KEY });
