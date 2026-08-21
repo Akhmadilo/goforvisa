@@ -55,6 +55,7 @@ function CcTierEditor() {
   const isAdmin = useIsAdmin();
   const qc = useQueryClient();
   const { data: tiers } = useCcTiers();
+  const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Record<string, { min: string; max: string; base: string; kpi: string }>>({});
 
   const fmt = (n: number) => n.toLocaleString(localeOf(lang));
