@@ -25,6 +25,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
 import { Route as ApiPublicHooksWorkReportReminderRouteImport } from './routes/api/public/hooks/work-report-reminder'
+import { Route as ApiPublicHooksDailyCashReportRouteImport } from './routes/api/public/hooks/daily-cash-report'
 
 const XarajatlarRoute = XarajatlarRouteImport.update({
   id: '/xarajatlar',
@@ -108,6 +109,12 @@ const ApiPublicHooksWorkReportReminderRoute =
     path: '/api/public/hooks/work-report-reminder',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksDailyCashReportRoute =
+  ApiPublicHooksDailyCashReportRouteImport.update({
+    id: '/api/public/hooks/daily-cash-report',
+    path: '/api/public/hooks/daily-cash-report',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -124,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/shartnomalar': typeof ShartnomalarRoute
   '/trust': typeof TrustRoute
   '/xarajatlar': typeof XarajatlarRoute
+  '/api/public/hooks/daily-cash-report': typeof ApiPublicHooksDailyCashReportRoute
   '/api/public/hooks/work-report-reminder': typeof ApiPublicHooksWorkReportReminderRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -142,6 +150,7 @@ export interface FileRoutesByTo {
   '/shartnomalar': typeof ShartnomalarRoute
   '/trust': typeof TrustRoute
   '/xarajatlar': typeof XarajatlarRoute
+  '/api/public/hooks/daily-cash-report': typeof ApiPublicHooksDailyCashReportRoute
   '/api/public/hooks/work-report-reminder': typeof ApiPublicHooksWorkReportReminderRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -161,6 +170,7 @@ export interface FileRoutesById {
   '/shartnomalar': typeof ShartnomalarRoute
   '/trust': typeof TrustRoute
   '/xarajatlar': typeof XarajatlarRoute
+  '/api/public/hooks/daily-cash-report': typeof ApiPublicHooksDailyCashReportRoute
   '/api/public/hooks/work-report-reminder': typeof ApiPublicHooksWorkReportReminderRoute
   '/api/public/telegram/webhook': typeof ApiPublicTelegramWebhookRoute
 }
@@ -181,6 +191,7 @@ export interface FileRouteTypes {
     | '/shartnomalar'
     | '/trust'
     | '/xarajatlar'
+    | '/api/public/hooks/daily-cash-report'
     | '/api/public/hooks/work-report-reminder'
     | '/api/public/telegram/webhook'
   fileRoutesByTo: FileRoutesByTo
@@ -199,6 +210,7 @@ export interface FileRouteTypes {
     | '/shartnomalar'
     | '/trust'
     | '/xarajatlar'
+    | '/api/public/hooks/daily-cash-report'
     | '/api/public/hooks/work-report-reminder'
     | '/api/public/telegram/webhook'
   id:
@@ -217,6 +229,7 @@ export interface FileRouteTypes {
     | '/shartnomalar'
     | '/trust'
     | '/xarajatlar'
+    | '/api/public/hooks/daily-cash-report'
     | '/api/public/hooks/work-report-reminder'
     | '/api/public/telegram/webhook'
   fileRoutesById: FileRoutesById
@@ -236,6 +249,7 @@ export interface RootRouteChildren {
   ShartnomalarRoute: typeof ShartnomalarRoute
   TrustRoute: typeof TrustRoute
   XarajatlarRoute: typeof XarajatlarRoute
+  ApiPublicHooksDailyCashReportRoute: typeof ApiPublicHooksDailyCashReportRoute
   ApiPublicHooksWorkReportReminderRoute: typeof ApiPublicHooksWorkReportReminderRoute
   ApiPublicTelegramWebhookRoute: typeof ApiPublicTelegramWebhookRoute
 }
@@ -354,6 +368,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksWorkReportReminderRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/daily-cash-report': {
+      id: '/api/public/hooks/daily-cash-report'
+      path: '/api/public/hooks/daily-cash-report'
+      fullPath: '/api/public/hooks/daily-cash-report'
+      preLoaderRoute: typeof ApiPublicHooksDailyCashReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -372,6 +393,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShartnomalarRoute: ShartnomalarRoute,
   TrustRoute: TrustRoute,
   XarajatlarRoute: XarajatlarRoute,
+  ApiPublicHooksDailyCashReportRoute: ApiPublicHooksDailyCashReportRoute,
   ApiPublicHooksWorkReportReminderRoute: ApiPublicHooksWorkReportReminderRoute,
   ApiPublicTelegramWebhookRoute: ApiPublicTelegramWebhookRoute,
 }
