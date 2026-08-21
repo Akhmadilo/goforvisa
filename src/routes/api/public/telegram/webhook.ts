@@ -792,6 +792,13 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
             const tgId = from.id as number;
             const text = (msg.text || "").trim();
 
+            const chatType = msg.chat?.type;
+            if (chatType === "group" || chatType === "supergroup") {
+              await handleGroupMessage(chatId, tgId, text, msg.chat.title);
+              return new Response("ok");
+            }
+
+
             // ensure tg user exists
             await sb().from("employee_telegram").upsert({
               telegram_id: tgId,
