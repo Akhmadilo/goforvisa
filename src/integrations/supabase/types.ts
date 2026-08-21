@@ -419,6 +419,68 @@ export type Database = {
           },
         ]
       }
+      daily_cash_reports: {
+        Row: {
+          chat_id: number
+          created_at: string
+          date: string
+          decided_at: string | null
+          decided_by_name: string | null
+          decided_by_tg: number | null
+          details: Json
+          id: string
+          message_id: number | null
+          payments_count: number
+          status: string
+          tenant_id: string
+          total_usd: number
+          total_uzs: number
+          updated_at: string
+        }
+        Insert: {
+          chat_id: number
+          created_at?: string
+          date: string
+          decided_at?: string | null
+          decided_by_name?: string | null
+          decided_by_tg?: number | null
+          details?: Json
+          id?: string
+          message_id?: number | null
+          payments_count?: number
+          status?: string
+          tenant_id?: string
+          total_usd?: number
+          total_uzs?: number
+          updated_at?: string
+        }
+        Update: {
+          chat_id?: number
+          created_at?: string
+          date?: string
+          decided_at?: string | null
+          decided_by_name?: string | null
+          decided_by_tg?: number | null
+          details?: Json
+          id?: string
+          message_id?: number | null
+          payments_count?: number
+          status?: string
+          tenant_id?: string
+          total_usd?: number
+          total_uzs?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_cash_reports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_base_salaries: {
         Row: {
           amount_uzs: number
@@ -1451,6 +1513,44 @@ export type Database = {
             foreignKeyName: "subscriptions_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      telegram_groups: {
+        Row: {
+          chat_id: number
+          created_at: string
+          is_active: boolean
+          kind: string
+          tenant_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          chat_id: number
+          created_at?: string
+          is_active?: boolean
+          kind?: string
+          tenant_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          chat_id?: number
+          created_at?: string
+          is_active?: boolean
+          kind?: string
+          tenant_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "telegram_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
