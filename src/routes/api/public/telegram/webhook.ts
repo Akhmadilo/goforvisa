@@ -1129,7 +1129,9 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
 
             await tg("answerCallbackQuery", { callback_query_id: cq.id });
 
-            if (data === "face_no") {
+            if (data.startsWith("cash_ok_") || data.startsWith("cash_no_")) {
+              await handleCashDecision(cq, data.startsWith("cash_ok_"), data.slice(8));
+            } else if (data === "face_no") {
               await tg("sendMessage", {
                 chat_id: chatId,
                 text: "❗️ Iltimos avval FACE ID dan o'ting. So'ng qaytib '🟢 Keldim' ni bosing.",
