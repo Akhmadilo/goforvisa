@@ -55,6 +55,7 @@ function CcTierEditor() {
   const isAdmin = useIsAdmin();
   const qc = useQueryClient();
   const { data: tiers } = useCcTiers();
+  const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Record<string, { min: string; max: string; base: string; kpi: string }>>({});
 
   const fmt = (n: number) => n.toLocaleString(localeOf(lang));
@@ -125,58 +126,68 @@ function CcTierEditor() {
 
   return (
     <Card>
-      <CardHeader className="pb-3 flex flex-row items-center justify-between gap-2">
-        <CardTitle className="text-base">Oylik jadvali (sotuv soni bo'yicha)</CardTitle>
+      <CardHeader className="py-2 px-4 flex flex-row items-center justify-between gap-2">
+        <CardTitle className="text-sm">Oylik jadvali (sotuv soni bo'yicha)</CardTitle>
         {isAdmin && (
-          <Button size="sm" variant="outline" onClick={() => addMut.mutate()} disabled={addMut.isPending}>
-            Bosqich qo'shish
-          </Button>
+          <div className="flex items-center gap-1">
+            {editing && (
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => addMut.mutate()} disabled={addMut.isPending}>
+                + Bosqich
+              </Button>
+            )}
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditing((v) => !v)}>
+              {editing ? "Yopish" : "Tahrirlash"}
+            </Button>
+          </div>
         )}
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Sotuv soni (dan)</TableHead>
-                <TableHead>Sotuv soni (gacha)</TableHead>
-                <TableHead>Asosiy oylik</TableHead>
-                <TableHead>KPI %</TableHead>
-                {isAdmin && <TableHead className="text-right">Amal</TableHead>}
+              <TableRow className="h-8">
+                <TableHead className="h-8 py-1 text-xs">Sotuv soni</TableHead>
+                <TableHead className="h-8 py-1 text-xs">Asosiy oylik</TableHead>
+                <TableHead className="h-8 py-1 text-xs">KPI %</TableHead>
+                {isAdmin && editing && <TableHead className="h-8 py-1 text-xs text-right">Amal</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {(tiers ?? []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={isAdmin ? 5 : 4} className="text-center text-muted-foreground py-6">
+                  <TableCell colSpan={isAdmin && editing ? 4 : 3} className="text-center text-muted-foreground py-4 text-xs">
                     Jadval bo'sh
                   </TableCell>
                 </TableRow>
               ) : (tiers ?? []).map((t) => {
                 const dirty = !!draft[t.id];
                 return (
-                  <TableRow key={t.id}>
-                    {isAdmin ? (
+                  <TableRow key={t.id} className="h-8">
+                    {isAdmin && editing ? (
                       <>
-                        <TableCell><Input className="w-24" value={val(t, "min")} onChange={(e) => setVal(t, "min", e.target.value)} /></TableCell>
-                        <TableCell><Input className="w-24" placeholder="∞" value={val(t, "max")} onChange={(e) => setVal(t, "max", e.target.value)} /></TableCell>
-                        <TableCell><Input className="w-36" value={val(t, "base")} onChange={(e) => setVal(t, "base", e.target.value)} /></TableCell>
-                        <TableCell><Input className="w-20" value={val(t, "kpi")} onChange={(e) => setVal(t, "kpi", e.target.value)} /></TableCell>
-                        <TableCell className="text-right whitespace-nowrap">
-                          <Button size="sm" variant={dirty ? "default" : "ghost"} disabled={!dirty || saveMut.isPending} onClick={() => saveMut.mutate(t)}>
+                        <TableCell className="py-1">
+                          <div className="flex items-center gap-1">
+                            <Input className="h-7 w-14 text-xs" value={val(t, "min")} onChange={(e) => setVal(t, "min", e.target.value)} />
+                            <span className="text-muted-foreground text-xs">–</span>
+                            <Input className="h-7 w-14 text-xs" placeholder="∞" value={val(t, "max")} onChange={(e) => setVal(t, "max", e.target.value)} />
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-1"><Input className="h-7 w-28 text-xs" value={val(t, "base")} onChange={(e) => setVal(t, "base", e.target.value)} /></TableCell>
+                        <TableCell className="py-1"><Input className="h-7 w-14 text-xs" value={val(t, "kpi")} onChange={(e) => setVal(t, "kpi", e.target.value)} /></TableCell>
+                        <TableCell className="py-1 text-right whitespace-nowrap">
+                          <Button size="sm" variant={dirty ? "default" : "ghost"} className="h-7 text-xs" disabled={!dirty || saveMut.isPending} onClick={() => saveMut.mutate(t)}>
                             Saqlash
                           </Button>
-                          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => delMut.mutate(t.id)}>
+                          <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => delMut.mutate(t.id)}>
                             O'chirish
                           </Button>
                         </TableCell>
                       </>
                     ) : (
                       <>
-                        <TableCell>{t.min_count}</TableCell>
-                        <TableCell>{t.max_count === null ? "∞" : t.max_count}</TableCell>
-                        <TableCell>{fmt(t.base_uzs)} so'm</TableCell>
-                        <TableCell>{t.kpi_pct}%</TableCell>
+                        <TableCell className="py-1 text-xs">{t.min_count}{t.max_count === null ? "+" : `–${t.max_count}`}</TableCell>
+                        <TableCell className="py-1 text-xs">{fmt(t.base_uzs)} so'm</TableCell>
+                        <TableCell className="py-1 text-xs">{t.kpi_pct}%</TableCell>
                       </>
                     )}
                   </TableRow>
@@ -188,6 +199,7 @@ function CcTierEditor() {
       </CardContent>
     </Card>
   );
+
 }
 
 
