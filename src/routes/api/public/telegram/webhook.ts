@@ -671,6 +671,103 @@ async function handleCheckIn(chatId: number, telegramId: number) {
   await tg("sendMessage", { chat_id: chatId, text: msg, reply_markup: MAIN_KB });
 }
 
+// ===== Group (kunlik kassa hisoboti) =====
+async function isCashAdmin(tgId: number): Promise<boolean> {
+  const { data } = await sb()
+    .from("employee_telegram").select("bot_role").eq("telegram_id", tgId).maybeSingle();
+  return !!data && (CONTRACTS_ROLES as readonly string[]).includes(data.bot_role || "");
+}
+
+async function handleGroupMessage(chatId: number, tgId: number, text: string, title?: string) {
+  const cmd = text.split("@")[0].trim().toLowerCase();
+  if (!["/kassa_on", "/kassa_off", "/kassa_status", "/start"].includes(cmd)) return;
+
+  if (cmd === "/start") {
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text:
+        "👋 Kunlik kassa hisoboti boti.\n\n" +
+        "/kassa_on — shu guruhga har kuni 21:00 da hisobot yuborilsin\n" +
+        "/kassa_off — o'chirish\n" +
+        "/kassa_status — holat",
+    });
+    return;
+  }
+
+  if (!(await isCashAdmin(tgId))) {
+    await tg("sendMessage", { chat_id: chatId, text: "❌ Bu buyruq faqat rahbariyat uchun." });
+    return;
+  }
+
+  if (cmd === "/kassa_on") {
+    await sb().from("telegram_groups").upsert(
+      { chat_id: chatId, title: title || null, kind: "daily_cash", is_active: true },
+      { onConflict: "chat_id" },
+    );
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: "✅ Guruh ulandi. Har kuni soat 21:00 da kunlik tushgan pullar hisoboti shu yerga keladi.",
+    });
+  } else if (cmd === "/kassa_off") {
+    await sb().from("telegram_groups").update({ is_active: false }).eq("chat_id", chatId);
+    await tg("sendMessage", { chat_id: chatId, text: "🛑 Kunlik hisobot o'chirildi." });
+  } else {
+    const { data } = await sb()
+      .from("telegram_groups").select("is_active").eq("chat_id", chatId).maybeSingle();
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: data?.is_active ? "✅ Yoqilgan (21:00)" : "🛑 O'chirilgan. /kassa_on ni bosing.",
+    });
+  }
+}
+
+async function handleCashDecision(cq: any, ok: boolean, reportId: string) {
+  const chatId = cq.message.chat.id;
+  const tgId = cq.from.id as number;
+  if (!(await isCashAdmin(tgId))) {
+    await tg("answerCallbackQuery", {
+      callback_query_id: cq.id,
+      text: "❌ Faqat rahbariyat tasdiqlay oladi.",
+      show_alert: true,
+    });
+    return;
+  }
+  const { data: rep } = await sb()
+    .from("daily_cash_reports").select("id, status").eq("id", reportId).maybeSingle();
+  if (!rep) {
+    await tg("answerCallbackQuery", { callback_query_id: cq.id, text: "Hisobot topilmadi", show_alert: true });
+    return;
+  }
+  if (rep.status !== "pending") {
+    await tg("answerCallbackQuery", { callback_query_id: cq.id, text: "Allaqachon belgilangan", show_alert: true });
+    return;
+  }
+  const name = [cq.from.first_name, cq.from.last_name].filter(Boolean).join(" ") ||
+    (cq.from.username ? "@" + cq.from.username : String(tgId));
+  await sb().from("daily_cash_reports").update({
+    status: ok ? "confirmed" : "rejected",
+    decided_by_tg: tgId,
+    decided_by_name: name,
+    decided_at: new Date().toISOString(),
+  }).eq("id", reportId);
+
+  const stamp = nowInTashkent().toISOString().slice(11, 16);
+  const suffix = ok
+    ? `\n\n✅ <b>Qabul qilindi</b> — ${name} (${stamp})`
+    : `\n\n❌ <b>Noto'g'ri deb belgilandi</b> — ${name} (${stamp})\nIltimos, moliya bo'limi tekshirsin.`;
+  const base = (cq.message.text || "").replace(/\n\nIltimos, tasdiqlang 👇$/, "");
+  await tg("editMessageText", {
+    chat_id: chatId,
+    message_id: cq.message.message_id,
+    text: base + suffix,
+    parse_mode: "HTML",
+  });
+  await tg("answerCallbackQuery", {
+    callback_query_id: cq.id,
+    text: ok ? "✅ Tasdiqlandi" : "❌ Belgilandi",
+  });
+}
+
 export const Route = createFileRoute("/api/public/telegram/webhook")({
   server: {
     handlers: {
