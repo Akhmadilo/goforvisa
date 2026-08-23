@@ -1356,7 +1356,7 @@ function PaymentsDialog({
     }
     toast.success(t("contracts.toast.paymentAdded"));
     setAmount(0);
-    setMethod("");
+    setMethod("cash");
     setNote("");
     refetch();
     qc.invalidateQueries({ queryKey: ["contract-payments"] });
