@@ -678,9 +678,108 @@ async function isCashAdmin(tgId: number): Promise<boolean> {
   return !!data && (CONTRACTS_ROLES as readonly string[]).includes(data.bot_role || "");
 }
 
+const CASH_METHOD_LABEL: Record<string, string> = {
+  cash: "💵 Naqd", naqd: "💵 Naqd", card: "💳 Karta", plastik: "💳 Karta",
+  bank: "🏦 Bank", transfer: "🏦 O'tkazma",
+};
+function cashMethodLabel(m: string | null): string {
+  if (!m) return "❔ Noma'lum";
+  return CASH_METHOD_LABEL[m.toLowerCase().trim()] || m;
+}
+
+function shiftDate(base: string, days: number): string {
+  const d = new Date(base + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+async function buildCashText(tenantId: string, date: string): Promise<string> {
+  const { data: pays } = await sb()
+    .from("contract_payments")
+    .select("amount, currency, method, contract_id, created_at")
+    .eq("tenant_id", tenantId)
+    .eq("paid_at", date)
+    .order("created_at", { ascending: true });
+
+  const rows = (pays || []) as any[];
+  const ids = Array.from(new Set(rows.map((p) => p.contract_id)));
+  const names: Record<string, string> = {};
+  if (ids.length) {
+    const { data: ctrs } = await sb()
+      .from("contracts").select("id, client_name, contract_no").in("id", ids);
+    for (const c of (ctrs || []) as any[]) {
+      names[c.id] = c.client_name + (c.contract_no ? ` (№${c.contract_no})` : "");
+    }
+  }
+
+  let totalUzs = 0, totalUsd = 0;
+  const lines: string[] = [];
+  rows.forEach((p, i) => {
+    const cur = (p.currency || "UZS").toUpperCase();
+    const amt = Number(p.amount) || 0;
+    if (cur === "USD") totalUsd += amt; else totalUzs += amt;
+    const client = names[p.contract_id] || "Noma'lum mijoz";
+    const sum = cur === "USD" ? `$${fmt(amt)}` : `${fmt(amt)} so'm`;
+    lines.push(`${i + 1}. ${client}\n    ${sum} — ${cashMethodLabel(p.method)}`);
+  });
+
+  const header = `📊 <b>Kunlik kassa hisoboti</b>\n🗓 ${date}\n\n`;
+  if (rows.length === 0) return header + "Bu kuni to'lov qabul qilinmagan.";
+  return (
+    header + lines.join("\n") +
+    `\n\n<b>Jami:</b> ${totalUzs > 0 ? fmt(totalUzs) + " so'm" : ""}` +
+    `${totalUzs > 0 && totalUsd > 0 ? " + " : ""}` +
+    `${totalUsd > 0 ? "$" + fmt(totalUsd) : ""}` +
+    `${totalUzs === 0 && totalUsd === 0 ? "0" : ""}` +
+    `\n<b>To'lovlar soni:</b> ${rows.length}`
+  );
+}
+
+async function cashTenantFor(chatId: number, tgId: number): Promise<string | null> {
+  const { data: g } = await sb()
+    .from("telegram_groups").select("tenant_id").eq("chat_id", chatId).maybeSingle();
+  if (g?.tenant_id) return g.tenant_id;
+  const { data: e } = await sb()
+    .from("employee_telegram").select("tenant_id").eq("telegram_id", tgId).maybeSingle();
+  return e?.tenant_id ?? null;
+}
+
+function cashDaysKeyboard() {
+  const today = todayDate();
+  const rows: any[][] = [];
+  for (let i = 0; i < 7; i++) {
+    const d = shiftDate(today, -i);
+    const label = i === 0 ? `Bugun (${d.slice(5)})` : i === 1 ? `Kecha (${d.slice(5)})` : d;
+    if (i % 2 === 0) rows.push([]);
+    rows[rows.length - 1].push({ text: label, callback_data: `cash_day_${d}` });
+  }
+  return { inline_keyboard: rows };
+}
+
+export async function handleCashDay(cq: any, date: string) {
+  const chatId = cq.message.chat.id;
+  const tgId = cq.from.id as number;
+  if (!(await isCashAdmin(tgId))) {
+    await tg("answerCallbackQuery", {
+      callback_query_id: cq.id, text: "❌ Faqat rahbariyat ko'ra oladi.", show_alert: true,
+    });
+    return;
+  }
+  const tenantId = await cashTenantFor(chatId, tgId);
+  if (!tenantId) {
+    await tg("sendMessage", { chat_id: chatId, text: "❌ Kompaniya aniqlanmadi. /kassa_on ni bosing." });
+    return;
+  }
+  const text = await buildCashText(tenantId, date);
+  await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML" });
+}
+
 async function handleGroupMessage(chatId: number, tgId: number, text: string, title?: string) {
-  const cmd = text.split("@")[0].trim().toLowerCase();
-  if (!["/kassa_on", "/kassa_off", "/kassa_status", "/start"].includes(cmd)) return;
+  const raw = text.split("@")[0].trim();
+  const cmd = raw.toLowerCase();
+  const kassaDate = /^\/kassa\s+(\d{4}-\d{2}-\d{2})$/.exec(raw);
+  if (!["/kassa_on", "/kassa_off", "/kassa_status", "/kassa", "/start"].includes(cmd) && !kassaDate) return;
+
 
   if (cmd === "/start") {
     await tg("sendMessage", {
