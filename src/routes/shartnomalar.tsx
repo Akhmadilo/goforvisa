@@ -89,6 +89,22 @@ type PaymentRow = {
   created_by: string | null;
 };
 
+const PAY_METHODS = [
+  { value: "cash", label: "💵 Naqd" },
+  { value: "card", label: "💳 Karta" },
+  { value: "bank", label: "🏦 Bank" },
+] as const;
+
+function payMethodLabel(m: string | null): string {
+  if (!m) return "—";
+  const key = m.toLowerCase().trim();
+  const alias: Record<string, string> = { naqd: "cash", plastik: "card", transfer: "bank" };
+  const found = PAY_METHODS.find((p) => p.value === (alias[key] ?? key));
+  return found ? found.label : m;
+}
+
+
+
 type FormState = {
   client_name: string;
   contract_no: string;
@@ -1291,7 +1307,8 @@ function PaymentsDialog({
   const [amount, setAmount] = useState<number>(0);
   const currency = "USD";
   const [paidAt, setPaidAt] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [method, setMethod] = useState<string>("");
+  const [method, setMethod] = useState<string>("cash");
+
   const [note, setNote] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
@@ -1299,7 +1316,8 @@ function PaymentsDialog({
     if (open) {
       setAmount(0);
       setPaidAt(new Date().toISOString().slice(0, 10));
-      setMethod("");
+      setMethod("cash");
+
       setNote("");
     }
   }, [open, contract?.id]);
@@ -1324,10 +1342,15 @@ function PaymentsDialog({
       toast.error(t("contracts.toast.amount"));
       return;
     }
+    if (!method) {
+      toast.error("To'lov usulini tanlang");
+      return;
+    }
     if (isFullyPaid) {
       toast.error(t("contracts.toast.alreadyPaid"));
       return;
     }
+
     if (totalUsd > 0 && amount > remainingUsd + 0.009) {
       toast.error(`${t("contracts.toast.overpay")}: $${fmt(remainingUsd)}`);
       return;
@@ -1349,7 +1372,7 @@ function PaymentsDialog({
     }
     toast.success(t("contracts.toast.paymentAdded"));
     setAmount(0);
-    setMethod("");
+    setMethod("cash");
     setNote("");
     refetch();
     qc.invalidateQueries({ queryKey: ["contract-payments"] });
@@ -1441,8 +1464,18 @@ function PaymentsDialog({
               <Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
             </Field>
             <Field label={t("contracts.col.method")}>
-              <Input value={method} onChange={(e) => setMethod(e.target.value)} placeholder={t("contracts.placeholder.method")} />
+              <Select value={method} onValueChange={setMethod}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tanlang" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAY_METHODS.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
+
             <Button onClick={add} disabled={saving || isFullyPaid}>
               <Plus className="h-4 w-4 mr-1" /> {t("common.add")}
             </Button>
@@ -1480,7 +1513,7 @@ function PaymentsDialog({
                     <TableCell className="whitespace-nowrap">{p.paid_at}</TableCell>
                     <TableCell className="text-right font-medium tabular-nums">{fmt(Number(p.amount))}</TableCell>
                     <TableCell>{p.currency}</TableCell>
-                    <TableCell>{p.method ?? "—"}</TableCell>
+                    <TableCell>{payMethodLabel(p.method)}</TableCell>
                     <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                       {p.created_by ? (payerNameById.get(p.created_by) ?? "—") : "—"}
                     </TableCell>
