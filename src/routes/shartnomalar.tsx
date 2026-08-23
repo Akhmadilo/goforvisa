@@ -1300,7 +1300,8 @@ function PaymentsDialog({
     if (open) {
       setAmount(0);
       setPaidAt(new Date().toISOString().slice(0, 10));
-      setMethod("");
+      setMethod("cash");
+
       setNote("");
     }
   }, [open, contract?.id]);
