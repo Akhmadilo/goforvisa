@@ -1291,7 +1291,8 @@ function PaymentsDialog({
   const [amount, setAmount] = useState<number>(0);
   const currency = "USD";
   const [paidAt, setPaidAt] = useState<string>(new Date().toISOString().slice(0, 10));
-  const [method, setMethod] = useState<string>("");
+  const [method, setMethod] = useState<string>("cash");
+
   const [note, setNote] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
