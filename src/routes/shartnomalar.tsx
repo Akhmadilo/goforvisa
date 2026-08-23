@@ -89,6 +89,22 @@ type PaymentRow = {
   created_by: string | null;
 };
 
+const PAY_METHODS = [
+  { value: "cash", label: "💵 Naqd" },
+  { value: "card", label: "💳 Karta" },
+  { value: "bank", label: "🏦 Bank" },
+] as const;
+
+function payMethodLabel(m: string | null): string {
+  if (!m) return "—";
+  const key = m.toLowerCase().trim();
+  const alias: Record<string, string> = { naqd: "cash", plastik: "card", transfer: "bank" };
+  const found = PAY_METHODS.find((p) => p.value === (alias[key] ?? key));
+  return found ? found.label : m;
+}
+
+
+
 type FormState = {
   client_name: string;
   contract_no: string;
