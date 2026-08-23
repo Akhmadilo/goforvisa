@@ -788,7 +788,9 @@ async function handleGroupMessage(chatId: number, tgId: number, text: string, ti
         "👋 Kunlik kassa hisoboti boti.\n\n" +
         "/kassa_on — shu guruhga har kuni 21:00 da hisobot yuborilsin\n" +
         "/kassa_off — o'chirish\n" +
-        "/kassa_status — holat",
+        "/kassa_status — holat\n" +
+        "/kassa — oldingi kunlar hisobotini ko'rish\n" +
+        "/kassa 2026-08-21 — aniq sana bo'yicha",
     });
     return;
   }
@@ -797,6 +799,28 @@ async function handleGroupMessage(chatId: number, tgId: number, text: string, ti
     await tg("sendMessage", { chat_id: chatId, text: "❌ Bu buyruq faqat rahbariyat uchun." });
     return;
   }
+
+  if (kassaDate) {
+    const tenantId = await cashTenantFor(chatId, tgId);
+    if (!tenantId) {
+      await tg("sendMessage", { chat_id: chatId, text: "❌ Kompaniya aniqlanmadi. /kassa_on ni bosing." });
+      return;
+    }
+    const t = await buildCashText(tenantId, kassaDate[1]);
+    await tg("sendMessage", { chat_id: chatId, text: t, parse_mode: "HTML" });
+    return;
+  }
+
+  if (cmd === "/kassa") {
+    await tg("sendMessage", {
+      chat_id: chatId,
+      text: "🗓 Qaysi kun hisoboti kerak?",
+      reply_markup: cashDaysKeyboard(),
+    });
+    return;
+  }
+
+
 
   if (cmd === "/kassa_on") {
     await sb().from("telegram_groups").upsert(
