@@ -1252,8 +1252,11 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
 
             await tg("answerCallbackQuery", { callback_query_id: cq.id });
 
-            if (data.startsWith("cash_ok_") || data.startsWith("cash_no_")) {
+            if (data.startsWith("cash_day_")) {
+              await handleCashDay(cq, data.slice(9));
+            } else if (data.startsWith("cash_ok_") || data.startsWith("cash_no_")) {
               await handleCashDecision(cq, data.startsWith("cash_ok_"), data.slice(8));
+
             } else if (data === "face_no") {
               await tg("sendMessage", {
                 chat_id: chatId,
