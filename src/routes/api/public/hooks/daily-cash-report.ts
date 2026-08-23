@@ -111,7 +111,30 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
                   totalUzs === 0 && totalUsd === 0 ? "0" : ""
                 }\n<b>To'lovlar soni:</b> ${rows.length}`;
 
-          const text = header + body + "\n\nIltimos, tasdiqlang 👇";
+          // rahbariyatni (CEO / owner) otmetka qilish
+          const { data: bosses } = await sb
+            .from("employee_telegram")
+            .select("telegram_id, telegram_username, first_name, last_name")
+            .eq("tenant_id", g.tenant_id)
+            .in("bot_role", ["ceo", "owner"]);
+
+          const mentions = ((bosses || []) as any[])
+            .map((b) => {
+              const nm =
+                [b.first_name, b.last_name].filter(Boolean).join(" ").trim() ||
+                b.telegram_username ||
+                "Rahbar";
+              return b.telegram_username
+                ? `@${b.telegram_username}`
+                : `<a href="tg://user?id=${b.telegram_id}">${nm}</a>`;
+            })
+            .join(" ");
+
+          const text =
+            header +
+            body +
+            (mentions ? `\n\n${mentions}` : "") +
+            "\n\nIltimos, tasdiqlang 👇";
 
           // upsert report row first (need id for callback data)
           const { data: rep } = await sb
