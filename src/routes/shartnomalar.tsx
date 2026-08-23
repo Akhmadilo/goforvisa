@@ -1497,7 +1497,7 @@ function PaymentsDialog({
                     <TableCell className="whitespace-nowrap">{p.paid_at}</TableCell>
                     <TableCell className="text-right font-medium tabular-nums">{fmt(Number(p.amount))}</TableCell>
                     <TableCell>{p.currency}</TableCell>
-                    <TableCell>{p.method ?? "—"}</TableCell>
+                    <TableCell>{payMethodLabel(p.method)}</TableCell>
                     <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                       {p.created_by ? (payerNameById.get(p.created_by) ?? "—") : "—"}
                     </TableCell>
