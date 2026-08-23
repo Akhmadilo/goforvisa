@@ -1441,8 +1441,18 @@ function PaymentsDialog({
               <Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} />
             </Field>
             <Field label={t("contracts.col.method")}>
-              <Input value={method} onChange={(e) => setMethod(e.target.value)} placeholder={t("contracts.placeholder.method")} />
+              <Select value={method} onValueChange={setMethod}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Tanlang" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAY_METHODS.map((m) => (
+                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Field>
+
             <Button onClick={add} disabled={saving || isFullyPaid}>
               <Plus className="h-4 w-4 mr-1" /> {t("common.add")}
             </Button>
