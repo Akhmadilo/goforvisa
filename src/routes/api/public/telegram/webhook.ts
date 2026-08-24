@@ -809,7 +809,7 @@ async function handleGroupMessage(chatId: number, tgId: number, text: string, ti
   const raw = text.split("@")[0].trim();
   const cmd = raw.toLowerCase();
   const kassaDate = /^\/kassa\s+(\d{4}-\d{2}-\d{2})$/.exec(raw);
-  if (!["/kassa_on", "/kassa_off", "/kassa_status", "/kassa", "/start"].includes(cmd) && !kassaDate) return;
+  if (!["/kassa_on", "/kassa_off", "/kassa_status", "/kassa", "/kassa_hozir", "/start"].includes(cmd) && !kassaDate) return;
 
 
   if (cmd === "/start") {
