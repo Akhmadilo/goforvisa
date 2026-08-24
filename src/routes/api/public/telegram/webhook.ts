@@ -903,6 +903,8 @@ async function handleGroupMessage(chatId: number, tgId: number, text: string, ti
       chat_id: chatId,
       text: "✅ Guruh ulandi. Har kuni soat 21:00 da kunlik tushgan pullar hisoboti shu yerga keladi.",
     });
+    await sendAndPinCommands(chatId);
+
   } else if (cmd === "/kassa_off") {
     await sb().from("telegram_groups").update({ is_active: false }).eq("chat_id", chatId);
     await tg("sendMessage", { chat_id: chatId, text: "🛑 Kunlik hisobot o'chirildi." });
