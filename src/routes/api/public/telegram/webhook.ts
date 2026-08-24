@@ -805,27 +805,56 @@ export async function handleCashNow(cq: any) {
   await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML", reply_markup: CASH_NOW_KB });
 }
 
+const ALL_COMMANDS_TEXT =
+  "<b>🤖 GoForVisa bot — barcha buyruqlar</b>\n\n" +
+  "<b>💰 Kassa (guruh uchun)</b>\n" +
+  "/kassa_on — har kuni 21:00 da kunlik hisobot shu guruhga kelsin\n" +
+  "/kassa_off — kunlik hisobotni o'chirish\n" +
+  "/kassa_status — ulanish holatini ko'rish\n" +
+  "/kassa — oldingi 7 kundan birini tanlab hisobotni ko'rish\n" +
+  "/kassa_hozir — hozirgi daqiqagacha tushgan pul (online holat)\n" +
+  "/kassa 2026-08-21 — aniq sana bo'yicha hisobot\n\n" +
+  "<b>👤 Shaxsiy chatda (bot bilan yozishmada)</b>\n" +
+  "/start — ro'yxatdan o'tish va asosiy menyu\n" +
+  "💵 Oyligim — o'z oyligingizni ko'rish\n" +
+  "⚠️ Jarimalarim — oy bo'yicha jarimalaringiz\n" +
+  "🎁 Bonusim — oxirgi 3 oydan birini tanlab kutilayotgan bonus\n" +
+  "📄 Shartnomalar — (faqat direktor/owner/moliyachi) oy bo'yicha shartnomalar\n\n" +
+  "<b>ℹ️ Yordam</b>\n" +
+  "/buyruqlar yoki /help — shu ro'yxatni qayta chiqarish";
+
+async function sendAndPinCommands(chatId: number) {
+  const r: any = await tg("sendMessage", {
+    chat_id: chatId,
+    text: ALL_COMMANDS_TEXT,
+    parse_mode: "HTML",
+    disable_web_page_preview: true,
+  });
+  const mid = r?.result?.message_id;
+  if (mid) {
+    await tg("pinChatMessage", {
+      chat_id: chatId,
+      message_id: mid,
+      disable_notification: true,
+    });
+  }
+}
+
 async function handleGroupMessage(chatId: number, tgId: number, text: string, title?: string) {
   const raw = text.split("@")[0].trim();
   const cmd = raw.toLowerCase();
   const kassaDate = /^\/kassa\s+(\d{4}-\d{2}-\d{2})$/.exec(raw);
-  if (!["/kassa_on", "/kassa_off", "/kassa_status", "/kassa", "/kassa_hozir", "/start"].includes(cmd) && !kassaDate) return;
+  if (
+    !["/kassa_on", "/kassa_off", "/kassa_status", "/kassa", "/kassa_hozir", "/start", "/help", "/buyruqlar"].includes(cmd) &&
+    !kassaDate
+  )
+    return;
 
-
-  if (cmd === "/start") {
-    await tg("sendMessage", {
-      chat_id: chatId,
-      text:
-        "👋 Kunlik kassa hisoboti boti.\n\n" +
-        "/kassa_on — shu guruhga har kuni 21:00 da hisobot yuborilsin\n" +
-        "/kassa_off — o'chirish\n" +
-        "/kassa_status — holat\n" +
-        "/kassa — oldingi kunlar hisobotini ko'rish\n" +
-        "/kassa_hozir — hozirgacha tushgan pul (online holat)\n" +
-        "/kassa 2026-08-21 — aniq sana bo'yicha",
-    });
+  if (cmd === "/start" || cmd === "/help" || cmd === "/buyruqlar") {
+    await sendAndPinCommands(chatId);
     return;
   }
+
 
   if (!(await isCashAdmin(tgId))) {
     await tg("sendMessage", { chat_id: chatId, text: "❌ Bu buyruq faqat rahbariyat uchun." });
@@ -874,6 +903,8 @@ async function handleGroupMessage(chatId: number, tgId: number, text: string, ti
       chat_id: chatId,
       text: "✅ Guruh ulandi. Har kuni soat 21:00 da kunlik tushgan pullar hisoboti shu yerga keladi.",
     });
+    await sendAndPinCommands(chatId);
+
   } else if (cmd === "/kassa_off") {
     await sb().from("telegram_groups").update({ is_active: false }).eq("chat_id", chatId);
     await tg("sendMessage", { chat_id: chatId, text: "🛑 Kunlik hisobot o'chirildi." });
