@@ -821,6 +821,7 @@ async function handleGroupMessage(chatId: number, tgId: number, text: string, ti
         "/kassa_off — o'chirish\n" +
         "/kassa_status — holat\n" +
         "/kassa — oldingi kunlar hisobotini ko'rish\n" +
+        "/kassa_hozir — hozirgacha tushgan pul (online holat)\n" +
         "/kassa 2026-08-21 — aniq sana bo'yicha",
     });
     return;
