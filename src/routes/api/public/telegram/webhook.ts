@@ -693,7 +693,12 @@ function shiftDate(base: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-async function buildCashText(tenantId: string, date: string): Promise<string> {
+function nowHm(): string {
+  const d = new Date(Date.now() + 5 * 3600 * 1000);
+  return d.toISOString().slice(11, 16);
+}
+
+async function buildCashText(tenantId: string, date: string, live = false): Promise<string> {
   const { data: pays } = await sb()
     .from("contract_payments")
     .select("amount, currency, method, contract_id, created_at")
@@ -723,8 +728,11 @@ async function buildCashText(tenantId: string, date: string): Promise<string> {
     lines.push(`${i + 1}. ${client}\n    ${sum} — ${cashMethodLabel(p.method)}`);
   });
 
-  const header = `📊 <b>Kunlik kassa hisoboti</b>\n🗓 ${date}\n\n`;
-  if (rows.length === 0) return header + "Bu kuni to'lov qabul qilinmagan.";
+  const header = live
+    ? `🟢 <b>Kassa — hozirgi holat</b>\n🗓 ${date} · ⏱ ${nowHm()} gacha\n\n`
+    : `📊 <b>Kunlik kassa hisoboti</b>\n🗓 ${date}\n\n`;
+  if (rows.length === 0)
+    return header + (live ? "Hozircha to'lov qabul qilinmagan." : "Bu kuni to'lov qabul qilinmagan.");
   return (
     header + lines.join("\n") +
     `\n\n<b>Jami:</b> ${totalUzs > 0 ? fmt(totalUzs) + " so'm" : ""}` +
@@ -753,8 +761,13 @@ function cashDaysKeyboard() {
     if (i % 2 === 0) rows.push([]);
     rows[rows.length - 1].push({ text: label, callback_data: `cash_day_${d}` });
   }
+  rows.push([{ text: "🟢 Hozirgi holat", callback_data: "cash_now" }]);
   return { inline_keyboard: rows };
 }
+
+const CASH_NOW_KB = {
+  inline_keyboard: [[{ text: "🔄 Yangilash", callback_data: "cash_now" }]],
+};
 
 export async function handleCashDay(cq: any, date: string) {
   const chatId = cq.message.chat.id;
@@ -774,11 +787,29 @@ export async function handleCashDay(cq: any, date: string) {
   await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML" });
 }
 
+export async function handleCashNow(cq: any) {
+  const chatId = cq.message.chat.id;
+  const tgId = cq.from.id as number;
+  if (!(await isCashAdmin(tgId))) {
+    await tg("answerCallbackQuery", {
+      callback_query_id: cq.id, text: "❌ Faqat rahbariyat ko'ra oladi.", show_alert: true,
+    });
+    return;
+  }
+  const tenantId = await cashTenantFor(chatId, tgId);
+  if (!tenantId) {
+    await tg("sendMessage", { chat_id: chatId, text: "❌ Kompaniya aniqlanmadi. /kassa_on ni bosing." });
+    return;
+  }
+  const text = await buildCashText(tenantId, todayDate(), true);
+  await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML", reply_markup: CASH_NOW_KB });
+}
+
 async function handleGroupMessage(chatId: number, tgId: number, text: string, title?: string) {
   const raw = text.split("@")[0].trim();
   const cmd = raw.toLowerCase();
   const kassaDate = /^\/kassa\s+(\d{4}-\d{2}-\d{2})$/.exec(raw);
-  if (!["/kassa_on", "/kassa_off", "/kassa_status", "/kassa", "/start"].includes(cmd) && !kassaDate) return;
+  if (!["/kassa_on", "/kassa_off", "/kassa_status", "/kassa", "/kassa_hozir", "/start"].includes(cmd) && !kassaDate) return;
 
 
   if (cmd === "/start") {
@@ -790,6 +821,7 @@ async function handleGroupMessage(chatId: number, tgId: number, text: string, ti
         "/kassa_off — o'chirish\n" +
         "/kassa_status — holat\n" +
         "/kassa — oldingi kunlar hisobotini ko'rish\n" +
+        "/kassa_hozir — hozirgacha tushgan pul (online holat)\n" +
         "/kassa 2026-08-21 — aniq sana bo'yicha",
     });
     return;
@@ -808,6 +840,17 @@ async function handleGroupMessage(chatId: number, tgId: number, text: string, ti
     }
     const t = await buildCashText(tenantId, kassaDate[1]);
     await tg("sendMessage", { chat_id: chatId, text: t, parse_mode: "HTML" });
+    return;
+  }
+
+  if (cmd === "/kassa_hozir") {
+    const tenantId = await cashTenantFor(chatId, tgId);
+    if (!tenantId) {
+      await tg("sendMessage", { chat_id: chatId, text: "❌ Kompaniya aniqlanmadi. /kassa_on ni bosing." });
+      return;
+    }
+    const t = await buildCashText(tenantId, todayDate(), true);
+    await tg("sendMessage", { chat_id: chatId, text: t, parse_mode: "HTML", reply_markup: CASH_NOW_KB });
     return;
   }
 
@@ -1252,7 +1295,9 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
 
             await tg("answerCallbackQuery", { callback_query_id: cq.id });
 
-            if (data.startsWith("cash_day_")) {
+            if (data === "cash_now") {
+              await handleCashNow(cq);
+            } else if (data.startsWith("cash_day_")) {
               await handleCashDay(cq, data.slice(9));
             } else if (data.startsWith("cash_ok_") || data.startsWith("cash_no_")) {
               await handleCashDecision(cq, data.startsWith("cash_ok_"), data.slice(8));
