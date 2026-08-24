@@ -30,7 +30,7 @@ const METHOD_LABEL: Record<string, string> = {
 };
 
 function methodLabel(m: string | null): string {
-  if (!m) return "❔ Noma'lum";
+  if (!m) return "💵 Naqd";
   return METHOD_LABEL[m.toLowerCase().trim()] || m;
 }
 
