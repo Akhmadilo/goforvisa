@@ -761,8 +761,13 @@ function cashDaysKeyboard() {
     if (i % 2 === 0) rows.push([]);
     rows[rows.length - 1].push({ text: label, callback_data: `cash_day_${d}` });
   }
+  rows.push([{ text: "🟢 Hozirgi holat", callback_data: "cash_now" }]);
   return { inline_keyboard: rows };
 }
+
+const CASH_NOW_KB = {
+  inline_keyboard: [[{ text: "🔄 Yangilash", callback_data: "cash_now" }]],
+};
 
 export async function handleCashDay(cq: any, date: string) {
   const chatId = cq.message.chat.id;
@@ -780,6 +785,24 @@ export async function handleCashDay(cq: any, date: string) {
   }
   const text = await buildCashText(tenantId, date);
   await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML" });
+}
+
+export async function handleCashNow(cq: any) {
+  const chatId = cq.message.chat.id;
+  const tgId = cq.from.id as number;
+  if (!(await isCashAdmin(tgId))) {
+    await tg("answerCallbackQuery", {
+      callback_query_id: cq.id, text: "❌ Faqat rahbariyat ko'ra oladi.", show_alert: true,
+    });
+    return;
+  }
+  const tenantId = await cashTenantFor(chatId, tgId);
+  if (!tenantId) {
+    await tg("sendMessage", { chat_id: chatId, text: "❌ Kompaniya aniqlanmadi. /kassa_on ni bosing." });
+    return;
+  }
+  const text = await buildCashText(tenantId, todayDate(), true);
+  await tg("sendMessage", { chat_id: chatId, text, parse_mode: "HTML", reply_markup: CASH_NOW_KB });
 }
 
 async function handleGroupMessage(chatId: number, tgId: number, text: string, title?: string) {
