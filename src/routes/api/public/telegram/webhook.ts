@@ -693,7 +693,12 @@ function shiftDate(base: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-async function buildCashText(tenantId: string, date: string): Promise<string> {
+function nowHm(): string {
+  const d = new Date(Date.now() + 5 * 3600 * 1000);
+  return d.toISOString().slice(11, 16);
+}
+
+async function buildCashText(tenantId: string, date: string, live = false): Promise<string> {
   const { data: pays } = await sb()
     .from("contract_payments")
     .select("amount, currency, method, contract_id, created_at")
