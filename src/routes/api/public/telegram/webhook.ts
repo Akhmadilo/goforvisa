@@ -683,7 +683,7 @@ const CASH_METHOD_LABEL: Record<string, string> = {
   bank: "🏦 Bank", transfer: "🏦 O'tkazma",
 };
 function cashMethodLabel(m: string | null): string {
-  if (!m) return "❔ Noma'lum";
+  if (!m) return "💵 Naqd";
   return CASH_METHOD_LABEL[m.toLowerCase().trim()] || m;
 }
 
