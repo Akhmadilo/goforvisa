@@ -843,6 +843,17 @@ async function handleGroupMessage(chatId: number, tgId: number, text: string, ti
     return;
   }
 
+  if (cmd === "/kassa_hozir") {
+    const tenantId = await cashTenantFor(chatId, tgId);
+    if (!tenantId) {
+      await tg("sendMessage", { chat_id: chatId, text: "❌ Kompaniya aniqlanmadi. /kassa_on ni bosing." });
+      return;
+    }
+    const t = await buildCashText(tenantId, todayDate(), true);
+    await tg("sendMessage", { chat_id: chatId, text: t, parse_mode: "HTML", reply_markup: CASH_NOW_KB });
+    return;
+  }
+
   if (cmd === "/kassa") {
     await tg("sendMessage", {
       chat_id: chatId,
