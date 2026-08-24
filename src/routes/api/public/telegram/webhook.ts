@@ -728,8 +728,11 @@ async function buildCashText(tenantId: string, date: string, live = false): Prom
     lines.push(`${i + 1}. ${client}\n    ${sum} — ${cashMethodLabel(p.method)}`);
   });
 
-  const header = `📊 <b>Kunlik kassa hisoboti</b>\n🗓 ${date}\n\n`;
-  if (rows.length === 0) return header + "Bu kuni to'lov qabul qilinmagan.";
+  const header = live
+    ? `🟢 <b>Kassa — hozirgi holat</b>\n🗓 ${date} · ⏱ ${nowHm()} gacha\n\n`
+    : `📊 <b>Kunlik kassa hisoboti</b>\n🗓 ${date}\n\n`;
+  if (rows.length === 0)
+    return header + (live ? "Hozircha to'lov qabul qilinmagan." : "Bu kuni to'lov qabul qilinmagan.");
   return (
     header + lines.join("\n") +
     `\n\n<b>Jami:</b> ${totalUzs > 0 ? fmt(totalUzs) + " so'm" : ""}` +
