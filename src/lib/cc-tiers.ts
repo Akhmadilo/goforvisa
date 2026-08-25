@@ -48,9 +48,14 @@ export function useCcTiers() {
 }
 
 function tierFor(tiers: readonly Omit<CcTier, "id">[], count: number) {
-  return tiers.find(
+  const exact = tiers.find(
     (t) => count >= t.min_count && (t.max_count === null || count <= t.max_count),
   );
+  if (exact) return exact;
+  // Bo'shliq bo'lsa (masalan 20-24 bosqichi o'chirilgan bo'lsa) — eng yaqin quyi bosqich.
+  return [...tiers]
+    .filter((t) => t.min_count <= count)
+    .sort((a, b) => b.min_count - a.min_count)[0];
 }
 
 export function ccBaseFor(tiers: readonly Omit<CcTier, "id">[] | undefined, count: number) {
