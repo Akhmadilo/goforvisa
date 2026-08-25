@@ -100,16 +100,18 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
             details.push({ client, amount: amt, currency: cur, method: p.method });
           });
 
-          const header = `📊 <b>Kunlik kassa hisoboti</b>\n🗓 ${date}\n\n`;
-          const body =
-            rows.length === 0
-              ? "Bugun to'lov qabul qilinmadi."
-              : lines.join("\n") +
-                `\n\n<b>Jami:</b> ${totalUzs > 0 ? fmt(totalUzs) + " so'm" : ""}${
-                  totalUzs > 0 && totalUsd > 0 ? " + " : ""
-                }${totalUsd > 0 ? "$" + fmt(totalUsd) : ""}${
-                  totalUzs === 0 && totalUsd === 0 ? "0" : ""
-                }\n<b>To'lovlar soni:</b> ${rows.length}`;
+          const isEmpty = rows.length === 0;
+          const header = isEmpty
+            ? `📭 <b>Kunlik kassa hisoboti</b>\n🗓 ${date}\n\n`
+            : `📊 <b>Kunlik kassa hisoboti</b>\n🗓 ${date}\n\n`;
+          const body = isEmpty
+            ? "❗️ <b>Bugun to'lov qabul qilinmadi.</b>\n\n<b>Jami:</b> 0\n<b>To'lovlar soni:</b> 0"
+            : lines.join("\n") +
+              `\n\n<b>Jami:</b> ${totalUzs > 0 ? fmt(totalUzs) + " so'm" : ""}${
+                totalUzs > 0 && totalUsd > 0 ? " + " : ""
+              }${totalUsd > 0 ? "$" + fmt(totalUsd) : ""}${
+                totalUzs === 0 && totalUsd === 0 ? "0" : ""
+              }\n<b>To'lovlar soni:</b> ${rows.length}`;
 
           // rahbariyatni (CEO / owner) otmetka qilish
           const { data: bosses } = await sb
