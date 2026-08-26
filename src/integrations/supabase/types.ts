@@ -165,6 +165,50 @@ export type Database = {
           },
         ]
       }
+      bot_settings: {
+        Row: {
+          created_at: string
+          daily_report_enabled: boolean
+          daily_report_hour: number
+          mention_bosses: boolean
+          notify_on_contract: boolean
+          notify_on_payment: boolean
+          payment_template: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          daily_report_enabled?: boolean
+          daily_report_hour?: number
+          mention_bosses?: boolean
+          notify_on_contract?: boolean
+          notify_on_payment?: boolean
+          payment_template?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          daily_report_enabled?: boolean
+          daily_report_hour?: number
+          mention_bosses?: boolean
+          notify_on_contract?: boolean
+          notify_on_payment?: boolean
+          payment_template?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bot_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       call_centre_tiers: {
         Row: {
           base_uzs: number
