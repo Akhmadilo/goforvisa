@@ -20,6 +20,7 @@ import { Route as KpiRouteImport } from './routes/kpi'
 import { Route as JavoblarRouteImport } from './routes/javoblar'
 import { Route as JarimaRouteImport } from './routes/jarima'
 import { Route as EmployeesRouteImport } from './routes/employees'
+import { Route as BotRouteImport } from './routes/bot'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -82,6 +83,11 @@ const EmployeesRoute = EmployeesRouteImport.update({
   path: '/employees',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BotRoute = BotRouteImport.update({
+  id: '/bot',
+  path: '/bot',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -120,6 +126,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/bot': typeof BotRoute
   '/employees': typeof EmployeesRoute
   '/jarima': typeof JarimaRoute
   '/javoblar': typeof JavoblarRoute
@@ -139,6 +146,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/bot': typeof BotRoute
   '/employees': typeof EmployeesRoute
   '/jarima': typeof JarimaRoute
   '/javoblar': typeof JavoblarRoute
@@ -159,6 +167,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/auth': typeof AuthRoute
+  '/bot': typeof BotRoute
   '/employees': typeof EmployeesRoute
   '/jarima': typeof JarimaRoute
   '/javoblar': typeof JavoblarRoute
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/bot'
     | '/employees'
     | '/jarima'
     | '/javoblar'
@@ -199,6 +209,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/bot'
     | '/employees'
     | '/jarima'
     | '/javoblar'
@@ -218,6 +229,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/auth'
+    | '/bot'
     | '/employees'
     | '/jarima'
     | '/javoblar'
@@ -238,6 +250,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   AuthRoute: typeof AuthRoute
+  BotRoute: typeof BotRoute
   EmployeesRoute: typeof EmployeesRoute
   JarimaRoute: typeof JarimaRoute
   JavoblarRoute: typeof JavoblarRoute
@@ -333,6 +346,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EmployeesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bot': {
+      id: '/bot'
+      path: '/bot'
+      fullPath: '/bot'
+      preLoaderRoute: typeof BotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -382,6 +402,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   AuthRoute: AuthRoute,
+  BotRoute: BotRoute,
   EmployeesRoute: EmployeesRoute,
   JarimaRoute: JarimaRoute,
   JavoblarRoute: JavoblarRoute,
