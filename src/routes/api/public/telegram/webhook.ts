@@ -60,15 +60,41 @@ const MAIN_KB = {
 
 const CONTRACTS_ROLES = ["owner", "ceo", "director", "financier"] as const;
 
-function mainKb(role?: string | null) {
-  const rows: Array<Array<{ text: string }>> = [
-    [{ text: "🟢 Keldim" }],
-    [{ text: "💰 Avans so'rash" }, { text: "📅 Javob so'rash" }],
-    [{ text: "📋 Bajarilgan ishlar" }],
-    [{ text: "💵 Oyligim" }, { text: "⚠️ Jarimalarim" }],
-    [{ text: "🎁 Bonusim" }],
-  ];
-  if (role && (CONTRACTS_ROLES as readonly string[]).includes(role)) {
+export type BotFeatures = Record<string, boolean>;
+
+/** Feature is enabled unless explicitly disabled in bot_settings.employee_features */
+function feat(f: BotFeatures | null | undefined, key: string) {
+  return !f || f[key] !== false;
+}
+
+/** Which employee feature a given menu text belongs to (null = always allowed) */
+function featureOfText(text: string): string | null {
+  const t = text.toLowerCase();
+  if (text === "🟢 Keldim" || t === "keldim") return "attendance";
+  if (text === "💰 Avans so'rash" || t === "avans") return "advance";
+  if (text === "📅 Javob so'rash" || text === "📅 Dam olish" || t === "javob so'rash" || t === "dam olish" || t.startsWith("/javob") || t.startsWith("/dam_olish")) return "leave";
+  if (text === "📋 Bajarilgan ishlar" || t === "bajarilgan ishlar" || t.startsWith("/bajarilgan")) return "work_report";
+  if (text === "💵 Oyligim" || t === "oyligim" || t.startsWith("/oyligim")) return "salary";
+  if (text === "⚠️ Jarimalarim" || t === "jarimalarim" || t.startsWith("/jarimalarim")) return "fines";
+  if (text === "🎁 Bonusim" || t === "bonusim" || t.startsWith("/bonusim")) return "bonus";
+  if (text === "📄 Shartnomalar" || t === "shartnomalar" || t.startsWith("/shartnomalar")) return "contracts";
+  return null;
+}
+
+function mainKb(role?: string | null, features?: BotFeatures | null) {
+  const rows: Array<Array<{ text: string }>> = [];
+  if (feat(features, "attendance")) rows.push([{ text: "🟢 Keldim" }]);
+  const r2: Array<{ text: string }> = [];
+  if (feat(features, "advance")) r2.push({ text: "💰 Avans so'rash" });
+  if (feat(features, "leave")) r2.push({ text: "📅 Javob so'rash" });
+  if (r2.length) rows.push(r2);
+  if (feat(features, "work_report")) rows.push([{ text: "📋 Bajarilgan ishlar" }]);
+  const r4: Array<{ text: string }> = [];
+  if (feat(features, "salary")) r4.push({ text: "💵 Oyligim" });
+  if (feat(features, "fines")) r4.push({ text: "⚠️ Jarimalarim" });
+  if (r4.length) rows.push(r4);
+  if (feat(features, "bonus")) rows.push([{ text: "🎁 Bonusim" }]);
+  if (role && (CONTRACTS_ROLES as readonly string[]).includes(role) && feat(features, "contracts")) {
     rows.push([{ text: "📄 Shartnomalar" }]);
   }
   return { keyboard: rows, resize_keyboard: true };
