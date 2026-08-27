@@ -1033,10 +1033,18 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
             // Load current state + link
             const { data: tgRow } = await sb()
               .from("employee_telegram")
-              .select("employee_id, bot_state, bot_role")
+              .select("employee_id, bot_state, bot_role, tenant_id")
               .eq("telegram_id", tgId)
               .maybeSingle();
-            const MKB = mainKb(tgRow?.bot_role);
+            const { data: botCfg } = tgRow?.tenant_id
+              ? await sb()
+                  .from("bot_settings")
+                  .select("employee_features, welcome_text")
+                  .eq("tenant_id", tgRow.tenant_id as string)
+                  .maybeSingle()
+              : { data: null as any };
+            const FEATS = (botCfg?.employee_features as BotFeatures | null) ?? null;
+            const MKB = mainKb(tgRow?.bot_role, FEATS);
             const state: any = tgRow?.bot_state || null;
 
             const resetState = async () => {
