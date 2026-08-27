@@ -52,6 +52,8 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
         );
 
         const date = todayDate();
+        const nowTashkentHour = new Date(Date.now() + 5 * 3600 * 1000).getUTCHours();
+        const force = new URL(request.url).searchParams.get("force") === "1";
 
         const { data: groups } = await sb
           .from("telegram_groups")
@@ -63,8 +65,26 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
           return Response.json({ ok: true, sent: 0, date, reason: "no groups" });
         }
 
+        const { data: allSettings } = await sb
+          .from("bot_settings")
+          .select("tenant_id, daily_report_enabled, daily_report_hour, mention_bosses");
+        const settingsMap = new Map<string, any>(
+          ((allSettings || []) as any[]).map((s) => [s.tenant_id, s]),
+        );
+
         let sent = 0;
         for (const g of groups as any[]) {
+          const cfg = settingsMap.get(g.tenant_id);
+          if (!force && cfg) {
+            if (cfg.daily_report_enabled === false) continue;
+            if (
+              typeof cfg.daily_report_hour === "number" &&
+              cfg.daily_report_hour !== nowTashkentHour
+            ) {
+              continue;
+            }
+          }
+
           const { data: pays } = await sb
             .from("contract_payments")
             .select("amount, currency, method, note, contract_id, created_at")
