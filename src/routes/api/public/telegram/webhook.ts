@@ -1234,13 +1234,31 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                   }
                 }
               }
-            } else if (text.startsWith("/start")) {
-              const extra = (CONTRACTS_ROLES as readonly string[]).includes(tgRow?.bot_role || "")
-                ? "\n📄 Shartnomalar — oylik shartnomalar va qarzdorlar"
-                : "";
+            } else if (featureOfText(text) && !feat(FEATS, featureOfText(text)!)) {
               await tg("sendMessage", {
                 chat_id: chatId,
-                text: `Assalomu alaykum${from.first_name ? ", " + from.first_name : ""}! 👋\n\n🟢 Keldim — kelganingizni belgilang\n💰 Avans so'rash — avans uchun ariza\n📅 Javob so'rash — kela olmasangiz javob so'rash\n📋 Bajarilgan ishlar — bugungi ishlar hisoboti\n💵 Oyligim — oylik maoshingizni ko'rish\n⚠️ Jarimalarim — jarimalaringizni ko'rish\n🎁 Bonusim — kutilayotgan KPI bonuslaringiz${extra}`,
+                text: "ℹ️ Bu funksiya hozircha o'chirilgan.",
+                reply_markup: MKB,
+              });
+            } else if (text.startsWith("/start")) {
+              const extra = (CONTRACTS_ROLES as readonly string[]).includes(tgRow?.bot_role || "") && feat(FEATS, "contracts")
+                ? "\n📄 Shartnomalar — oylik shartnomalar va qarzdorlar"
+                : "";
+              const lines = [
+                feat(FEATS, "attendance") ? "🟢 Keldim — kelganingizni belgilang" : null,
+                feat(FEATS, "advance") ? "💰 Avans so'rash — avans uchun ariza" : null,
+                feat(FEATS, "leave") ? "📅 Javob so'rash — kela olmasangiz javob so'rash" : null,
+                feat(FEATS, "work_report") ? "📋 Bajarilgan ishlar — bugungi ishlar hisoboti" : null,
+                feat(FEATS, "salary") ? "💵 Oyligim — oylik maoshingizni ko'rish" : null,
+                feat(FEATS, "fines") ? "⚠️ Jarimalarim — jarimalaringizni ko'rish" : null,
+                feat(FEATS, "bonus") ? "🎁 Bonusim — kutilayotgan KPI bonuslaringiz" : null,
+              ].filter(Boolean).join("\n");
+              const hello =
+                (botCfg?.welcome_text as string | null)?.trim() ||
+                `Assalomu alaykum${from.first_name ? ", " + from.first_name : ""}! 👋`;
+              await tg("sendMessage", {
+                chat_id: chatId,
+                text: `${hello}\n\n${lines}${extra}`,
                 reply_markup: MKB,
               });
             } else if (text === "📄 Shartnomalar" || text.toLowerCase() === "shartnomalar" || text.startsWith("/shartnomalar")) {
