@@ -40,6 +40,7 @@ import { Plus, Pencil, Trash2, Search, RefreshCw, Upload, FileText, Wallet, File
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useUsdRates } from "@/lib/usd-rates";
 import { cn } from "@/lib/utils";
+import { notifyPayment } from "@/lib/bot.functions";
 import * as XLSX from "xlsx";
 
 const VISA_RESULTS = ["Olindi", "Rad etildi", "Jarayonda", "Bekor qilindi"] as const;
@@ -1371,6 +1372,21 @@ function PaymentsDialog({
       return;
     }
     toast.success(t("contracts.toast.paymentAdded"));
+    // Guruhga darhol xabar (Bot bo'limidan yoqib/o'chirish mumkin)
+    try {
+      await notifyPayment({
+        data: {
+          contractId: contract.id,
+          amount,
+          currency,
+          method: method || null,
+          paidAt,
+        },
+      });
+    } catch (e) {
+      console.error("notifyPayment failed", e);
+    }
+
     setAmount(0);
     setMethod("cash");
     setNote("");
