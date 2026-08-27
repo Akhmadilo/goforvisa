@@ -13,10 +13,12 @@ import {
   CalendarDays,
   Menu,
   Building2,
+  Bot,
 } from "lucide-react";
 import logoUrl from "@/assets/logo.png";
 import { useWidgetPermissions } from "@/hooks/use-widget-permissions";
 import { useTenant } from "@/hooks/use-tenant";
+import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useTenantSettings } from "@/hooks/use-tenant-settings";
 import { useT, LANGUAGES, type Lang } from "@/lib/i18n";
 import {
@@ -30,6 +32,7 @@ function SidebarContent({ onClick }: { onClick?: () => void }) {
   const { can, loading } = useWidgetPermissions();
   const { t, lang, setLang } = useT();
   const { tenant, isPlatformAdmin } = useTenant();
+  const isAdmin = useIsAdmin();
   const { settings, moduleEnabled } = useTenantSettings();
 
   // Per-company branding colour, applied globally for this tenant.
@@ -90,6 +93,20 @@ function SidebarContent({ onClick }: { onClick?: () => void }) {
             </Link>
           );
         })}
+        {isAdmin && (
+          <Link
+            to="/bot"
+            onClick={onClick}
+            className={`flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+              pathname === "/bot"
+                ? "bg-primary text-primary-foreground"
+                : "text-foreground hover:bg-secondary"
+            }`}
+          >
+            <Bot className="h-4 w-4" />
+            <span>Bot</span>
+          </Link>
+        )}
         <Link
           to="/settings"
           onClick={onClick}
