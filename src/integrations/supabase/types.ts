@@ -170,34 +170,40 @@ export type Database = {
           created_at: string
           daily_report_enabled: boolean
           daily_report_hour: number
+          employee_features: Json
           mention_bosses: boolean
           notify_on_contract: boolean
           notify_on_payment: boolean
           payment_template: string
           tenant_id: string
           updated_at: string
+          welcome_text: string | null
         }
         Insert: {
           created_at?: string
           daily_report_enabled?: boolean
           daily_report_hour?: number
+          employee_features?: Json
           mention_bosses?: boolean
           notify_on_contract?: boolean
           notify_on_payment?: boolean
           payment_template?: string
           tenant_id: string
           updated_at?: string
+          welcome_text?: string | null
         }
         Update: {
           created_at?: string
           daily_report_enabled?: boolean
           daily_report_hour?: number
+          employee_features?: Json
           mention_bosses?: boolean
           notify_on_contract?: boolean
           notify_on_payment?: boolean
           payment_template?: string
           tenant_id?: string
           updated_at?: string
+          welcome_text?: string | null
         }
         Relationships: [
           {

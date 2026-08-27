@@ -10,6 +10,29 @@ export type BotSettings = {
   daily_report_hour: number;
   mention_bosses: boolean;
   payment_template: string;
+  employee_features: Record<string, boolean>;
+  welcome_text: string | null;
+};
+
+export const EMPLOYEE_FEATURES = [
+  { key: "attendance", label: "🟢 Keldim (davomat)" },
+  { key: "advance", label: "💰 Avans so'rash" },
+  { key: "leave", label: "📅 Javob so'rash" },
+  { key: "work_report", label: "📋 Bajarilgan ishlar" },
+  { key: "salary", label: "💵 Oyligim" },
+  { key: "fines", label: "⚠️ Jarimalarim" },
+  { key: "bonus", label: "🎁 Bonusim" },
+  { key: "contracts", label: "📄 Shartnomalar (rahbariyat)" },
+] as const;
+
+export type BotUser = {
+  id: string;
+  telegram_id: number;
+  telegram_username: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  employee_id: string | null;
+  bot_role: string;
 };
 
 export type BotGroup = {

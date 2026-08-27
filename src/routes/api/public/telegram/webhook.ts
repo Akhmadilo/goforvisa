@@ -60,15 +60,41 @@ const MAIN_KB = {
 
 const CONTRACTS_ROLES = ["owner", "ceo", "director", "financier"] as const;
 
-function mainKb(role?: string | null) {
-  const rows: Array<Array<{ text: string }>> = [
-    [{ text: "🟢 Keldim" }],
-    [{ text: "💰 Avans so'rash" }, { text: "📅 Javob so'rash" }],
-    [{ text: "📋 Bajarilgan ishlar" }],
-    [{ text: "💵 Oyligim" }, { text: "⚠️ Jarimalarim" }],
-    [{ text: "🎁 Bonusim" }],
-  ];
-  if (role && (CONTRACTS_ROLES as readonly string[]).includes(role)) {
+export type BotFeatures = Record<string, boolean>;
+
+/** Feature is enabled unless explicitly disabled in bot_settings.employee_features */
+function feat(f: BotFeatures | null | undefined, key: string) {
+  return !f || f[key] !== false;
+}
+
+/** Which employee feature a given menu text belongs to (null = always allowed) */
+function featureOfText(text: string): string | null {
+  const t = text.toLowerCase();
+  if (text === "🟢 Keldim" || t === "keldim") return "attendance";
+  if (text === "💰 Avans so'rash" || t === "avans") return "advance";
+  if (text === "📅 Javob so'rash" || text === "📅 Dam olish" || t === "javob so'rash" || t === "dam olish" || t.startsWith("/javob") || t.startsWith("/dam_olish")) return "leave";
+  if (text === "📋 Bajarilgan ishlar" || t === "bajarilgan ishlar" || t.startsWith("/bajarilgan")) return "work_report";
+  if (text === "💵 Oyligim" || t === "oyligim" || t.startsWith("/oyligim")) return "salary";
+  if (text === "⚠️ Jarimalarim" || t === "jarimalarim" || t.startsWith("/jarimalarim")) return "fines";
+  if (text === "🎁 Bonusim" || t === "bonusim" || t.startsWith("/bonusim")) return "bonus";
+  if (text === "📄 Shartnomalar" || t === "shartnomalar" || t.startsWith("/shartnomalar")) return "contracts";
+  return null;
+}
+
+function mainKb(role?: string | null, features?: BotFeatures | null) {
+  const rows: Array<Array<{ text: string }>> = [];
+  if (feat(features, "attendance")) rows.push([{ text: "🟢 Keldim" }]);
+  const r2: Array<{ text: string }> = [];
+  if (feat(features, "advance")) r2.push({ text: "💰 Avans so'rash" });
+  if (feat(features, "leave")) r2.push({ text: "📅 Javob so'rash" });
+  if (r2.length) rows.push(r2);
+  if (feat(features, "work_report")) rows.push([{ text: "📋 Bajarilgan ishlar" }]);
+  const r4: Array<{ text: string }> = [];
+  if (feat(features, "salary")) r4.push({ text: "💵 Oyligim" });
+  if (feat(features, "fines")) r4.push({ text: "⚠️ Jarimalarim" });
+  if (r4.length) rows.push(r4);
+  if (feat(features, "bonus")) rows.push([{ text: "🎁 Bonusim" }]);
+  if (role && (CONTRACTS_ROLES as readonly string[]).includes(role) && feat(features, "contracts")) {
     rows.push([{ text: "📄 Shartnomalar" }]);
   }
   return { keyboard: rows, resize_keyboard: true };
@@ -1007,10 +1033,18 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
             // Load current state + link
             const { data: tgRow } = await sb()
               .from("employee_telegram")
-              .select("employee_id, bot_state, bot_role")
+              .select("employee_id, bot_state, bot_role, tenant_id")
               .eq("telegram_id", tgId)
               .maybeSingle();
-            const MKB = mainKb(tgRow?.bot_role);
+            const { data: botCfg } = tgRow?.tenant_id
+              ? await sb()
+                  .from("bot_settings")
+                  .select("employee_features, welcome_text")
+                  .eq("tenant_id", tgRow.tenant_id as string)
+                  .maybeSingle()
+              : { data: null as any };
+            const FEATS = (botCfg?.employee_features as BotFeatures | null) ?? null;
+            const MKB = mainKb(tgRow?.bot_role, FEATS);
             const state: any = tgRow?.bot_state || null;
 
             const resetState = async () => {
@@ -1200,13 +1234,31 @@ export const Route = createFileRoute("/api/public/telegram/webhook")({
                   }
                 }
               }
-            } else if (text.startsWith("/start")) {
-              const extra = (CONTRACTS_ROLES as readonly string[]).includes(tgRow?.bot_role || "")
-                ? "\n📄 Shartnomalar — oylik shartnomalar va qarzdorlar"
-                : "";
+            } else if (featureOfText(text) && !feat(FEATS, featureOfText(text)!)) {
               await tg("sendMessage", {
                 chat_id: chatId,
-                text: `Assalomu alaykum${from.first_name ? ", " + from.first_name : ""}! 👋\n\n🟢 Keldim — kelganingizni belgilang\n💰 Avans so'rash — avans uchun ariza\n📅 Javob so'rash — kela olmasangiz javob so'rash\n📋 Bajarilgan ishlar — bugungi ishlar hisoboti\n💵 Oyligim — oylik maoshingizni ko'rish\n⚠️ Jarimalarim — jarimalaringizni ko'rish\n🎁 Bonusim — kutilayotgan KPI bonuslaringiz${extra}`,
+                text: "ℹ️ Bu funksiya hozircha o'chirilgan.",
+                reply_markup: MKB,
+              });
+            } else if (text.startsWith("/start")) {
+              const extra = (CONTRACTS_ROLES as readonly string[]).includes(tgRow?.bot_role || "") && feat(FEATS, "contracts")
+                ? "\n📄 Shartnomalar — oylik shartnomalar va qarzdorlar"
+                : "";
+              const lines = [
+                feat(FEATS, "attendance") ? "🟢 Keldim — kelganingizni belgilang" : null,
+                feat(FEATS, "advance") ? "💰 Avans so'rash — avans uchun ariza" : null,
+                feat(FEATS, "leave") ? "📅 Javob so'rash — kela olmasangiz javob so'rash" : null,
+                feat(FEATS, "work_report") ? "📋 Bajarilgan ishlar — bugungi ishlar hisoboti" : null,
+                feat(FEATS, "salary") ? "💵 Oyligim — oylik maoshingizni ko'rish" : null,
+                feat(FEATS, "fines") ? "⚠️ Jarimalarim — jarimalaringizni ko'rish" : null,
+                feat(FEATS, "bonus") ? "🎁 Bonusim — kutilayotgan KPI bonuslaringiz" : null,
+              ].filter(Boolean).join("\n");
+              const hello =
+                (botCfg?.welcome_text as string | null)?.trim() ||
+                `Assalomu alaykum${from.first_name ? ", " + from.first_name : ""}! 👋`;
+              await tg("sendMessage", {
+                chat_id: chatId,
+                text: `${hello}\n\n${lines}${extra}`,
                 reply_markup: MKB,
               });
             } else if (text === "📄 Shartnomalar" || text.toLowerCase() === "shartnomalar" || text.startsWith("/shartnomalar")) {
