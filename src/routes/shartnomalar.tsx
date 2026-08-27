@@ -1371,6 +1371,21 @@ function PaymentsDialog({
       return;
     }
     toast.success(t("contracts.toast.paymentAdded"));
+    // Guruhga darhol xabar (Bot bo'limidan yoqib/o'chirish mumkin)
+    try {
+      await notifyPayment({
+        data: {
+          contractId: contract.id,
+          amount,
+          currency,
+          method: method || null,
+          paidAt,
+        },
+      });
+    } catch (e) {
+      console.error("notifyPayment failed", e);
+    }
+
     setAmount(0);
     setMethod("cash");
     setNote("");
