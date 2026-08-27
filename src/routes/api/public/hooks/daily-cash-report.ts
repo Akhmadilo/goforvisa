@@ -133,12 +133,17 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
                 totalUzs === 0 && totalUsd === 0 ? "0" : ""
               }\n<b>To'lovlar soni:</b> ${rows.length}`;
 
-          // rahbariyatni (CEO / owner) otmetka qilish
-          const { data: bosses } = await sb
-            .from("employee_telegram")
-            .select("telegram_id, telegram_username, first_name, last_name")
-            .eq("tenant_id", g.tenant_id)
-            .in("bot_role", ["ceo", "owner"]);
+          // rahbariyatni (CEO / owner) otmetka qilish (Bot bo'limida o'chirish mumkin)
+          const wantMentions = cfg?.mention_bosses !== false;
+          const { data: bosses } = wantMentions
+            ? await sb
+                .from("employee_telegram")
+                .select("telegram_id, telegram_username, first_name, last_name")
+                .eq("tenant_id", g.tenant_id)
+                .in("bot_role", ["ceo", "owner"])
+            : { data: [] as any[] };
+
+
 
           const mentions = ((bosses || []) as any[])
             .map((b) => {
