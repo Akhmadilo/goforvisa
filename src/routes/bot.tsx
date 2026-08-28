@@ -13,12 +13,16 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Bot, Send, Trash2, Save } from "lucide-react";
+import { Bot, Send, Trash2, Save, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   getBotSettings, saveBotSettings, setGroupActive, deleteGroup, sendTestMessage,
-  DEFAULT_PAYMENT_TEMPLATE,
+  listBotUsers, updateBotUser, deleteBotUser,
+  DEFAULT_PAYMENT_TEMPLATE, EMPLOYEE_FEATURES,
 } from "@/lib/bot.functions";
 
 export const Route = createFileRoute("/bot")({
@@ -28,12 +32,12 @@ export const Route = createFileRoute("/bot")({
       { title: "Bot sozlamalari — GoForVisa" },
       {
         name: "description",
-        content: "Telegram bot xabarnomalari: to'lov bildirishnomalari, kunlik kassa hisoboti va guruhlar boshqaruvi",
+        content: "Telegram bot: to'lov bildirishnomalari, ishchilar funksiyalari, guruhlar va bot foydalanuvchilari boshqaruvi",
       },
       { property: "og:title", content: "Bot sozlamalari — GoForVisa" },
       {
         property: "og:description",
-        content: "Telegram bot xabarnomalarini boshqarish: to'lovlar, kunlik hisobot, guruhlar",
+        content: "Telegram botni to'liq boshqarish: xabarnomalar, ishchilar funksiyalari, guruhlar, foydalanuvchilar",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -48,6 +52,8 @@ type FormState = {
   daily_report_hour: number;
   mention_bosses: boolean;
   payment_template: string;
+  employee_features: Record<string, boolean>;
+  welcome_text: string;
 };
 
 const DEFAULTS: FormState = {
@@ -57,7 +63,18 @@ const DEFAULTS: FormState = {
   daily_report_hour: 21,
   mention_bosses: true,
   payment_template: DEFAULT_PAYMENT_TEMPLATE,
+  employee_features: {},
+  welcome_text: "",
 };
+
+const ROLE_OPTIONS = [
+  { value: "none", label: "—" },
+  { value: "director", label: "Direktor" },
+  { value: "ceo", label: "CEO" },
+  { value: "owner", label: "Owner" },
+  { value: "financier", label: "Moliyachi" },
+  { value: "finance", label: "Finance" },
+];
 
 function BotPage() {
   const isAdmin = useIsAdmin();
@@ -67,10 +84,19 @@ function BotPage() {
   const toggleFn = useServerFn(setGroupActive);
   const delFn = useServerFn(deleteGroup);
   const testFn = useServerFn(sendTestMessage);
+  const loadUsers = useServerFn(listBotUsers);
+  const updUserFn = useServerFn(updateBotUser);
+  const delUserFn = useServerFn(deleteBotUser);
 
   const { data, isLoading } = useQuery({
     queryKey: ["bot-settings"],
     queryFn: () => load(),
+    staleTime: 60_000,
+  });
+
+  const { data: usersData } = useQuery({
+    queryKey: ["bot-users"],
+    queryFn: () => loadUsers(),
     staleTime: 60_000,
   });
 
@@ -86,13 +112,17 @@ function BotPage() {
       daily_report_hour: s.daily_report_hour,
       mention_bosses: s.mention_bosses,
       payment_template: (s.payment_template || DEFAULT_PAYMENT_TEMPLATE).replace(/%0A/g, "\n"),
+      employee_features: (s.employee_features as Record<string, boolean>) || {},
+      welcome_text: s.welcome_text || "",
     });
   }, [data?.settings]);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["bot-settings"] });
+  const invalidateUsers = () => qc.invalidateQueries({ queryKey: ["bot-users"] });
 
   const saveMut = useMutation({
-    mutationFn: () => saveFn({ data: form }),
+    mutationFn: () =>
+      saveFn({ data: { ...form, welcome_text: form.welcome_text.trim() || null } }),
     onSuccess: () => { invalidate(); toast.success("Saqlandi"); },
     onError: (e: any) => toast.error(e?.message || "Xatolik"),
   });
@@ -111,6 +141,21 @@ function BotPage() {
     onSuccess: () => toast.success("Test xabar yuborildi"),
     onError: (e: any) => toast.error(e?.message || "Xatolik"),
   });
+  const userMut = useMutation({
+    mutationFn: (v: { id: string; employeeId?: string | null; botRole?: string }) =>
+      updUserFn({ data: v as any }),
+    onSuccess: () => { invalidateUsers(); toast.success("Yangilandi"); },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
+  const delUserMut = useMutation({
+    mutationFn: (id: string) => delUserFn({ data: { id } }),
+    onSuccess: () => { invalidateUsers(); toast.success("O'chirildi"); },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
+
+  const featOn = (k: string) => form.employee_features[k] !== false;
+  const setFeat = (k: string, v: boolean) =>
+    setForm((f) => ({ ...f, employee_features: { ...f.employee_features, [k]: v } }));
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -297,6 +342,128 @@ function BotPage() {
                         disabled={!isAdmin}
                         onClick={() => {
                           if (confirm("Guruh o'chirilsinmi?")) delMut.mutate(Number(g.chat_id));
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </Card>
+
+        <Card className="p-4 md:p-5 mt-4 space-y-4">
+          <div>
+            <div className="font-semibold">Ishchilar uchun bot funksiyalari</div>
+            <p className="text-xs text-muted-foreground">
+              O'chirilgan funksiya bot menyusidan yo'qoladi va ishlamaydi.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {EMPLOYEE_FEATURES.map((f) => (
+              <div key={f.key} className="flex items-center justify-between gap-4 rounded-lg border p-3">
+                <Label className="font-normal">{f.label}</Label>
+                <Switch
+                  checked={featOn(f.key)}
+                  disabled={!isAdmin}
+                  onCheckedChange={(v) => setFeat(f.key, v)}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="space-y-2">
+            <Label>Salomlashuv matni (/start)</Label>
+            <Textarea
+              rows={3}
+              disabled={!isAdmin}
+              placeholder="Assalomu alaykum! 👋"
+              value={form.welcome_text}
+              onChange={(e) => set("welcome_text", e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Bo'sh qoldirilsa standart salomlashuv ishlatiladi.
+            </p>
+          </div>
+          <Button disabled={!isAdmin || saveMut.isPending} onClick={() => saveMut.mutate()}>
+            <Save className="h-4 w-4 mr-1" /> Saqlash
+          </Button>
+        </Card>
+
+        <Card className="p-4 md:p-5 mt-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Users className="h-4 w-4" />
+            <div className="font-semibold">Bot foydalanuvchilari</div>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            Telegram akkauntni ishchiga bog'lang va rahbariyat rolini belgilang.
+          </p>
+          {(usersData?.users ?? []).length === 0 ? (
+            <div className="text-sm text-muted-foreground">Hali foydalanuvchi yo'q.</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Telegram</TableHead>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Ishchi</TableHead>
+                  <TableHead>Rol</TableHead>
+                  <TableHead className="text-right">Amallar</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(usersData?.users ?? []).map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell className="font-medium">
+                      {[u.first_name, u.last_name].filter(Boolean).join(" ") || "—"}
+                      {u.telegram_username ? (
+                        <span className="text-muted-foreground"> @{u.telegram_username}</span>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{u.telegram_id}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={u.employee_id ?? "none"}
+                        disabled={!isAdmin}
+                        onValueChange={(v) =>
+                          userMut.mutate({ id: u.id, employeeId: v === "none" ? null : v })
+                        }
+                      >
+                        <SelectTrigger className="w-44">
+                          <SelectValue placeholder="Tanlang" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Bog'lanmagan</SelectItem>
+                          {(usersData?.employees ?? []).map((e) => (
+                            <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={u.bot_role || "none"}
+                        disabled={!isAdmin}
+                        onValueChange={(v) => userMut.mutate({ id: u.id, botRole: v })}
+                      >
+                        <SelectTrigger className="w-36">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ROLE_OPTIONS.map((r) => (
+                            <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={!isAdmin}
+                        onClick={() => {
+                          if (confirm("Foydalanuvchi o'chirilsinmi?")) delUserMut.mutate(u.id);
                         }}
                       >
                         <Trash2 className="h-4 w-4" />
