@@ -257,3 +257,70 @@ export const notifyPayment = createServerFn({ method: "POST" })
     }
     return { ok: true, sent };
   });
+
+// ---- Bot foydalanuvchilari (ishchi ↔ telegram) ----
+export const listBotUsers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const c = context.supabase;
+    const { data: users } = await c
+      .from("employee_telegram")
+      .select("id, telegram_id, telegram_username, first_name, last_name, employee_id, bot_role")
+      .order("created_at", { ascending: true });
+    const { data: employees } = await c
+      .from("employees")
+      .select("id, full_name")
+      .is("terminated_at", null)
+      .order("full_name");
+    return {
+      users: (users ?? []) as BotUser[],
+      employees: (employees ?? []) as { id: string; full_name: string }[],
+    };
+  });
+
+export const updateBotUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string; employeeId?: string | null; botRole?: string }) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        employeeId: z.string().uuid().nullable().optional(),
+        botRole: z
+          .enum(["none", "director", "finance", "owner", "ceo", "financier"])
+          .optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const c = context.supabase;
+    const { data: isAdmin } = await c.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Faqat admin o'zgartira oladi");
+    const patch: Record<string, unknown> = {};
+    if (data.employeeId !== undefined) {
+      patch.employee_id = data.employeeId;
+      patch.linked_at = data.employeeId ? new Date().toISOString() : null;
+    }
+    if (data.botRole !== undefined) patch.bot_role = data.botRole;
+    if (!Object.keys(patch).length) return { ok: true };
+    const { error } = await c.from("employee_telegram").update(patch).eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const deleteBotUser = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { id: string }) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const c = context.supabase;
+    const { data: isAdmin } = await c.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Faqat admin o'chira oladi");
+    const { error } = await c.from("employee_telegram").delete().eq("id", data.id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
