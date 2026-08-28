@@ -353,6 +353,128 @@ function BotPage() {
             </Table>
           )}
         </Card>
+
+        <Card className="p-4 md:p-5 mt-4 space-y-4">
+          <div>
+            <div className="font-semibold">Ishchilar uchun bot funksiyalari</div>
+            <p className="text-xs text-muted-foreground">
+              O'chirilgan funksiya bot menyusidan yo'qoladi va ishlamaydi.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {EMPLOYEE_FEATURES.map((f) => (
+              <div key={f.key} className="flex items-center justify-between gap-4 rounded-lg border p-3">
+                <Label className="font-normal">{f.label}</Label>
+                <Switch
+                  checked={featOn(f.key)}
+                  disabled={!isAdmin}
+                  onCheckedChange={(v) => setFeat(f.key, v)}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="space-y-2">
+            <Label>Salomlashuv matni (/start)</Label>
+            <Textarea
+              rows={3}
+              disabled={!isAdmin}
+              placeholder="Assalomu alaykum! 👋"
+              value={form.welcome_text}
+              onChange={(e) => set("welcome_text", e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Bo'sh qoldirilsa standart salomlashuv ishlatiladi.
+            </p>
+          </div>
+          <Button disabled={!isAdmin || saveMut.isPending} onClick={() => saveMut.mutate()}>
+            <Save className="h-4 w-4 mr-1" /> Saqlash
+          </Button>
+        </Card>
+
+        <Card className="p-4 md:p-5 mt-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Users className="h-4 w-4" />
+            <div className="font-semibold">Bot foydalanuvchilari</div>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            Telegram akkauntni ishchiga bog'lang va rahbariyat rolini belgilang.
+          </p>
+          {(usersData?.users ?? []).length === 0 ? (
+            <div className="text-sm text-muted-foreground">Hali foydalanuvchi yo'q.</div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Telegram</TableHead>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Ishchi</TableHead>
+                  <TableHead>Rol</TableHead>
+                  <TableHead className="text-right">Amallar</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {(usersData?.users ?? []).map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell className="font-medium">
+                      {[u.first_name, u.last_name].filter(Boolean).join(" ") || "—"}
+                      {u.telegram_username ? (
+                        <span className="text-muted-foreground"> @{u.telegram_username}</span>
+                      ) : null}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{u.telegram_id}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={u.employee_id ?? "none"}
+                        disabled={!isAdmin}
+                        onValueChange={(v) =>
+                          userMut.mutate({ id: u.id, employeeId: v === "none" ? null : v })
+                        }
+                      >
+                        <SelectTrigger className="w-44">
+                          <SelectValue placeholder="Tanlang" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Bog'lanmagan</SelectItem>
+                          {(usersData?.employees ?? []).map((e) => (
+                            <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        value={u.bot_role || "none"}
+                        disabled={!isAdmin}
+                        onValueChange={(v) => userMut.mutate({ id: u.id, botRole: v })}
+                      >
+                        <SelectTrigger className="w-36">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {ROLE_OPTIONS.map((r) => (
+                            <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={!isAdmin}
+                        onClick={() => {
+                          if (confirm("Foydalanuvchi o'chirilsinmi?")) delUserMut.mutate(u.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </Card>
       </main>
     </div>
   );
