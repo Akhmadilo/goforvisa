@@ -84,10 +84,19 @@ function BotPage() {
   const toggleFn = useServerFn(setGroupActive);
   const delFn = useServerFn(deleteGroup);
   const testFn = useServerFn(sendTestMessage);
+  const loadUsers = useServerFn(listBotUsers);
+  const updUserFn = useServerFn(updateBotUser);
+  const delUserFn = useServerFn(deleteBotUser);
 
   const { data, isLoading } = useQuery({
     queryKey: ["bot-settings"],
     queryFn: () => load(),
+    staleTime: 60_000,
+  });
+
+  const { data: usersData } = useQuery({
+    queryKey: ["bot-users"],
+    queryFn: () => loadUsers(),
     staleTime: 60_000,
   });
 
@@ -103,13 +112,17 @@ function BotPage() {
       daily_report_hour: s.daily_report_hour,
       mention_bosses: s.mention_bosses,
       payment_template: (s.payment_template || DEFAULT_PAYMENT_TEMPLATE).replace(/%0A/g, "\n"),
+      employee_features: (s.employee_features as Record<string, boolean>) || {},
+      welcome_text: s.welcome_text || "",
     });
   }, [data?.settings]);
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["bot-settings"] });
+  const invalidateUsers = () => qc.invalidateQueries({ queryKey: ["bot-users"] });
 
   const saveMut = useMutation({
-    mutationFn: () => saveFn({ data: form }),
+    mutationFn: () =>
+      saveFn({ data: { ...form, welcome_text: form.welcome_text.trim() || null } }),
     onSuccess: () => { invalidate(); toast.success("Saqlandi"); },
     onError: (e: any) => toast.error(e?.message || "Xatolik"),
   });
@@ -128,6 +141,21 @@ function BotPage() {
     onSuccess: () => toast.success("Test xabar yuborildi"),
     onError: (e: any) => toast.error(e?.message || "Xatolik"),
   });
+  const userMut = useMutation({
+    mutationFn: (v: { id: string; employeeId?: string | null; botRole?: string }) =>
+      updUserFn({ data: v as any }),
+    onSuccess: () => { invalidateUsers(); toast.success("Yangilandi"); },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
+  const delUserMut = useMutation({
+    mutationFn: (id: string) => delUserFn({ data: { id } }),
+    onSuccess: () => { invalidateUsers(); toast.success("O'chirildi"); },
+    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+  });
+
+  const featOn = (k: string) => form.employee_features[k] !== false;
+  const setFeat = (k: string, v: boolean) =>
+    setForm((f) => ({ ...f, employee_features: { ...f.employee_features, [k]: v } }));
 
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
