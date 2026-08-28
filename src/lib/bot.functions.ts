@@ -111,6 +111,8 @@ export const saveBotSettings = createServerFn({ method: "POST" })
         daily_report_hour: z.number().int().min(0).max(23),
         mention_bosses: z.boolean(),
         payment_template: z.string().trim().min(1).max(1000),
+        employee_features: z.record(z.string(), z.boolean()).default({}),
+        welcome_text: z.string().trim().max(1000).nullable().default(null),
       })
       .parse(d),
   )
