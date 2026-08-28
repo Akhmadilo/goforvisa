@@ -13,12 +13,16 @@ import { Badge } from "@/components/ui/badge";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
-import { Bot, Send, Trash2, Save } from "lucide-react";
+import { Bot, Send, Trash2, Save, Users } from "lucide-react";
 import { toast } from "sonner";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select";
+import {
   getBotSettings, saveBotSettings, setGroupActive, deleteGroup, sendTestMessage,
-  DEFAULT_PAYMENT_TEMPLATE,
+  listBotUsers, updateBotUser, deleteBotUser,
+  DEFAULT_PAYMENT_TEMPLATE, EMPLOYEE_FEATURES,
 } from "@/lib/bot.functions";
 
 export const Route = createFileRoute("/bot")({
@@ -28,12 +32,12 @@ export const Route = createFileRoute("/bot")({
       { title: "Bot sozlamalari — GoForVisa" },
       {
         name: "description",
-        content: "Telegram bot xabarnomalari: to'lov bildirishnomalari, kunlik kassa hisoboti va guruhlar boshqaruvi",
+        content: "Telegram bot: to'lov bildirishnomalari, ishchilar funksiyalari, guruhlar va bot foydalanuvchilari boshqaruvi",
       },
       { property: "og:title", content: "Bot sozlamalari — GoForVisa" },
       {
         property: "og:description",
-        content: "Telegram bot xabarnomalarini boshqarish: to'lovlar, kunlik hisobot, guruhlar",
+        content: "Telegram botni to'liq boshqarish: xabarnomalar, ishchilar funksiyalari, guruhlar, foydalanuvchilar",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -48,6 +52,8 @@ type FormState = {
   daily_report_hour: number;
   mention_bosses: boolean;
   payment_template: string;
+  employee_features: Record<string, boolean>;
+  welcome_text: string;
 };
 
 const DEFAULTS: FormState = {
@@ -57,7 +63,18 @@ const DEFAULTS: FormState = {
   daily_report_hour: 21,
   mention_bosses: true,
   payment_template: DEFAULT_PAYMENT_TEMPLATE,
+  employee_features: {},
+  welcome_text: "",
 };
+
+const ROLE_OPTIONS = [
+  { value: "none", label: "—" },
+  { value: "director", label: "Direktor" },
+  { value: "ceo", label: "CEO" },
+  { value: "owner", label: "Owner" },
+  { value: "financier", label: "Moliyachi" },
+  { value: "finance", label: "Finance" },
+];
 
 function BotPage() {
   const isAdmin = useIsAdmin();
