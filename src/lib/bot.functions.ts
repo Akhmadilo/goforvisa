@@ -298,7 +298,11 @@ export const updateBotUser = createServerFn({ method: "POST" })
       _role: "admin",
     });
     if (!isAdmin) throw new Error("Faqat admin o'zgartira oladi");
-    const patch: Record<string, unknown> = {};
+    const patch: {
+      employee_id?: string | null;
+      linked_at?: string | null;
+      bot_role?: "none" | "director" | "finance" | "owner" | "ceo" | "financier";
+    } = {};
     if (data.employeeId !== undefined) {
       patch.employee_id = data.employeeId;
       patch.linked_at = data.employeeId ? new Date().toISOString() : null;
