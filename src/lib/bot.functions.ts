@@ -188,6 +188,65 @@ export const sendTestMessage = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const broadcastMessage = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { chatId: number; text: string }) =>
+    z.object({ chatId: z.number(), text: z.string().trim().min(1).max(3000) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const c = context.supabase;
+    const { data: isAdmin } = await c.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Faqat admin yubora oladi");
+    const { data: grp } = await c
+      .from("telegram_groups")
+      .select("chat_id")
+      .eq("chat_id", data.chatId)
+      .maybeSingle();
+    if (!grp) throw new Error("Guruh topilmadi");
+    const res: any = await tg("sendMessage", {
+      chat_id: data.chatId,
+      text: data.text,
+      parse_mode: "HTML",
+    });
+    if (!res?.ok) throw new Error(res?.description || "Xabar yuborilmadi");
+    return { ok: true };
+  });
+
+// ---- Bot holati ----
+export const getBotStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const c = context.supabase;
+    const me: any = await tg("getMe", {});
+    const hook: any = await tg("getWebhookInfo", {});
+    const { count: usersCount } = await c
+      .from("employee_telegram")
+      .select("id", { count: "exact", head: true });
+    const { count: linkedCount } = await c
+      .from("employee_telegram")
+      .select("id", { count: "exact", head: true })
+      .not("employee_id", "is", null);
+    const { count: groupsCount } = await c
+      .from("telegram_groups")
+      .select("chat_id", { count: "exact", head: true })
+      .eq("is_active", true);
+    return {
+      online: !!me?.ok,
+      username: (me?.result?.username as string | undefined) ?? null,
+      webhookUrl: (hook?.result?.url as string | undefined) ?? null,
+      pending: (hook?.result?.pending_update_count as number | undefined) ?? 0,
+      lastError: (hook?.result?.last_error_message as string | undefined) ?? null,
+      usersCount: usersCount ?? 0,
+      linkedCount: linkedCount ?? 0,
+      groupsCount: groupsCount ?? 0,
+    };
+  });
+
+
+
 // ---- Instant payment notification ----
 export const notifyPayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
