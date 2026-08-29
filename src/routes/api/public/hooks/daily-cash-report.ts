@@ -75,14 +75,12 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
         let sent = 0;
         for (const g of groups as any[]) {
           const cfg = settingsMap.get(g.tenant_id);
-          if (!force && cfg) {
-            if (cfg.daily_report_enabled === false) continue;
-            if (
-              typeof cfg.daily_report_hour === "number" &&
-              cfg.daily_report_hour !== nowTashkentHour
-            ) {
-              continue;
-            }
+          if (!force) {
+            if (cfg?.daily_report_enabled === false) continue;
+            // Hook is invoked hourly; only the tenant's configured hour sends (default 21:00)
+            const targetHour =
+              typeof cfg?.daily_report_hour === "number" ? cfg.daily_report_hour : 21;
+            if (targetHour !== nowTashkentHour) continue;
           }
 
           const { data: pays } = await sb
