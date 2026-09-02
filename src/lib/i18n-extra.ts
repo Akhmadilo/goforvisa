@@ -5,11 +5,12 @@
 import { cashflowDict } from "./i18n-cashflow";
 import { hrDict } from "./i18n-hr";
 import { adminDict } from "./i18n-admin";
+import { chartsDict } from "./i18n-charts";
 
 export type LangDict = Record<string, string>;
 export type ExtraDict = { uz: LangDict; en: LangDict; ru: LangDict };
 
-const parts: ExtraDict[] = [cashflowDict, hrDict, adminDict];
+const parts: ExtraDict[] = [cashflowDict, hrDict, adminDict, chartsDict];
 
 export const extraDict: ExtraDict = {
   uz: Object.assign({}, ...parts.map((p) => p.uz)),

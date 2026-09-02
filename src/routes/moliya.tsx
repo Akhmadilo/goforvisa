@@ -731,9 +731,9 @@ function FinancePage() {
                   />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
                   <ReferenceLine y={0} stroke="currentColor" opacity={0.3} />
-                  <Bar dataKey="revenue" name="Daromad" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="expense" name="Xarajat" fill="var(--destructive)" radius={[4, 4, 0, 0]} />
-                  <Line type="monotone" dataKey="profit" name="Sof foyda" stroke="var(--chart-2)" strokeWidth={2.5} dot={{ r: 3 }} />
+                  <Bar dataKey="revenue" name={t("chart.revenue")} fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="expense" name={t("chart.expense")} fill="var(--destructive)" radius={[4, 4, 0, 0]} />
+                  <Line type="monotone" dataKey="profit" name={t("chart.netProfit")} stroke="var(--chart-2)" strokeWidth={2.5} dot={{ r: 3 }} />
                 </ComposedChart>
               </ResponsiveContainer>
             </div>
@@ -1405,10 +1405,10 @@ function ForecastCard({
               contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
             />
             <Legend wrapperStyle={{ fontSize: 11 }} />
-            <Line type="monotone" dataKey="actual" name="Haqiqiy" stroke="var(--chart-2)" strokeWidth={2} dot={{ r: 3 }} connectNulls />
-            <Line type="monotone" dataKey="forecast" name="Prognoz (realist)" stroke="var(--chart-1)" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3 }} connectNulls />
-            <Line type="monotone" dataKey="high" name="Optimist" stroke="var(--chart-3)" strokeWidth={1} strokeDasharray="2 4" dot={false} opacity={0.5} />
-            <Line type="monotone" dataKey="low" name="Pessimist" stroke="var(--destructive)" strokeWidth={1} strokeDasharray="2 4" dot={false} opacity={0.5} />
+            <Line type="monotone" dataKey="actual" name={t("chart.actual")} stroke="var(--chart-2)" strokeWidth={2} dot={{ r: 3 }} connectNulls />
+            <Line type="monotone" dataKey="forecast" name={t("chart.forecast")} stroke="var(--chart-1)" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3 }} connectNulls />
+            <Line type="monotone" dataKey="high" name={t("chart.optimistic")} stroke="var(--chart-3)" strokeWidth={1} strokeDasharray="2 4" dot={false} opacity={0.5} />
+            <Line type="monotone" dataKey="low" name={t("chart.pessimistic")} stroke="var(--destructive)" strokeWidth={1} strokeDasharray="2 4" dot={false} opacity={0.5} />
           </LineChart>
         </ResponsiveContainer>
       </div>
