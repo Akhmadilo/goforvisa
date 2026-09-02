@@ -19,6 +19,7 @@ import { useIsAdmin } from "@/hooks/use-is-admin";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { createLeaveRequest } from "@/lib/leaves.functions";
+import { useT } from "@/lib/i18n";
 
 type LeaveStatus = "pending" | "approved" | "rejected";
 type CeoStatus = "pending" | "approved" | "rejected";
@@ -46,6 +47,7 @@ function fmtMoney(n: number) {
 }
 
 export function LeavesSection() {
+  const { t } = useT();
   const { user } = useAuth();
   const isAdmin = useIsAdmin();
   const qc = useQueryClient();
@@ -117,20 +119,20 @@ export function LeavesSection() {
   }), [leaves]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("So'rovni o'chirishni tasdiqlaysizmi?")) return;
+    if (!confirm(t("lv.confirmDelete"))) return;
     const { error } = await supabase.from("leave_requests").delete().eq("id", id);
-    if (error) toast.error(error.message); else toast.success("O'chirildi");
+    if (error) toast.error(error.message); else toast.success(t("lv.deleted"));
   };
 
   if (!canAccess) {
-    return <Card className="p-10 text-center text-muted-foreground">Ruxsat yo'q</Card>;
+    return <Card className="p-10 text-center text-muted-foreground">{t("lv.noAccess")}</Card>;
   }
 
   const filterChips = [
-    { key: "pending" as const, label: `Kutilmoqda (${counts.pending})` },
-    { key: "approved" as const, label: `Tasdiqlangan (${counts.approved})` },
-    { key: "rejected" as const, label: `Rad etilgan (${counts.rejected})` },
-    { key: "all" as const, label: "Barchasi" },
+    { key: "pending" as const, label: t("lv.filter.pending", { n: counts.pending }) },
+    { key: "approved" as const, label: t("lv.filter.approved", { n: counts.approved }) },
+    { key: "rejected" as const, label: t("lv.filter.rejected", { n: counts.rejected }) },
+    { key: "all" as const, label: t("lv.filter.all") },
   ];
 
   return (
@@ -156,13 +158,13 @@ export function LeavesSection() {
             onClick={() => setFormOpen(true)}
             className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white h-9 px-3"
           >
-            <Plus className="h-4 w-4" /> Yangi so'rov
+            <Plus className="h-4 w-4" /> {t("lv.newRequest")}
           </Button>
         </div>
       </Card>
 
       {filtered.length === 0 ? (
-        <Card className="p-10 text-center text-muted-foreground">So'rovlar yo'q</Card>
+        <Card className="p-10 text-center text-muted-foreground">{t("lv.noRequests")}</Card>
       ) : (
         <div className="space-y-2">
           {filtered.map((l) => (
@@ -178,32 +180,32 @@ export function LeavesSection() {
                         ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30"
                         : "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
                       }>
-                        {l.salary_counts ? "Oylik hisoblanadi" : "Oylik hisoblanmaydi"}
+                        {l.salary_counts ? t("lv.salaryCounts") : t("lv.salaryNotCounts")}
                       </Badge>
                     )}
                     {l.status === "approved" && l.salary_counts && l.fine_amount_uzs > 0 && (
                       <Badge variant="outline" className="bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/30">
-                        Jarima: {fmtMoney(l.fine_amount_uzs)} so'm
+                        {t("lv.fine")}: {fmtMoney(l.fine_amount_uzs)} {t("lv.som")}
                       </Badge>
                     )}
                   </div>
-                  {l.reason && <div className="text-sm text-muted-foreground mt-1">Sabab: {l.reason}</div>}
-                  {l.note && <div className="text-xs text-muted-foreground mt-0.5">Izoh: {l.note}</div>}
+                  {l.reason && <div className="text-sm text-muted-foreground mt-1">{t("lv.reason")}: {l.reason}</div>}
+                  {l.note && <div className="text-xs text-muted-foreground mt-0.5">{t("lv.note")}: {l.note}</div>}
                 </div>
                 <div className="flex items-center gap-1.5">
                   {l.status === "pending" && l.ceo_status === "pending" && (
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" /> Direktor Telegramda tasdiqlashi kutilmoqda
+                      <Clock className="h-3 w-3" /> {t("lv.waitingCeo")}
                     </span>
                   )}
                   {l.status === "pending" && l.ceo_status === "approved" && isAdmin && (
                     <Button size="sm" onClick={() => setDecideOpen(l)} className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white">
-                      <Check className="h-3.5 w-3.5" /> Yakuniylashtirish
+                      <Check className="h-3.5 w-3.5" /> {t("lv.finalize")}
                     </Button>
                   )}
                   {l.status === "pending" && l.ceo_status === "approved" && !isAdmin && (
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <Clock className="h-3 w-3" /> Admin yakuniylashtirishi kutilmoqda
+                      <Clock className="h-3 w-3" /> {t("lv.waitingAdmin")}
                     </span>
                   )}
                   {isAdmin && (
@@ -235,11 +237,12 @@ export function LeavesSection() {
 }
 
 function StatusBadge({ status }: { status: LeaveStatus }) {
+  const { t } = useT();
   if (status === "pending")
-    return <Badge variant="outline" className="bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 border-yellow-500/30 gap-1"><Clock className="h-3 w-3" /> Kutilmoqda</Badge>;
+    return <Badge variant="outline" className="bg-yellow-500/10 text-yellow-700 dark:text-yellow-300 border-yellow-500/30 gap-1"><Clock className="h-3 w-3" /> {t("lv.status.pending")}</Badge>;
   if (status === "approved")
-    return <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 gap-1"><Check className="h-3 w-3" /> Tasdiqlangan</Badge>;
-  return <Badge variant="outline" className="bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/30 gap-1"><X className="h-3 w-3" /> Rad etilgan</Badge>;
+    return <Badge variant="outline" className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30 gap-1"><Check className="h-3 w-3" /> {t("lv.status.approved")}</Badge>;
+  return <Badge variant="outline" className="bg-red-500/10 text-red-700 dark:text-red-300 border-red-500/30 gap-1"><X className="h-3 w-3" /> {t("lv.status.rejected")}</Badge>;
 }
 
 function LeaveFormDialog({
@@ -250,6 +253,7 @@ function LeaveFormDialog({
   employees: Employee[];
   userId: string | null;
 }) {
+  const { t } = useT();
   const [employeeId, setEmployeeId] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [reason, setReason] = useState("");
@@ -266,14 +270,14 @@ function LeaveFormDialog({
   const createFn = useServerFn(createLeaveRequest);
 
   const handleSave = async () => {
-    if (!employeeId) { toast.error("Ishchini tanlang"); return; }
+    if (!employeeId) { toast.error(t("lv.selectEmployee")); return; }
     setSaving(true);
     try {
       await createFn({ data: { employeeId, date, reason: reason.trim() || undefined } });
-      toast.success("So'rov yaratildi — direktorga Telegramda yuborildi");
+      toast.success(t("lv.createdSent"));
       onOpenChange(false);
     } catch (e: any) {
-      toast.error(e?.message || "Xatolik");
+      toast.error(e?.message || t("lv.error"));
     } finally {
       setSaving(false);
     }
@@ -283,14 +287,14 @@ function LeaveFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Yangi javob so'rash</DialogTitle>
+          <DialogTitle>{t("lv.newRequestTitle")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Ishchi *</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("lv.employee")} *</label>
             <Select value={employeeId} onValueChange={setEmployeeId}>
               <SelectTrigger>
-                <SelectValue placeholder="Tanlang" />
+                <SelectValue placeholder={t("lv.select")} />
               </SelectTrigger>
               <SelectContent>
                 {employees.map((e) => (
@@ -300,21 +304,21 @@ function LeaveFormDialog({
             </Select>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Sana *</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("lv.date")} *</label>
             <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Sabab</label>
-            <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder="Nima uchun kela olmayapsiz..." />
+            <label className="text-xs text-muted-foreground mb-1 block">{t("lv.reason")}</label>
+            <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} placeholder={t("lv.reasonPlaceholder")} />
           </div>
           <div className="text-xs text-muted-foreground bg-muted/40 rounded p-2">
-            So'rov "Kutilmoqda" holatida saqlanadi. Direktor "oylik hisoblanmasin" desa avtomat 120 000 so'm jarima qo'llaniladi.
+            {t("lv.formHint")}
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Bekor qilish</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t("lv.cancel")}</Button>
           <Button onClick={handleSave} disabled={saving} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-            {saving ? "Saqlanmoqda..." : "Yuborish"}
+            {saving ? t("lv.saving") : t("lv.send")}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -330,6 +334,7 @@ function DecideDialog({
   userId: string | null;
   empName: string;
 }) {
+  const { t } = useT();
   const [salaryCounts, setSalaryCounts] = useState(true);
   const [fineStr, setFineStr] = useState("");
   const [note, setNote] = useState("");
@@ -391,7 +396,7 @@ function DecideDialog({
     }
 
     setSaving(false);
-    toast.success(status === "approved" ? "Tasdiqlandi" : "Rad etildi");
+    toast.success(status === "approved" ? t("lv.approved") : t("lv.rejected"));
     onOpenChange(false);
   };
 
@@ -399,20 +404,20 @@ function DecideDialog({
     <Dialog open={!!leave} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>So'rovni ko'rib chiqish</DialogTitle>
+          <DialogTitle>{t("lv.reviewRequest")}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
           <div className="rounded-md border border-border p-3 bg-muted/30 text-sm space-y-1">
-            <div><span className="text-muted-foreground">Ishchi:</span> <span className="font-medium">{empName}</span></div>
-            <div><span className="text-muted-foreground">Sana:</span> <span className="font-mono">{leave.date}</span></div>
-            {leave.reason && <div><span className="text-muted-foreground">Sabab:</span> {leave.reason}</div>}
+            <div><span className="text-muted-foreground">{t("lv.employee")}:</span> <span className="font-medium">{empName}</span></div>
+            <div><span className="text-muted-foreground">{t("lv.date")}:</span> <span className="font-mono">{leave.date}</span></div>
+            {leave.reason && <div><span className="text-muted-foreground">{t("lv.reason")}:</span> {leave.reason}</div>}
           </div>
 
           <div className="flex items-center justify-between rounded-md border border-border px-3 py-2">
             <div className="text-sm">
-              <div className="font-medium">Oylik hisoblansinmi?</div>
+              <div className="font-medium">{t("lv.shouldSalaryCount")}</div>
               <div className="text-xs text-muted-foreground">
-                {salaryCounts ? "Ha — bu kun ish kuni sifatida hisoblanadi" : "Yo'q — bu kun uchun oylik hisoblanmaydi"}
+                {salaryCounts ? t("lv.salaryCountYes") : t("lv.salaryCountNo")}
               </div>
             </div>
             <Switch checked={salaryCounts} onCheckedChange={setSalaryCounts} />
@@ -420,33 +425,33 @@ function DecideDialog({
 
           {salaryCounts ? (
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Jarima summasi (so'mda, ixtiyoriy)</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("lv.fineAmount")}</label>
               <Input
                 type="text"
                 inputMode="numeric"
                 value={fineStr}
                 onChange={(e) => setFineStr(e.target.value)}
-                placeholder="Masalan: 120 000"
+                placeholder={t("lv.fineAmountPlaceholder")}
               />
-              <p className="text-[11px] text-muted-foreground mt-1">Bo'sh qoldirilsa jarima qo'llanilmaydi</p>
+              <p className="text-[11px] text-muted-foreground mt-1">{t("lv.fineAmountHint")}</p>
             </div>
           ) : (
             <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-300">
-              ⚠️ Kelmagan kun uchun avtomat <strong>120 000 so'm</strong> jarima qo'llaniladi.
+              {t("lv.autoFineWarning")}
             </div>
           )}
 
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Direktor izohi</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("lv.ceoNote")}</label>
             <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} />
           </div>
         </div>
         <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button variant="outline" onClick={() => decide("rejected")} disabled={saving} className="gap-1">
-            <X className="h-4 w-4" /> Rad etish
+            <X className="h-4 w-4" /> {t("lv.reject")}
           </Button>
           <Button onClick={() => decide("approved")} disabled={saving} className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white">
-            <Check className="h-4 w-4" /> Tasdiqlash
+            <Check className="h-4 w-4" /> {t("lv.approve")}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -11,6 +11,7 @@ import {
 import { ArrowDownCircle, ArrowUpCircle, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 
 type Row = {
   key: string;
@@ -34,6 +35,7 @@ export function CashFlowStatement({
   monthNames: string[];
   enabled: boolean;
 }) {
+  const { t } = useT();
   const { data: contractPays = [] } = useQuery({
     queryKey: ["cf-contract-payments"],
     queryFn: async () => {
@@ -152,23 +154,23 @@ export function CashFlowStatement({
             <Wallet className="h-4 w-4" />
           </span>
           <div>
-            <h3 className="text-base font-semibold">Pul oqimi hisoboti (Cash Flow)</h3>
-            <p className="text-xs text-muted-foreground">Haqiqiy to'lovlar asosida — kirim, chiqim va sof pul oqimi</p>
+            <h3 className="text-base font-semibold">{t("cf.title")}</h3>
+            <p className="text-xs text-muted-foreground">{t("cf.subtitle")}</p>
           </div>
         </div>
         <Badge variant="outline" className={cn(
           "tabular-nums",
           closing >= 0 ? "text-emerald-600 dark:text-emerald-400 border-emerald-500/40" : "text-rose-600 dark:text-rose-400 border-rose-500/40",
         )}>
-          Yakuniy qoldiq: {fmt(closing)}
+          {t("cf.closingBalance")}: {fmt(closing)}
         </Badge>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        <MiniStat label="Pul kirimi" value={fmt(totals.inflow)} tone="green" icon={<ArrowDownCircle className="h-4 w-4" />} />
-        <MiniStat label="Operatsion chiqim" value={fmt(totals.opex)} tone="red" icon={<ArrowUpCircle className="h-4 w-4" />} />
-        <MiniStat label="Oyliklar to'lovi" value={fmt(totals.salaries)} tone="amber" icon={<ArrowUpCircle className="h-4 w-4" />} />
-        <MiniStat label="Sof pul oqimi" value={fmt(totals.net)} tone={totals.net >= 0 ? "green" : "red"} icon={<Wallet className="h-4 w-4" />} />
+        <MiniStat label={t("cf.inflow")} value={fmt(totals.inflow)} tone="green" icon={<ArrowDownCircle className="h-4 w-4" />} />
+        <MiniStat label={t("cf.opex")} value={fmt(totals.opex)} tone="red" icon={<ArrowUpCircle className="h-4 w-4" />} />
+        <MiniStat label={t("cf.salaries")} value={fmt(totals.salaries)} tone="amber" icon={<ArrowUpCircle className="h-4 w-4" />} />
+        <MiniStat label={t("cf.netFlow")} value={fmt(totals.net)} tone={totals.net >= 0 ? "green" : "red"} icon={<Wallet className="h-4 w-4" />} />
       </div>
 
       <div className="h-[300px] w-full mb-5">
@@ -183,9 +185,9 @@ export function CashFlowStatement({
             />
             <Legend wrapperStyle={{ fontSize: 12 }} />
             <ReferenceLine y={0} stroke="rgb(100 116 139)" />
-            <Bar dataKey="inflow" name="Kirim" fill="rgb(16 185 129)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="outflow" name="Chiqim" fill="rgb(244 63 94)" radius={[4, 4, 0, 0]} />
-            <Line type="monotone" dataKey="cumulative" name="Kumulyativ qoldiq" stroke="rgb(14 165 233)" strokeWidth={2.5} dot={false} />
+            <Bar dataKey="inflow" name={t("cf.chart.inflow")} fill="rgb(16 185 129)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="outflow" name={t("cf.chart.outflow")} fill="rgb(244 63 94)" radius={[4, 4, 0, 0]} />
+            <Line type="monotone" dataKey="cumulative" name={t("cf.chart.cumulative")} stroke="rgb(14 165 233)" strokeWidth={2.5} dot={false} />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
@@ -194,20 +196,20 @@ export function CashFlowStatement({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Oy</TableHead>
-              <TableHead className="text-right">Mijozlardan kirim</TableHead>
-              <TableHead className="text-right">Operatsion chiqim</TableHead>
-              <TableHead className="text-right">Oyliklar</TableHead>
-              <TableHead className="text-right">Jami chiqim</TableHead>
-              <TableHead className="text-right">Sof pul oqimi</TableHead>
-              <TableHead className="text-right">Kumulyativ</TableHead>
+              <TableHead>{t("cf.th.month")}</TableHead>
+              <TableHead className="text-right">{t("cf.th.clientInflow")}</TableHead>
+              <TableHead className="text-right">{t("cf.th.opex")}</TableHead>
+              <TableHead className="text-right">{t("cf.th.salaries")}</TableHead>
+              <TableHead className="text-right">{t("cf.th.totalOutflow")}</TableHead>
+              <TableHead className="text-right">{t("cf.th.net")}</TableHead>
+              <TableHead className="text-right">{t("cf.th.cumulative")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {rows.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} className="text-center text-muted-foreground py-6">
-                  Tanlangan davr uchun to'lovlar topilmadi
+                  {t("cf.empty")}
                 </TableCell>
               </TableRow>
             )}
@@ -227,7 +229,7 @@ export function CashFlowStatement({
             ))}
             {rows.length > 0 && (
               <TableRow className="bg-muted/40 font-semibold">
-                <TableCell>Jami</TableCell>
+                <TableCell>{t("cf.total")}</TableCell>
                 <TableCell className="text-right tabular-nums">{fmt(totals.inflow)}</TableCell>
                 <TableCell className="text-right tabular-nums">{fmt(totals.opex)}</TableCell>
                 <TableCell className="text-right tabular-nums">{fmt(totals.salaries)}</TableCell>
