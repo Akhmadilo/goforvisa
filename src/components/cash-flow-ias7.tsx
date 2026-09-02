@@ -8,6 +8,7 @@ import {
 import { Landmark } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 
 type Line = {
   label: string;
@@ -41,6 +42,7 @@ export function CashFlowIas7({
   fmt: (n: number) => string;
   enabled: boolean;
 }) {
+  const { t } = useT();
   const { data: contractPays = [] } = useQuery({
     queryKey: ["ias7-contract-payments"],
     queryFn: async () => {
@@ -146,28 +148,28 @@ export function CashFlowIas7({
     const closingCash = openingCash + netChange;
 
     const lines: Line[] = [
-      { label: "Operatsion faoliyatdan pul oqimi", value: NaN, kind: "section" },
-      { label: "Mijozlardan tushgan tushum", value: receipts, kind: "item", hint: "Shartnoma to'lovlari" },
-      { label: "Yetkazib beruvchilarga to'lovlar", value: -suppliers, kind: "item", hint: "Operatsion xarajatlar" },
-      { label: "Xodimlarga to'langan ish haqi", value: -employees, kind: "item" },
-      { label: "Xodimlarga berilgan avanslar", value: -advances, kind: "item" },
-      { label: "Operatsion faoliyatdan sof pul oqimi", value: operating, kind: "subtotal" },
+      { label: t("ias7.section.operating"), value: NaN, kind: "section" },
+      { label: t("ias7.line.receipts"), value: receipts, kind: "item", hint: t("ias7.line.receipts.hint") },
+      { label: t("ias7.line.suppliers"), value: -suppliers, kind: "item", hint: t("ias7.line.suppliers.hint") },
+      { label: t("ias7.line.employees"), value: -employees, kind: "item" },
+      { label: t("ias7.line.advances"), value: -advances, kind: "item" },
+      { label: t("ias7.subtotal.operating"), value: operating, kind: "subtotal" },
 
-      { label: "Investitsion faoliyatdan pul oqimi", value: NaN, kind: "section" },
-      { label: "Asosiy vositalar va jihozlarni sotib olish", value: -investing, kind: "item" },
-      { label: "Investitsion faoliyatdan sof pul oqimi", value: -investing, kind: "subtotal" },
+      { label: t("ias7.section.investing"), value: NaN, kind: "section" },
+      { label: t("ias7.line.investing"), value: -investing, kind: "item" },
+      { label: t("ias7.subtotal.investing"), value: -investing, kind: "subtotal" },
 
-      { label: "Moliyaviy faoliyatdan pul oqimi", value: NaN, kind: "section" },
-      { label: "Kredit/qarz to'lovlari va dividendlar", value: -financing, kind: "item" },
-      { label: "Moliyaviy faoliyatdan sof pul oqimi", value: -financing, kind: "subtotal" },
+      { label: t("ias7.section.financing"), value: NaN, kind: "section" },
+      { label: t("ias7.line.financing"), value: -financing, kind: "item" },
+      { label: t("ias7.subtotal.financing"), value: -financing, kind: "subtotal" },
 
-      { label: "Pul mablag'larining sof o'zgarishi", value: netChange, kind: "total" },
-      { label: "Davr boshiga pul qoldig'i", value: openingCash, kind: "item" },
-      { label: "Davr oxiriga pul qoldig'i", value: closingCash, kind: "total" },
+      { label: t("ias7.total.netChange"), value: netChange, kind: "total" },
+      { label: t("ias7.line.opening"), value: openingCash, kind: "item" },
+      { label: t("ias7.total.closing"), value: closingCash, kind: "total" },
     ];
 
     return { lines, operating, netChange, closingCash };
-  }, [contractPays, expensePays, salaryPays, year, months, currency, getRate]);
+  }, [contractPays, expensePays, salaryPays, year, months, currency, getRate, t]);
 
   return (
     <Card className="p-4 md:p-6 border-border/70 bg-card/80" data-export-block>
@@ -177,14 +179,14 @@ export function CashFlowIas7({
             <Landmark className="h-4 w-4" />
           </span>
           <div>
-            <h3 className="text-base font-semibold">Pul oqimi to'g'risidagi hisobot (IAS 7)</h3>
+            <h3 className="text-base font-semibold">{t("ias7.title")}</h3>
             <p className="text-xs text-muted-foreground">
-              Xalqaro standart (IFRS / IAS 7) — to'g'ridan-to'g'ri usul: operatsion, investitsion va moliyaviy faoliyat
+              {t("ias7.subtitle")}
             </p>
           </div>
         </div>
         <Badge variant="outline" className="tabular-nums">
-          Davr oxiriga qoldiq: {fmt(calc.closingCash)}
+          {t("ias7.closing")}: {fmt(calc.closingCash)}
         </Badge>
       </div>
 
@@ -192,8 +194,8 @@ export function CashFlowIas7({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Ko'rsatkich</TableHead>
-              <TableHead className="text-right">Summa ({currency})</TableHead>
+              <TableHead>{t("ias7.th.indicator")}</TableHead>
+              <TableHead className="text-right">{t("ias7.th.amount")} ({currency})</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -229,9 +231,7 @@ export function CashFlowIas7({
       </div>
 
       <p className="mt-3 text-[11px] text-muted-foreground">
-        Izoh: hisobot faqat haqiqiy pul harakatlari (to'lovlar) asosida tuzilgan. Xarajat kategoriyalari
-        avtomatik ravishda operatsion, investitsion va moliyaviy faoliyatga ajratiladi. Davr boshiga qoldiq —
-        tanlangan davrgacha bo'lgan barcha to'lovlar farqi.
+        {t("ias7.footnote")}
       </p>
     </Card>
   );

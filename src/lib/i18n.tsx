@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { extraDict } from "./i18n-extra";
 
 export type Lang = "uz" | "en" | "ru";
 
@@ -1459,7 +1460,13 @@ const dict = {
   },
 } as const;
 
-export type I18nKey = keyof (typeof dict)["uz"];
+const merged = {
+  uz: { ...(dict.uz as Record<string, string>), ...extraDict.uz },
+  en: { ...(dict.en as Record<string, string>), ...extraDict.en },
+  ru: { ...(dict.ru as Record<string, string>), ...extraDict.ru },
+};
+
+export type I18nKey = keyof (typeof dict)["uz"] | (string & {});
 
 type Ctx = {
   lang: Lang;
@@ -1488,7 +1495,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   };
 
   const t = (k: I18nKey, vars?: Record<string, string | number>) => {
-    const raw = (dict[lang] as Record<string, string>)[k] ?? (dict.uz as Record<string, string>)[k] ?? k;
+    const raw = merged[lang][k] ?? merged.uz[k] ?? k;
     return format(raw, vars);
   };
   return <I18nContext.Provider value={{ lang, setLang, t }}>{children}</I18nContext.Provider>;

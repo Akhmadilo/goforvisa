@@ -1119,7 +1119,7 @@ function Dashboard() {
                       }}
                       formatter={(v: number) => fmtUsd(v)}
                     />
-                    <Bar dataKey="revenue" name="Daromad" radius={[6, 6, 0, 0]}>
+                    <Bar dataKey="revenue" name={t("chart.revenue")} radius={[6, 6, 0, 0]}>
                       {visaBI.revenueByStage.map((d, i) => (
                         <Cell key={i} fill={d.fill} />
                       ))}
@@ -1310,7 +1310,7 @@ function Dashboard() {
                   <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} angle={-20} textAnchor="end" height={60} interval={0} />
                   <YAxis stroke="var(--color-muted-foreground)" fontSize={11} allowDecimals={false} />
                   <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: "8px" }} />
-                  <Bar dataKey="contracts" fill="var(--color-chart-1)" name="Shartnomalar" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="contracts" fill="var(--color-chart-1)" name={t("chart.contracts")} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -1354,7 +1354,7 @@ function Dashboard() {
                   <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} angle={-20} textAnchor="end" height={60} interval={0} />
                   <YAxis stroke="var(--color-muted-foreground)" fontSize={11} allowDecimals={false} />
                   <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: "8px" }} />
-                  <Bar dataKey="contracts" fill="var(--color-chart-2)" name="Shartnomalar" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="contracts" fill="var(--color-chart-2)" name={t("chart.contracts")} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
