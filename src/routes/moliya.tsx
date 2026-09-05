@@ -1304,6 +1304,7 @@ function ForecastCard({
   fmt: (n: number) => string;
   fmtShort: (n: number) => string;
 }) {
+  const { t } = useT();
   const history = useMemo(
     () => buildRevenueHistory(contracts, getRate, currency),
     [contracts, getRate, currency],

@@ -12,7 +12,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { useT, LANGUAGES, type Lang } from "@/lib/i18n";
+import { useT, LANGUAGES, getMonthNames, type Lang } from "@/lib/i18n";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useAuth } from "@/hooks/use-auth";
@@ -22,11 +22,6 @@ export const Route = createFileRoute("/settings")({
   component: SettingsPage,
   head: () => ({ meta: [{ title: "Settings" }] }),
 });
-
-const UZ_MONTHS = [
-  "Yanvar", "Fevral", "Mart", "Aprel", "May", "Iyun",
-  "Iyul", "Avgust", "Sentabr", "Oktabr", "Noyabr", "Dekabr",
-];
 
 type UsdRateRow = {
   id: string;
@@ -84,9 +79,9 @@ function SettingsPage() {
         {isAdmin && <UsdRatesCard />}
         {isAdmin && <OperatorsCard />}
 
-        {isAdmin && <LookupCard tableName="contract_types" title="Shartnoma turlari" hint="Shartnoma yaratishda tanlanadigan turlar (Tourist, Student, Work…)." invalidateKey="contract_types" refTable="contracts" refColumn="contract_type" />}
-        {isAdmin && <LookupCard tableName="companies" title="Kompaniyalar" hint="Shartnoma yaratishda tanlanadigan kompaniyalar (Dream, Go for Visa…)." invalidateKey="companies" refTable="contracts" refColumn="company" />}
-          {isAdmin && <LookupCard tableName="expense_categories" title="Xarajat kategoriyalari" hint="Xarajat yaratishda tanlanadigan kategoriyalar." invalidateKey="expense_categories" refTable="expenses" refColumn="category" />}
+        {isAdmin && <LookupCard tableName="contract_types" title={t("settings.contractTypes")} hint={t("settings.contractTypesHint")} invalidateKey="contract_types" refTable="contracts" refColumn="contract_type" />}
+        {isAdmin && <LookupCard tableName="companies" title={t("settings.companies")} hint={t("settings.companiesHint")} invalidateKey="companies" refTable="contracts" refColumn="company" />}
+          {isAdmin && <LookupCard tableName="expense_categories" title={t("settings.expenseCategories")} hint={t("settings.expenseCategoriesHint")} invalidateKey="expense_categories" refTable="expenses" refColumn="category" />}
         </div>
       </div>
     </div>
@@ -94,6 +89,7 @@ function SettingsPage() {
 }
 
 function LookupCard({ tableName, title, hint, invalidateKey, refTable, refColumn }: { tableName: string; title: string; hint: string; invalidateKey: string; refTable: string; refColumn: string }) {
+  const { t } = useT();
   const qc = useQueryClient();
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -118,12 +114,12 @@ function LookupCard({ tableName, title, hint, invalidateKey, refTable, refColumn
 
   const add = async () => {
     const n = name.trim();
-    if (!n) { toast.error("Nom kiriting"); return; }
+    if (!n) { toast.error(t("settings.enterName")); return; }
     setSaving(true);
     const { error } = await (supabase as any).from(tableName).insert({ name: n });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Qo'shildi");
+    toast.success(t("settings.added"));
     setName("");
     invalidateAll();
   };
@@ -136,10 +132,10 @@ function LookupCard({ tableName, title, hint, invalidateKey, refTable, refColumn
 
   const saveEdit = async (oldName: string) => {
     const n = editName.trim();
-    if (!n) { toast.error("Nom kiriting"); return; }
+    if (!n) { toast.error(t("settings.enterName")); return; }
     if (n === oldName) { cancelEdit(); return; }
     if (rows.some((r) => r.id !== editId && r.name.toLowerCase() === n.toLowerCase())) {
-      toast.error("Bu nom allaqachon mavjud");
+      toast.error(t("settings.nameExists"));
       return;
     }
     setSaving(true);
@@ -149,17 +145,17 @@ function LookupCard({ tableName, title, hint, invalidateKey, refTable, refColumn
     // Cascade rename referencing rows
     const ref = await (supabase as any).from(refTable).update({ [refColumn]: n }).eq(refColumn, oldName);
     setSaving(false);
-    if (ref.error) { toast.error(`Yangilandi, lekin ${refTable} yangilanmadi: ${ref.error.message}`); }
-    else { toast.success("Yangilandi va barcha yozuvlarga qo'llanildi"); }
+    if (ref.error) { toast.error(t("settings.updatedRefFail", { table: refTable, msg: ref.error.message })); }
+    else { toast.success(t("settings.updatedApplied")); }
     cancelEdit();
     invalidateAll();
   };
 
   const remove = async (id: string) => {
-    if (!confirm("O'chirilsinmi?")) return;
+    if (!confirm(t("settings.confirmDelete"))) return;
     const { error } = await (supabase as any).from(tableName).delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
-    toast.success("O'chirildi");
+    toast.success(t("settings.deleted"));
     invalidateAll();
   };
 
@@ -169,19 +165,19 @@ function LookupCard({ tableName, title, hint, invalidateKey, refTable, refColumn
       <p className="mt-1 text-sm text-muted-foreground">{hint}</p>
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
         <div className="sm:col-span-3">
-          <label className="text-xs text-muted-foreground mb-1 block">Nom</label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Yangi nom" onKeyDown={(e) => e.key === "Enter" && add()} />
+          <label className="text-xs text-muted-foreground mb-1 block">{t("settings.name")}</label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("settings.newName")} onKeyDown={(e) => e.key === "Enter" && add()} />
         </div>
         <Button onClick={add} disabled={saving} className="gap-1.5">
           <Plus className="h-4 w-4" />
-          {saving ? "Saqlanmoqda..." : "Qo'shish"}
+          {saving ? t("common.saving") : t("common.add")}
         </Button>
       </div>
       <div className="mt-4 rounded-md border border-border">
         {isLoading ? (
-          <div className="p-3 text-xs text-muted-foreground">Yuklanmoqda...</div>
+          <div className="p-3 text-xs text-muted-foreground">{t("common.loading")}</div>
         ) : rows.length === 0 ? (
-          <div className="p-3 text-xs text-muted-foreground">Hali qo'shilmagan</div>
+          <div className="p-3 text-xs text-muted-foreground">{t("settings.notAddedYet")}</div>
         ) : (
           <div className="divide-y">
             {rows.map((r) => (
@@ -232,13 +228,17 @@ function LookupCard({ tableName, title, hint, invalidateKey, refTable, refColumn
 type OperatorKind = "call_centre" | "sales" | "back_office";
 type OperatorRow = { id: string; kind: OperatorKind; name: string; is_active?: boolean };
 
-const KIND_LABELS: Record<OperatorKind, string> = {
-  call_centre: "Call centre",
-  sales: "Sotuv (Sales)",
-  back_office: "Back office",
-};
+function getKindLabels(t: (key: string, params?: Record<string, any>) => string): Record<OperatorKind, string> {
+  return {
+    call_centre: t("settings.callCentre"),
+    sales: t("settings.sales"),
+    back_office: t("settings.backOffice"),
+  };
+}
 
 function OperatorsCard() {
+  const { t } = useT();
+  const KIND_LABELS = getKindLabels(t);
   const qc = useQueryClient();
   const [kind, setKind] = useState<OperatorKind>("sales");
   const [name, setName] = useState("");
@@ -268,21 +268,21 @@ function OperatorsCard() {
 
   const add = async () => {
     const n = name.trim();
-    if (!n) { toast.error("Ism kiriting"); return; }
+    if (!n) { toast.error(t("settings.enterFullName")); return; }
     setSaving(true);
     const { error } = await (supabase as any).from("operators").insert({ kind, name: n });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Qo'shildi");
+    toast.success(t("settings.added"));
     setName("");
     invalidateAll();
   };
 
   const remove = async (id: string) => {
-    if (!confirm("O'chirilsinmi?")) return;
+    if (!confirm(t("settings.confirmDelete"))) return;
     const { error } = await (supabase as any).from("operators").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
-    toast.success("O'chirildi");
+    toast.success(t("settings.deleted"));
     invalidateAll();
   };
 
@@ -293,7 +293,7 @@ function OperatorsCard() {
       .update({ is_active: next })
       .eq("id", r.id);
     if (error) { toast.error(error.message); return; }
-    toast.success(next ? "Faol qilindi" : "Nofaol qilindi");
+    toast.success(next ? t("settings.activated") : t("settings.deactivated"));
     invalidateAll();
   };
 
@@ -308,10 +308,10 @@ function OperatorsCard() {
 
   const saveEdit = async (r: OperatorRow) => {
     const n = editName.trim();
-    if (!n) { toast.error("Ism kiriting"); return; }
+    if (!n) { toast.error(t("settings.enterFullName")); return; }
     if (n === r.name) { cancelEdit(); return; }
     if (rows.some((x) => x.kind === r.kind && x.id !== r.id && x.name.toLowerCase() === n.toLowerCase())) {
-      toast.error("Bu ism allaqachon mavjud");
+      toast.error(t("settings.nameExists"));
       return;
     }
     setSaving(true);
@@ -320,8 +320,8 @@ function OperatorsCard() {
     const col = KIND_TO_COL[r.kind];
     const ref = await (supabase as any).from("contracts").update({ [col]: n }).eq(col, r.name);
     setSaving(false);
-    if (ref.error) toast.error(`Yangilandi, lekin shartnomalar yangilanmadi: ${ref.error.message}`);
-    else toast.success("Yangilandi va barcha shartnomalarga qo'llanildi");
+    if (ref.error) toast.error(t("settings.updatedContractsFail", { msg: ref.error.message }));
+    else toast.success(t("settings.updatedContractsOk"));
     cancelEdit();
     invalidateAll();
   };
@@ -333,14 +333,14 @@ function OperatorsCard() {
 
   return (
     <Card className="p-6">
-      <h2 className="text-lg font-semibold">Operatorlar</h2>
+      <h2 className="text-lg font-semibold">{t("settings.operators")}</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Call centre, sotuv va back office xodimlarini boshqaring. Shartnoma yaratishda shu ro'yxatdan tanlanadi.
+        {t("settings.operatorsHint")}
       </p>
 
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Bo'lim</label>
+          <label className="text-xs text-muted-foreground mb-1 block">{t("settings.department")}</label>
           <Select value={kind} onValueChange={(v) => setKind(v as OperatorKind)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -351,12 +351,12 @@ function OperatorsCard() {
           </Select>
         </div>
         <div className="sm:col-span-2">
-          <label className="text-xs text-muted-foreground mb-1 block">Ism familiya</label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Masalan: Aziz Karimov" />
+          <label className="text-xs text-muted-foreground mb-1 block">{t("settings.fullName")}</label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("settings.fullNamePlaceholder")} />
         </div>
         <Button onClick={add} disabled={saving} className="gap-1.5">
           <Plus className="h-4 w-4" />
-          {saving ? "Saqlanmoqda..." : "Qo'shish"}
+          {saving ? t("common.saving") : t("common.add")}
         </Button>
       </div>
 
@@ -368,9 +368,9 @@ function OperatorsCard() {
             </div>
             <div className="p-2 space-y-1">
               {isLoading ? (
-                <div className="text-xs text-muted-foreground p-2">Yuklanmoqda...</div>
+                <div className="text-xs text-muted-foreground p-2">{t("common.loading")}</div>
               ) : grouped[k].length === 0 ? (
-                <div className="text-xs text-muted-foreground p-2">Hali qo'shilmagan</div>
+                <div className="text-xs text-muted-foreground p-2">{t("settings.notAddedYet")}</div>
               ) : grouped[k].map((r) => (
                 <div key={r.id} className="flex items-center justify-between gap-1 rounded px-2 py-1 hover:bg-muted/50">
                   {editId === r.id ? (
@@ -396,13 +396,13 @@ function OperatorsCard() {
                     <>
                       <span className={`text-sm flex-1 ${r.is_active === false ? "text-muted-foreground line-through" : ""}`}>
                         {r.name}
-                        {r.is_active === false && <span className="ml-1 text-[10px] uppercase text-muted-foreground">(nofaol)</span>}
+                        {r.is_active === false && <span className="ml-1 text-[10px] uppercase text-muted-foreground">({t("settings.inactive")})</span>}
                       </span>
                       <Button
                         size="icon"
                         variant="ghost"
                         className={`h-7 w-7 ${r.is_active === false ? "text-muted-foreground" : "text-emerald-600"}`}
-                        title={r.is_active === false ? "Faol qilish" : "Nofaol qilish"}
+                        title={r.is_active === false ? t("settings.activate") : t("settings.deactivate")}
                         onClick={() => toggleActive(r)}
                       >
                         {r.is_active === false ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
@@ -428,6 +428,7 @@ function OperatorsCard() {
 type BaseSalaryRow = { id: string; employee_name: string; amount_uzs: number; note: string | null };
 
 function BaseSalariesCard() {
+  const { t } = useT();
   const qc = useQueryClient();
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
@@ -459,8 +460,8 @@ function BaseSalariesCard() {
 
   const onSave = async () => {
     const amt = Number(amount);
-    if (!name.trim()) { toast.error("Xodim ismini kiriting"); return; }
-    if (!amt || amt <= 0) { toast.error("Oylik summasini to'g'ri kiriting"); return; }
+    if (!name.trim()) { toast.error(t("settings.enterEmployeeName")); return; }
+    if (!amt || amt <= 0) { toast.error(t("settings.enterValidSalary")); return; }
     setSaving(true);
     const { error } = await (supabase as any)
       .from("employee_base_salaries")
@@ -470,13 +471,13 @@ function BaseSalariesCard() {
       );
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Saqlandi");
+    toast.success(t("settings.saved"));
     setName(""); setAmount(""); setNote("");
     qc.invalidateQueries({ queryKey: ["employee_base_salaries"] });
   };
 
   const onDelete = async (id: string) => {
-    if (!confirm("O'chirishni tasdiqlaysizmi?")) return;
+    if (!confirm(t("settings.confirmDeleteQ"))) return;
     const { error } = await (supabase as any).from("employee_base_salaries").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: ["employee_base_salaries"] });
@@ -488,45 +489,45 @@ function BaseSalariesCard() {
     <Card className="p-6">
       <div className="flex items-center gap-2">
         <Coins className="h-5 w-5 text-primary" />
-        <h2 className="text-lg font-semibold">Xodimlar belgilangan oyligi</h2>
+        <h2 className="text-lg font-semibold">{t("settings.baseSalaries")}</h2>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
-        Call-centre'dan tashqari xodimlar uchun fiksirlangan oylik. Oylik qo'shishda avtomatik qo'yiladi.
+        {t("settings.baseSalariesHint")}
       </p>
 
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
         <div className="sm:col-span-1">
-          <label className="text-xs text-muted-foreground mb-1 block">Xodim</label>
-          <Input list="base-salary-employees" value={name} onChange={(e) => setName(e.target.value)} placeholder="Ism familiya" />
+          <label className="text-xs text-muted-foreground mb-1 block">{t("settings.employee")}</label>
+          <Input list="base-salary-employees" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("settings.fullNamePlaceholder2")} />
           <datalist id="base-salary-employees">
             {employees.map((n) => <option key={n} value={n} />)}
           </datalist>
         </div>
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Oylik (so'm)</label>
+          <label className="text-xs text-muted-foreground mb-1 block">{t("settings.salarySom")}</label>
           <Input type="number" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="3000000" />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Izoh</label>
-          <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ixtiyoriy" />
+          <label className="text-xs text-muted-foreground mb-1 block">{t("common.note")}</label>
+          <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder={t("settings.optional")} />
         </div>
         <Button onClick={onSave} disabled={saving}>
-          <Plus className="h-4 w-4 mr-1" /> Saqlash
+          <Plus className="h-4 w-4 mr-1" /> {t("common.save")}
         </Button>
       </div>
 
       <div className="mt-4">
         {isLoading ? (
-          <div className="text-sm text-muted-foreground">Yuklanmoqda…</div>
+          <div className="text-sm text-muted-foreground">{t("common.loading")}</div>
         ) : rows.length === 0 ? (
-          <div className="text-sm text-muted-foreground">Hozircha kiritilmagan.</div>
+          <div className="text-sm text-muted-foreground">{t("settings.notEnteredYet")}</div>
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Xodim</TableHead>
-                <TableHead className="text-right">Oylik</TableHead>
-                <TableHead>Izoh</TableHead>
+                <TableHead>{t("settings.employee")}</TableHead>
+                <TableHead className="text-right">{t("settings.salary")}</TableHead>
+                <TableHead>{t("common.note")}</TableHead>
                 <TableHead className="w-10" />
               </TableRow>
             </TableHeader>
@@ -553,6 +554,8 @@ function BaseSalariesCard() {
 
 
 function UsdRatesCard() {
+  const { t, lang } = useT();
+  const MONTHS = getMonthNames(lang);
   const qc = useQueryClient();
   const now = new Date();
   const [year, setYear] = useState<number>(now.getFullYear());
@@ -575,24 +578,24 @@ function UsdRatesCard() {
 
   const onSave = async () => {
     const r = Number(rate);
-    if (!r || r <= 0) { toast.error("Kursni to'g'ri kiriting"); return; }
+    if (!r || r <= 0) { toast.error(t("settings.enterValidRate")); return; }
     setSaving(true);
     const { error } = await (supabase as any)
       .from("usd_rates")
       .upsert({ year, month, rate: r }, { onConflict: "year,month" });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Kurs saqlandi");
+    toast.success(t("settings.rateSaved"));
     setRate("");
     qc.invalidateQueries({ queryKey: ["usd_rates_admin"] });
     qc.invalidateQueries({ queryKey: ["usd_rates"] });
   };
 
   const onDelete = async (id: string) => {
-    if (!confirm("O'chirishni tasdiqlaysizmi?")) return;
+    if (!confirm(t("settings.confirmDeleteQ"))) return;
     const { error } = await (supabase as any).from("usd_rates").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
-    toast.success("O'chirildi");
+    toast.success(t("settings.deleted"));
     qc.invalidateQueries({ queryKey: ["usd_rates_admin"] });
     qc.invalidateQueries({ queryKey: ["usd_rates"] });
   };
@@ -606,15 +609,15 @@ function UsdRatesCard() {
     <Card className="p-6">
       <div className="flex items-center gap-2">
         <Coins className="h-5 w-5 text-primary" />
-        <h2 className="text-lg font-semibold">Valyuta kursi (USD → UZS)</h2>
+        <h2 className="text-lg font-semibold">{t("settings.usdRate")}</h2>
       </div>
       <p className="mt-1 text-sm text-muted-foreground">
-        Har oy uchun kursni kiriting. Moliyaviy hisobotlar va USD xarajatlar shu kurs bo'yicha hisoblanadi.
+        {t("settings.usdRateHint")}
       </p>
 
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Yil</label>
+          <label className="text-xs text-muted-foreground mb-1 block">{t("common.year")}</label>
           <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -623,28 +626,28 @@ function UsdRatesCard() {
           </Select>
         </div>
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Oy</label>
+          <label className="text-xs text-muted-foreground mb-1 block">{t("common.month")}</label>
           <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {UZ_MONTHS.map((m, i) => (
+              {MONTHS.map((m, i) => (
                 <SelectItem key={i + 1} value={String(i + 1)}>{m}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">1 USD = ? UZS</label>
+          <label className="text-xs text-muted-foreground mb-1 block">{t("settings.oneUsdEquals")}</label>
           <Input
             type="number"
-            placeholder="masalan 12600"
+            placeholder={t("settings.ratePlaceholder")}
             value={rate}
             onChange={(e) => setRate(e.target.value)}
           />
         </div>
         <Button onClick={onSave} disabled={saving} className="gap-1.5">
           <Plus className="h-4 w-4" />
-          {saving ? "Saqlanmoqda..." : "Saqlash"}
+          {saving ? t("common.saving") : t("common.save")}
         </Button>
       </div>
 
@@ -652,22 +655,22 @@ function UsdRatesCard() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Yil</TableHead>
-              <TableHead>Oy</TableHead>
-              <TableHead className="text-right">Kurs (1 USD)</TableHead>
+              <TableHead>{t("common.year")}</TableHead>
+              <TableHead>{t("common.month")}</TableHead>
+              <TableHead className="text-right">{t("settings.rateColumn")}</TableHead>
               <TableHead className="w-[60px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">Yuklanmoqda...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">{t("common.loading")}</TableCell></TableRow>
             ) : rows.length === 0 ? (
-              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">Hali kurs kiritilmagan</TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-6">{t("settings.noRateYet")}</TableCell></TableRow>
             ) : rows.map((r) => (
               <TableRow key={r.id}>
                 <TableCell>{r.year}</TableCell>
-                <TableCell>{UZ_MONTHS[r.month - 1]}</TableCell>
-                <TableCell className="text-right tabular-nums font-medium">{fmt(r.rate)} so'm</TableCell>
+                <TableCell>{MONTHS[r.month - 1]}</TableCell>
+                <TableCell className="text-right tabular-nums font-medium">{fmt(r.rate)} {t("settings.som")}</TableCell>
                 <TableCell>
                   <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive"
                     onClick={() => onDelete(r.id)}>
