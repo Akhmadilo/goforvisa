@@ -84,9 +84,9 @@ function SettingsPage() {
         {isAdmin && <UsdRatesCard />}
         {isAdmin && <OperatorsCard />}
 
-        {isAdmin && <LookupCard tableName="contract_types" title="Shartnoma turlari" hint="Shartnoma yaratishda tanlanadigan turlar (Tourist, Student, Work…)." invalidateKey="contract_types" refTable="contracts" refColumn="contract_type" />}
-        {isAdmin && <LookupCard tableName="companies" title="Kompaniyalar" hint="Shartnoma yaratishda tanlanadigan kompaniyalar (Dream, Go for Visa…)." invalidateKey="companies" refTable="contracts" refColumn="company" />}
-          {isAdmin && <LookupCard tableName="expense_categories" title="Xarajat kategoriyalari" hint="Xarajat yaratishda tanlanadigan kategoriyalar." invalidateKey="expense_categories" refTable="expenses" refColumn="category" />}
+        {isAdmin && <LookupCard tableName="contract_types" title={t("settings.contractTypes")} hint={t("settings.contractTypesHint")} invalidateKey="contract_types" refTable="contracts" refColumn="contract_type" />}
+        {isAdmin && <LookupCard tableName="companies" title={t("settings.companies")} hint={t("settings.companiesHint")} invalidateKey="companies" refTable="contracts" refColumn="company" />}
+          {isAdmin && <LookupCard tableName="expense_categories" title={t("settings.expenseCategories")} hint={t("settings.expenseCategoriesHint")} invalidateKey="expense_categories" refTable="expenses" refColumn="category" />}
         </div>
       </div>
     </div>
