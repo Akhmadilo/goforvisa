@@ -6,11 +6,14 @@ import { cashflowDict } from "./i18n-cashflow";
 import { hrDict } from "./i18n-hr";
 import { adminDict } from "./i18n-admin";
 import { chartsDict } from "./i18n-charts";
+import { dashDict } from "./i18n-dash";
+import { opsDict } from "./i18n-ops";
+import { finesDict } from "./i18n-fines";
 
 export type LangDict = Record<string, string>;
 export type ExtraDict = { uz: LangDict; en: LangDict; ru: LangDict };
 
-const parts: ExtraDict[] = [cashflowDict, hrDict, adminDict, chartsDict];
+const parts: ExtraDict[] = [cashflowDict, hrDict, adminDict, chartsDict, dashDict, opsDict, finesDict];
 
 export const extraDict: ExtraDict = {
   uz: Object.assign({}, ...parts.map((p) => p.uz)),
