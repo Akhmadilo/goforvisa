@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
+import { useT } from "@/lib/i18n";
 import { Building2, Plus, Trash2, Users, FileText, KeyRound, Tag } from "lucide-react";
 import {
   listTenants,
@@ -70,11 +71,11 @@ export const Route = createFileRoute("/platform")({
   }),
 });
 
-const STATUS_LABEL: Record<string, string> = {
-  trialing: "Sinov muddati",
-  active: "Faol",
-  past_due: "To'lov kechikkan",
-  canceled: "Bekor qilingan",
+const STATUS_KEYS: Record<string, string> = {
+  trialing: "plat.status.trialing",
+  active: "plat.status.active",
+  past_due: "plat.status.pastDue",
+  canceled: "plat.status.canceled",
 };
 
 function money(n: number) {
@@ -82,6 +83,7 @@ function money(n: number) {
 }
 
 function PlatformPage() {
+  const { t } = useT();
   const { isPlatformAdmin, loading: tenantLoading } = useTenant();
   const qc = useQueryClient();
   const fetchTenants = useServerFn(listTenants);
@@ -120,7 +122,7 @@ function PlatformPage() {
   const createM = useMutation({
     mutationFn: (v: typeof form) => create({ data: v }),
     onSuccess: () => {
-      toast.success("Kompaniya yaratildi");
+      toast.success(t("plat.toast.companyCreated"));
       setOpen(false);
       setForm({
         name: "",
@@ -135,13 +137,13 @@ function PlatformPage() {
       });
       invalidate();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
+    onError: (e: any) => toast.error(e?.message ?? t("plat.toast.error")),
   });
 
   const updateM = useMutation({
     mutationFn: (v: { tenantId: string; isActive?: boolean }) => update({ data: v }),
     onSuccess: () => invalidate(),
-    onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
+    onError: (e: any) => toast.error(e?.message ?? t("plat.toast.error")),
   });
 
   const subM = useMutation({
@@ -152,19 +154,19 @@ function PlatformPage() {
       periodEnd: string | null;
     }) => setSub({ data: v }),
     onSuccess: () => {
-      toast.success("Obuna yangilandi");
+      toast.success(t("plat.toast.subscriptionUpdated"));
       invalidate();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
+    onError: (e: any) => toast.error(e?.message ?? t("plat.toast.error")),
   });
 
   const deleteM = useMutation({
     mutationFn: (tenantId: string) => remove({ data: { tenantId } }),
     onSuccess: () => {
-      toast.success("Kompaniya o'chirildi");
+      toast.success(t("plat.toast.companyDeleted"));
       invalidate();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
+    onError: (e: any) => toast.error(e?.message ?? t("plat.toast.error")),
   });
 
   const tenants = tenantsQ.data ?? [];
@@ -184,15 +186,15 @@ function PlatformPage() {
   }, [tenants]);
 
   if (tenantLoading) {
-    return <div className="p-6 text-sm text-muted-foreground">Yuklanmoqda...</div>;
+    return <div className="p-6 text-sm text-muted-foreground">{t("plat.loading")}</div>;
   }
   if (!isPlatformAdmin) {
     return (
       <div className="p-6">
         <Card className="p-6">
-          <h1 className="text-lg font-semibold mb-1">Ruxsat yo'q</h1>
+          <h1 className="text-lg font-semibold mb-1">{t("plat.noAccess")}</h1>
           <p className="text-sm text-muted-foreground">
-            Bu bo'lim faqat platforma egasi uchun.
+            {t("plat.noAccessDesc")}
           </p>
         </Card>
       </div>
@@ -205,27 +207,27 @@ function PlatformPage() {
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <Building2 className="h-6 w-6 text-primary" />
-            Platforma boshqaruvi
+            {t("plat.title")}
           </h1>
           <p className="text-sm text-muted-foreground">
-            Kompaniyalar, foydalanuvchilar va obuna rejalari
+            {t("plat.subtitle")}
           </p>
         </div>
 
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="h-4 w-4 mr-1" /> Yangi kompaniya
+              <Plus className="h-4 w-4 mr-1" /> {t("plat.newCompany")}
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>Yangi kompaniya qo'shish</DialogTitle>
+              <DialogTitle>{t("plat.addCompanyTitle")}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-3 max-h-[65vh] overflow-y-auto pr-1">
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label>Kompaniya nomi</Label>
+                  <Label>{t("plat.companyName")}</Label>
                   <Input
                     value={form.name}
                     onChange={(e) => {
@@ -244,7 +246,7 @@ function PlatformPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Qisqa nom (slug)</Label>
+                  <Label>{t("plat.slug")}</Label>
                   <Input
                     value={form.slug}
                     onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
@@ -253,14 +255,14 @@ function PlatformPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label>Aloqa email</Label>
+                  <Label>{t("plat.contactEmail")}</Label>
                   <Input
                     value={form.contactEmail}
                     onChange={(e) => setForm((f) => ({ ...f, contactEmail: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Telefon</Label>
+                  <Label>{t("plat.phone")}</Label>
                   <Input
                     value={form.contactPhone}
                     onChange={(e) => setForm((f) => ({ ...f, contactPhone: e.target.value }))}
@@ -269,13 +271,13 @@ function PlatformPage() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label>Tarif reja</Label>
+                  <Label>{t("plat.plan")}</Label>
                   <Select
                     value={form.planId}
                     onValueChange={(v) => setForm((f) => ({ ...f, planId: v }))}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Tanlang" />
+                      <SelectValue placeholder={t("plat.choose")} />
                     </SelectTrigger>
                     <SelectContent>
                       {plans.map((p) => (
@@ -287,7 +289,7 @@ function PlatformPage() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Sinov kunlari</Label>
+                  <Label>{t("plat.trialDays")}</Label>
                   <Input
                     type="number"
                     value={form.trialDays}
@@ -299,10 +301,10 @@ function PlatformPage() {
               </div>
 
               <div className="border-t border-border pt-3 mt-1">
-                <div className="text-sm font-medium mb-2">Kompaniya admini</div>
+                <div className="text-sm font-medium mb-2">{t("plat.companyAdmin")}</div>
                 <div className="grid gap-3">
                   <div className="space-y-1.5">
-                    <Label>Ism</Label>
+                    <Label>{t("plat.name")}</Label>
                     <Input
                       value={form.adminName}
                       onChange={(e) => setForm((f) => ({ ...f, adminName: e.target.value }))}
@@ -310,7 +312,7 @@ function PlatformPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
-                      <Label>Email</Label>
+                      <Label>{t("plat.email")}</Label>
                       <Input
                         type="email"
                         value={form.adminEmail}
@@ -318,7 +320,7 @@ function PlatformPage() {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <Label>Parol</Label>
+                      <Label>{t("plat.password")}</Label>
                       <Input
                         value={form.adminPassword}
                         onChange={(e) =>
@@ -342,7 +344,7 @@ function PlatformPage() {
                   !form.adminName
                 }
               >
-                {createM.isPending ? "Yaratilmoqda..." : "Yaratish"}
+                {createM.isPending ? t("plat.creating") : t("plat.create")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -351,19 +353,19 @@ function PlatformPage() {
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="p-4">
-          <div className="text-xs text-muted-foreground">Kompaniyalar</div>
+          <div className="text-xs text-muted-foreground">{t("plat.stat.companies")}</div>
           <div className="text-2xl font-bold">{totals.count}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-xs text-muted-foreground">Faol obunalar</div>
+          <div className="text-xs text-muted-foreground">{t("plat.stat.activeSubs")}</div>
           <div className="text-2xl font-bold text-emerald-500">{totals.active}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-xs text-muted-foreground">Sinovda</div>
+          <div className="text-xs text-muted-foreground">{t("plat.stat.trial")}</div>
           <div className="text-2xl font-bold text-amber-500">{totals.trial}</div>
         </Card>
         <Card className="p-4">
-          <div className="text-xs text-muted-foreground">Oylik daromad (MRR)</div>
+          <div className="text-xs text-muted-foreground">{t("plat.stat.mrr")}</div>
           <div className="text-2xl font-bold">{money(totals.mrr)} so'm</div>
         </Card>
       </div>
@@ -373,13 +375,13 @@ function PlatformPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Kompaniya</TableHead>
-                <TableHead>Holat</TableHead>
-                <TableHead>Reja</TableHead>
-                <TableHead>Obuna</TableHead>
-                <TableHead>Tugash sanasi</TableHead>
-                <TableHead className="text-right">Foydalanuvchi</TableHead>
-                <TableHead className="text-right">Shartnoma</TableHead>
+                <TableHead>{t("plat.col.company")}</TableHead>
+                <TableHead>{t("plat.col.status")}</TableHead>
+                <TableHead>{t("plat.col.plan")}</TableHead>
+                <TableHead>{t("plat.col.subscription")}</TableHead>
+                <TableHead>{t("plat.col.endDate")}</TableHead>
+                <TableHead className="text-right">{t("plat.col.users")}</TableHead>
+                <TableHead className="text-right">{t("plat.col.contracts")}</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -387,7 +389,7 @@ function PlatformPage() {
               {tenantsQ.isLoading && (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                    Yuklanmoqda...
+                    {t("plat.loading")}
                   </TableCell>
                 </TableRow>
               )}
@@ -408,7 +410,7 @@ function PlatformPage() {
                         updateM.mutate({ tenantId: t.id, isActive: !t.is_active })
                       }
                     >
-                      {t.is_active ? "Faol" : "O'chirilgan"}
+                      {t.is_active ? tt("plat.status.active") : tt("plat.status.disabled")}
                     </Button>
                   </TableCell>
                   <TableCell>
@@ -452,9 +454,9 @@ function PlatformPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {Object.entries(STATUS_LABEL).map(([k, v]) => (
+                        {Object.entries(STATUS_KEYS).map(([k, v]) => (
                           <SelectItem key={k} value={k}>
-                            {v}
+                            {tt(v)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -497,7 +499,7 @@ function PlatformPage() {
                       onClick={() => {
                         if (
                           confirm(
-                            `"${t.name}" kompaniyasi va uning BARCHA ma'lumotlari o'chiriladi. Davom etasizmi?`,
+                            tt("plat.confirmDeleteCompany", { name: t.name } as any),
                           )
                         )
                           deleteM.mutate(t.id);

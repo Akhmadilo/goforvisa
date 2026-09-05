@@ -20,6 +20,7 @@ import {
   Search, RefreshCw, CheckCircle2, AlertTriangle, Megaphone, Link2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useT } from "@/lib/i18n";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -73,12 +74,12 @@ const DEFAULTS: FormState = {
 };
 
 const ROLE_OPTIONS = [
-  { value: "none", label: "—" },
-  { value: "director", label: "Direktor" },
-  { value: "ceo", label: "CEO" },
-  { value: "owner", label: "Owner" },
-  { value: "financier", label: "Moliyachi" },
-  { value: "finance", label: "Finance" },
+  { value: "none", key: "bot.role.none" },
+  { value: "director", key: "bot.role.director" },
+  { value: "ceo", key: "bot.role.ceo" },
+  { value: "owner", key: "bot.role.owner" },
+  { value: "financier", key: "bot.role.financier" },
+  { value: "finance", key: "bot.role.finance" },
 ];
 
 function renderPreview(tpl: string) {
@@ -97,6 +98,7 @@ function renderPreview(tpl: string) {
 }
 
 function BotPage() {
+  const { t } = useT();
   const isAdmin = useIsAdmin();
   const qc = useQueryClient();
   const load = useServerFn(getBotSettings);
@@ -162,39 +164,39 @@ function BotPage() {
   const saveMut = useMutation({
     mutationFn: () =>
       saveFn({ data: { ...form, welcome_text: form.welcome_text.trim() || null } }),
-    onSuccess: () => { setSaved(form); invalidate(); toast.success("Saqlandi"); },
-    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+    onSuccess: () => { setSaved(form); invalidate(); toast.success(t("bot.toast.saved")); },
+    onError: (e: any) => toast.error(e?.message || t("bot.toast.error")),
   });
   const toggleMut = useMutation({
     mutationFn: (v: { chatId: number; active: boolean }) => toggleFn({ data: v }),
-    onSuccess: () => { invalidate(); toast.success("Yangilandi"); },
-    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+    onSuccess: () => { invalidate(); toast.success(t("bot.toast.updated")); },
+    onError: (e: any) => toast.error(e?.message || t("bot.toast.error")),
   });
   const delMut = useMutation({
     mutationFn: (chatId: number) => delFn({ data: { chatId } }),
-    onSuccess: () => { invalidate(); toast.success("O'chirildi"); },
-    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+    onSuccess: () => { invalidate(); toast.success(t("bot.toast.deleted")); },
+    onError: (e: any) => toast.error(e?.message || t("bot.toast.error")),
   });
   const testMut = useMutation({
     mutationFn: (chatId: number) => testFn({ data: { chatId } }),
-    onSuccess: () => toast.success("Test xabar yuborildi"),
-    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+    onSuccess: () => toast.success(t("bot.toast.testSent")),
+    onError: (e: any) => toast.error(e?.message || t("bot.toast.error")),
   });
   const castMut = useMutation({
     mutationFn: () => castFn({ data: { chatId: Number(castChat), text: castText } }),
-    onSuccess: () => { setCastText(""); toast.success("Xabar yuborildi"); },
-    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+    onSuccess: () => { setCastText(""); toast.success(t("bot.toast.messageSent")); },
+    onError: (e: any) => toast.error(e?.message || t("bot.toast.error")),
   });
   const userMut = useMutation({
     mutationFn: (v: { id: string; employeeId?: string | null; botRole?: string }) =>
       updUserFn({ data: v as any }),
-    onSuccess: () => { invalidateUsers(); toast.success("Yangilandi"); },
-    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+    onSuccess: () => { invalidateUsers(); toast.success(t("bot.toast.updated")); },
+    onError: (e: any) => toast.error(e?.message || t("bot.toast.error")),
   });
   const delUserMut = useMutation({
     mutationFn: (id: string) => delUserFn({ data: { id } }),
-    onSuccess: () => { invalidateUsers(); toast.success("O'chirildi"); },
-    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+    onSuccess: () => { invalidateUsers(); toast.success(t("bot.toast.deleted")); },
+    onError: (e: any) => toast.error(e?.message || t("bot.toast.error")),
   });
 
   const featOn = (k: string) => form.employee_features[k] !== false;
@@ -230,9 +232,9 @@ function BotPage() {
             <Bot className="h-4 w-4 md:h-5 md:w-5 text-primary-foreground" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-base md:text-xl font-bold leading-tight">Bot boshqaruvi</h1>
+            <h1 className="text-base md:text-xl font-bold leading-tight">{t("bot.title")}</h1>
             <p className="text-xs text-muted-foreground truncate">
-              Telegram bot bilan bog'liq barcha sozlamalar shu yerda
+              {t("bot.subtitle")}
             </p>
           </div>
           <Button
@@ -258,24 +260,24 @@ function BotPage() {
               ) : (
                 <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
               )}
-              Bot holati
+              {t("bot.status.title")}
             </div>
             <div className="text-sm font-semibold truncate">
-              {status ? (status.online ? `@${status.username ?? "bot"}` : "Ulanmagan") : "…"}
+              {status ? (status.online ? `@${status.username ?? "bot"}` : t("bot.status.notConnected")) : "…"}
             </div>
           </Card>
           <Card className="p-3 md:p-4">
-            <div className="text-xs text-muted-foreground mb-1">Faol guruhlar</div>
+            <div className="text-xs text-muted-foreground mb-1">{t("bot.status.activeGroups")}</div>
             <div className="text-lg font-bold">{status?.groupsCount ?? "—"}</div>
           </Card>
           <Card className="p-3 md:p-4">
-            <div className="text-xs text-muted-foreground mb-1">Bog'langan ishchilar</div>
+            <div className="text-xs text-muted-foreground mb-1">{t("bot.status.linkedEmployees")}</div>
             <div className="text-lg font-bold">
               {status ? `${status.linkedCount}/${status.usersCount}` : "—"}
             </div>
           </Card>
           <Card className="p-3 md:p-4">
-            <div className="text-xs text-muted-foreground mb-1">Faol funksiyalar</div>
+            <div className="text-xs text-muted-foreground mb-1">{t("bot.status.activeFeatures")}</div>
             <div className="text-lg font-bold">
               {activeFeatures}/{EMPLOYEE_FEATURES.length}
             </div>
@@ -284,42 +286,42 @@ function BotPage() {
 
         {status?.lastError ? (
           <Card className="p-3 mb-4 border-destructive/40 text-sm text-destructive">
-            Webhook xatosi: {status.lastError}
+            {t("bot.webhookError")}: {status.lastError}
           </Card>
         ) : null}
 
         {!isAdmin && (
           <Card className="p-4 mb-4 text-sm text-muted-foreground">
-            Sozlamalarni faqat admin o'zgartira oladi.
+            {t("bot.adminOnly")}
           </Card>
         )}
 
         <Tabs defaultValue="notify">
           <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="notify" className="gap-1.5">
-              <Bell className="h-3.5 w-3.5" /> Xabarnomalar
+              <Bell className="h-3.5 w-3.5" /> {t("bot.tab.notify")}
             </TabsTrigger>
             <TabsTrigger value="features" className="gap-1.5">
-              <MessageSquare className="h-3.5 w-3.5" /> Ishchi menyusi
+              <MessageSquare className="h-3.5 w-3.5" /> {t("bot.tab.features")}
             </TabsTrigger>
             <TabsTrigger value="groups" className="gap-1.5">
-              <Radio className="h-3.5 w-3.5" /> Guruhlar
+              <Radio className="h-3.5 w-3.5" /> {t("bot.tab.groups")}
             </TabsTrigger>
             <TabsTrigger value="users" className="gap-1.5">
-              <Users className="h-3.5 w-3.5" /> Foydalanuvchilar
+              <Users className="h-3.5 w-3.5" /> {t("bot.tab.users")}
             </TabsTrigger>
           </TabsList>
 
           {/* --- Xabarnomalar --- */}
           <TabsContent value="notify" className="mt-4 grid gap-4 lg:grid-cols-2">
             <Card className="p-4 md:p-5 space-y-4">
-              <div className="font-semibold">Bildirishnomalar</div>
+              <div className="font-semibold">{t("bot.notify.title")}</div>
 
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <Label>Har bir to'lovda guruhga xabar</Label>
+                  <Label>{t("bot.notify.onPayment")}</Label>
                   <p className="text-xs text-muted-foreground">
-                    To'lov qo'shilgan zahoti kassa guruhiga yuboriladi
+                    {t("bot.notify.onPaymentDesc")}
                   </p>
                 </div>
                 <Switch
@@ -333,9 +335,9 @@ function BotPage() {
 
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <Label>Kunlik kassa hisoboti</Label>
+                  <Label>{t("bot.notify.dailyReport")}</Label>
                   <p className="text-xs text-muted-foreground">
-                    Kun oxirida tasdiqlash tugmalari bilan hisobot
+                    {t("bot.notify.dailyReportDesc")}
                   </p>
                 </div>
                 <Switch
@@ -347,8 +349,8 @@ function BotPage() {
 
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <Label>Hisobot vaqti (soat, Toshkent)</Label>
-                  <p className="text-xs text-muted-foreground">Standart: 21:00</p>
+                  <Label>{t("bot.notify.reportTime")}</Label>
+                  <p className="text-xs text-muted-foreground">{t("bot.notify.reportTimeDefault")}</p>
                 </div>
                 <Input
                   type="number"
@@ -363,9 +365,9 @@ function BotPage() {
 
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <Label>Rahbarlarni otmetka qilish</Label>
+                  <Label>{t("bot.notify.mentionBosses")}</Label>
                   <p className="text-xs text-muted-foreground">
-                    Hisobotda direktor/owner belgilanadi
+                    {t("bot.notify.mentionBossesDesc")}
                   </p>
                 </div>
                 <Switch
@@ -379,9 +381,9 @@ function BotPage() {
 
               <div className="flex items-center justify-between gap-4">
                 <div>
-                  <Label>Yangi shartnoma haqida xabar</Label>
+                  <Label>{t("bot.notify.onContract")}</Label>
                   <p className="text-xs text-muted-foreground">
-                    Shartnoma yaratilganda guruhga xabar
+                    {t("bot.notify.onContractDesc")}
                   </p>
                 </div>
                 <Switch
@@ -393,7 +395,7 @@ function BotPage() {
             </Card>
 
             <Card className="p-4 md:p-5 space-y-3">
-              <div className="font-semibold">To'lov xabari matni</div>
+              <div className="font-semibold">{t("bot.template.title")}</div>
               <Textarea
                 rows={7}
                 disabled={!isAdmin}
@@ -414,7 +416,7 @@ function BotPage() {
                 ))}
               </div>
               <div>
-                <div className="text-xs text-muted-foreground mb-1">Ko'rinishi:</div>
+                <div className="text-xs text-muted-foreground mb-1">{t("bot.template.preview")}</div>
                 <div className="rounded-lg border bg-muted/40 p-3 text-sm whitespace-pre-wrap">
                   {renderPreview(form.payment_template)}
                 </div>
@@ -425,7 +427,7 @@ function BotPage() {
                 disabled={!isAdmin}
                 onClick={() => set("payment_template", DEFAULT_PAYMENT_TEMPLATE)}
               >
-                Standart matn
+                {t("bot.template.defaultBtn")}
               </Button>
             </Card>
           </TabsContent>
@@ -435,9 +437,9 @@ function BotPage() {
             <Card className="p-4 md:p-5 space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="font-semibold">Ishchilar uchun bot funksiyalari</div>
+                  <div className="font-semibold">{t("bot.features.title")}</div>
                   <p className="text-xs text-muted-foreground">
-                    O'chirilgan funksiya bot menyusidan yo'qoladi va ishlamaydi.
+                    {t("bot.features.desc")}
                   </p>
                 </div>
                 <Badge variant="secondary">
@@ -450,7 +452,7 @@ function BotPage() {
                     key={f.key}
                     className="flex items-center justify-between gap-4 rounded-lg border p-3"
                   >
-                    <Label className="font-normal">{f.label}</Label>
+                    <Label className="font-normal">{t(`bot.feat.${f.key}`)}</Label>
                     <Switch
                       checked={featOn(f.key)}
                       disabled={!isAdmin}
@@ -462,16 +464,16 @@ function BotPage() {
             </Card>
 
             <Card className="p-4 md:p-5 space-y-2">
-              <Label>Salomlashuv matni (/start)</Label>
+              <Label>{t("bot.welcome.label")}</Label>
               <Textarea
                 rows={3}
                 disabled={!isAdmin}
-                placeholder="Assalomu alaykum! 👋"
+                placeholder={t("bot.welcome.placeholder")}
                 value={form.welcome_text}
                 onChange={(e) => set("welcome_text", e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Bo'sh qoldirilsa standart salomlashuv ishlatiladi.
+                {t("bot.welcome.hint")}
               </p>
             </Card>
           </TabsContent>
@@ -479,26 +481,26 @@ function BotPage() {
           {/* --- Guruhlar --- */}
           <TabsContent value="groups" className="mt-4 space-y-4">
             <Card className="p-4 md:p-5">
-              <div className="font-semibold mb-2">Ulangan guruhlar</div>
+              <div className="font-semibold mb-2">{t("bot.groups.title")}</div>
               <p className="text-xs text-muted-foreground mb-3">
-                Botni guruhga qo'shib, u yerda <code>/kassa_on</code> buyrug'ini yuboring.
+                {t("bot.groups.hint")}
               </p>
               {isLoading ? (
-                <div className="text-sm text-muted-foreground">Yuklanmoqda…</div>
+                <div className="text-sm text-muted-foreground">{t("common.loading")}</div>
               ) : groups.length === 0 ? (
                 <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
                   <Link2 className="h-5 w-5 mx-auto mb-2 opacity-60" />
-                  Hali guruh ulanmagan.
+                  {t("bot.groups.empty")}
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Guruh</TableHead>
-                        <TableHead>Chat ID</TableHead>
-                        <TableHead>Holat</TableHead>
-                        <TableHead className="text-right">Amallar</TableHead>
+                        <TableHead>{t("bot.groups.col.group")}</TableHead>
+                        <TableHead>{t("bot.groups.col.chatId")}</TableHead>
+                        <TableHead>{t("bot.groups.col.status")}</TableHead>
+                        <TableHead className="text-right">{t("bot.groups.col.actions")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -516,7 +518,7 @@ function BotPage() {
                                 }
                               />
                               <Badge variant={g.is_active ? "default" : "secondary"}>
-                                {g.is_active ? "Faol" : "O'chirilgan"}
+                                {g.is_active ? t("plat.status.active") : t("plat.status.disabled")}
                               </Badge>
                             </div>
                           </TableCell>
@@ -526,14 +528,14 @@ function BotPage() {
                               variant="outline"
                               onClick={() => testMut.mutate(Number(g.chat_id))}
                             >
-                              <Send className="h-4 w-4 mr-1" /> Test
+                              <Send className="h-4 w-4 mr-1" /> {t("bot.groups.test")}
                             </Button>
                             <Button
                               size="sm"
                               variant="destructive"
                               disabled={!isAdmin}
                               onClick={() => {
-                                if (confirm("Guruh o'chirilsinmi?")) delMut.mutate(Number(g.chat_id));
+                                if (confirm(t("bot.groups.confirmDelete"))) delMut.mutate(Number(g.chat_id));
                               }}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -550,11 +552,11 @@ function BotPage() {
             <Card className="p-4 md:p-5 space-y-3">
               <div className="flex items-center gap-2">
                 <Megaphone className="h-4 w-4" />
-                <div className="font-semibold">Guruhga xabar yuborish</div>
+                <div className="font-semibold">{t("bot.cast.title")}</div>
               </div>
               <Select value={castChat} onValueChange={setCastChat} disabled={!isAdmin}>
                 <SelectTrigger className="w-full sm:w-72">
-                  <SelectValue placeholder="Guruhni tanlang" />
+                  <SelectValue placeholder={t("bot.cast.selectGroup")} />
                 </SelectTrigger>
                 <SelectContent>
                   {groups.map((g) => (
@@ -567,7 +569,7 @@ function BotPage() {
               <Textarea
                 rows={3}
                 disabled={!isAdmin}
-                placeholder="Xabar matni (HTML: <b>qalin</b>)"
+                placeholder={t("bot.cast.placeholder")}
                 value={castText}
                 onChange={(e) => setCastText(e.target.value)}
               />
@@ -575,7 +577,7 @@ function BotPage() {
                 disabled={!isAdmin || !castChat || !castText.trim() || castMut.isPending}
                 onClick={() => castMut.mutate()}
               >
-                <Send className="h-4 w-4 mr-1" /> Yuborish
+                <Send className="h-4 w-4 mr-1" /> {t("bot.cast.send")}
               </Button>
             </Card>
           </TabsContent>
@@ -585,34 +587,34 @@ function BotPage() {
             <Card className="p-4 md:p-5">
               <div className="flex flex-wrap items-center gap-2 mb-2">
                 <Users className="h-4 w-4" />
-                <div className="font-semibold">Bot foydalanuvchilari</div>
+                <div className="font-semibold">{t("bot.users.title")}</div>
                 <div className="relative ml-auto w-full sm:w-64">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                   <Input
                     className="pl-8"
-                    placeholder="Ism yoki ID bo'yicha qidirish"
+                    placeholder={t("bot.users.searchPlaceholder")}
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                   />
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mb-3">
-                Telegram akkauntni ishchiga bog'lang va rahbariyat rolini belgilang.
+                {t("bot.users.hint")}
               </p>
               {filteredUsers.length === 0 ? (
                 <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-                  {users.length === 0 ? "Hali foydalanuvchi yo'q." : "Topilmadi."}
+                  {users.length === 0 ? t("bot.users.emptyNone") : t("bot.users.emptyFiltered")}
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Telegram</TableHead>
-                        <TableHead>ID</TableHead>
-                        <TableHead>Ishchi</TableHead>
-                        <TableHead>Rol</TableHead>
-                        <TableHead className="text-right">Amallar</TableHead>
+                        <TableHead>{t("bot.users.col.telegram")}</TableHead>
+                        <TableHead>{t("bot.users.col.id")}</TableHead>
+                        <TableHead>{t("bot.users.col.employee")}</TableHead>
+                        <TableHead>{t("bot.users.col.role")}</TableHead>
+                        <TableHead className="text-right">{t("bot.users.col.actions")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -624,7 +626,7 @@ function BotPage() {
                               <span className="text-muted-foreground"> @{u.telegram_username}</span>
                             ) : null}
                             {!u.employee_id ? (
-                              <Badge variant="secondary" className="ml-2">Bog'lanmagan</Badge>
+                              <Badge variant="secondary" className="ml-2">{t("bot.users.unlinked")}</Badge>
                             ) : null}
                           </TableCell>
                           <TableCell className="text-muted-foreground">{u.telegram_id}</TableCell>
@@ -637,10 +639,10 @@ function BotPage() {
                               }
                             >
                               <SelectTrigger className="w-44">
-                                <SelectValue placeholder="Tanlang" />
+                                <SelectValue placeholder={t("bot.users.select")} />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="none">Bog'lanmagan</SelectItem>
+                                <SelectItem value="none">{t("bot.users.unlinked")}</SelectItem>
                                 {(usersData?.employees ?? []).map((e) => (
                                   <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
                                 ))}
@@ -658,7 +660,7 @@ function BotPage() {
                               </SelectTrigger>
                               <SelectContent>
                                 {ROLE_OPTIONS.map((r) => (
-                                  <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                                  <SelectItem key={r.value} value={r.value}>{t(r.key)}</SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -669,7 +671,7 @@ function BotPage() {
                               variant="destructive"
                               disabled={!isAdmin}
                               onClick={() => {
-                                if (confirm("Foydalanuvchi o'chirilsinmi?")) delUserMut.mutate(u.id);
+                                if (confirm(t("bot.users.confirmDelete"))) delUserMut.mutate(u.id);
                               }}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -689,13 +691,13 @@ function BotPage() {
       {/* Sticky save bar */}
       {isAdmin && dirty && (
         <div className="fixed bottom-0 left-0 right-0 md:left-56 z-40 border-t bg-background/95 backdrop-blur p-3 flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">Saqlanmagan o'zgarishlar bor</span>
+          <span className="text-sm text-muted-foreground">{t("bot.unsavedChanges")}</span>
           <div className="ml-auto flex gap-2">
             <Button variant="outline" size="sm" onClick={() => setForm(saved)}>
-              Bekor qilish
+              {t("common.cancel")}
             </Button>
             <Button size="sm" disabled={saveMut.isPending} onClick={() => saveMut.mutate()}>
-              <Save className="h-4 w-4 mr-1" /> Saqlash
+              <Save className="h-4 w-4 mr-1" /> {t("common.save")}
             </Button>
           </div>
         </div>
