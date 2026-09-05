@@ -94,6 +94,7 @@ function SettingsPage() {
 }
 
 function LookupCard({ tableName, title, hint, invalidateKey, refTable, refColumn }: { tableName: string; title: string; hint: string; invalidateKey: string; refTable: string; refColumn: string }) {
+  const { t } = useT();
   const qc = useQueryClient();
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -118,12 +119,12 @@ function LookupCard({ tableName, title, hint, invalidateKey, refTable, refColumn
 
   const add = async () => {
     const n = name.trim();
-    if (!n) { toast.error("Nom kiriting"); return; }
+    if (!n) { toast.error(t("settings.enterName")); return; }
     setSaving(true);
     const { error } = await (supabase as any).from(tableName).insert({ name: n });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("Qo'shildi");
+    toast.success(t("settings.added"));
     setName("");
     invalidateAll();
   };
@@ -136,10 +137,10 @@ function LookupCard({ tableName, title, hint, invalidateKey, refTable, refColumn
 
   const saveEdit = async (oldName: string) => {
     const n = editName.trim();
-    if (!n) { toast.error("Nom kiriting"); return; }
+    if (!n) { toast.error(t("settings.enterName")); return; }
     if (n === oldName) { cancelEdit(); return; }
     if (rows.some((r) => r.id !== editId && r.name.toLowerCase() === n.toLowerCase())) {
-      toast.error("Bu nom allaqachon mavjud");
+      toast.error(t("settings.nameExists"));
       return;
     }
     setSaving(true);
@@ -149,17 +150,17 @@ function LookupCard({ tableName, title, hint, invalidateKey, refTable, refColumn
     // Cascade rename referencing rows
     const ref = await (supabase as any).from(refTable).update({ [refColumn]: n }).eq(refColumn, oldName);
     setSaving(false);
-    if (ref.error) { toast.error(`Yangilandi, lekin ${refTable} yangilanmadi: ${ref.error.message}`); }
-    else { toast.success("Yangilandi va barcha yozuvlarga qo'llanildi"); }
+    if (ref.error) { toast.error(t("settings.updatedRefFail", { table: refTable, msg: ref.error.message })); }
+    else { toast.success(t("settings.updatedApplied")); }
     cancelEdit();
     invalidateAll();
   };
 
   const remove = async (id: string) => {
-    if (!confirm("O'chirilsinmi?")) return;
+    if (!confirm(t("settings.confirmDelete"))) return;
     const { error } = await (supabase as any).from(tableName).delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
-    toast.success("O'chirildi");
+    toast.success(t("settings.deleted"));
     invalidateAll();
   };
 
@@ -169,19 +170,19 @@ function LookupCard({ tableName, title, hint, invalidateKey, refTable, refColumn
       <p className="mt-1 text-sm text-muted-foreground">{hint}</p>
       <div className="mt-4 grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
         <div className="sm:col-span-3">
-          <label className="text-xs text-muted-foreground mb-1 block">Nom</label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Yangi nom" onKeyDown={(e) => e.key === "Enter" && add()} />
+          <label className="text-xs text-muted-foreground mb-1 block">{t("settings.name")}</label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t("settings.newName")} onKeyDown={(e) => e.key === "Enter" && add()} />
         </div>
         <Button onClick={add} disabled={saving} className="gap-1.5">
           <Plus className="h-4 w-4" />
-          {saving ? "Saqlanmoqda..." : "Qo'shish"}
+          {saving ? t("common.saving") : t("common.add")}
         </Button>
       </div>
       <div className="mt-4 rounded-md border border-border">
         {isLoading ? (
-          <div className="p-3 text-xs text-muted-foreground">Yuklanmoqda...</div>
+          <div className="p-3 text-xs text-muted-foreground">{t("common.loading")}</div>
         ) : rows.length === 0 ? (
-          <div className="p-3 text-xs text-muted-foreground">Hali qo'shilmagan</div>
+          <div className="p-3 text-xs text-muted-foreground">{t("settings.notAddedYet")}</div>
         ) : (
           <div className="divide-y">
             {rows.map((r) => (
