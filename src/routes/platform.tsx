@@ -84,6 +84,7 @@ function money(n: number) {
 
 function PlatformPage() {
   const { t } = useT();
+  const tt = t;
   const { isPlatformAdmin, loading: tenantLoading } = useTenant();
   const qc = useQueryClient();
   const fetchTenants = useServerFn(listTenants);
