@@ -17,6 +17,7 @@ import { syncMissingReportFines, setReportRequired, addManualFine, deleteFine } 
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Plus } from "lucide-react";
+import { useT } from "@/lib/i18n";
 
 type WorkReport = {
   id: string;
@@ -32,6 +33,7 @@ export function WorkReportsSection() {
   const { user } = useAuth();
   const isAdmin = useIsAdmin();
   const qc = useQueryClient();
+  const { t } = useT();
 
   const { data: myRoles = [] } = useQuery({
     queryKey: ["my-roles", user?.id],
@@ -103,11 +105,11 @@ export function WorkReportsSection() {
   const applyMut = useMutation({
     mutationFn: () => syncFn({ data: { year: fineYear, month: fineMonth, persist: true } }),
     onSuccess: (r) => {
-      toast.success(`${r.inserted} ta jarima qo'shildi`);
+      toast.success(t("wr.finesAdded", { n: r.inserted }));
       qc.invalidateQueries({ queryKey: ["missing-report-fines"] });
       qc.invalidateQueries({ queryKey: ["jarima-data"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+    onError: (e: any) => toast.error(e?.message || t("wr.error")),
   });
 
   const [fineEmpFilter, setFineEmpFilter] = useState<string>("all");
@@ -124,20 +126,20 @@ export function WorkReportsSection() {
         note: null,
       }}),
     onSuccess: () => {
-      toast.success("Jarima qo'shildi");
+      toast.success(t("wr.fineAdded"));
       qc.invalidateQueries({ queryKey: ["missing-report-fines"] });
       qc.invalidateQueries({ queryKey: ["jarima-data"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+    onError: (e: any) => toast.error(e?.message || t("wr.error")),
   });
   const cancelRowMut = useMutation({
     mutationFn: (id: string) => deleteFineFn({ data: { id } }),
     onSuccess: () => {
-      toast.success("Jarima bekor qilindi");
+      toast.success(t("wr.fineCancelled"));
       qc.invalidateQueries({ queryKey: ["missing-report-fines"] });
       qc.invalidateQueries({ queryKey: ["jarima-data"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+    onError: (e: any) => toast.error(e?.message || t("wr.error")),
   });
 
   const setRequiredFn = useServerFn(setReportRequired);
@@ -147,7 +149,7 @@ export function WorkReportsSection() {
       qc.invalidateQueries({ queryKey: ["employees-min-rr"] });
       qc.invalidateQueries({ queryKey: ["missing-report-fines"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+    onError: (e: any) => toast.error(e?.message || t("wr.error")),
   });
 
   const addFineFn = useServerFn(addManualFine);
@@ -167,24 +169,24 @@ export function WorkReportsSection() {
       note: mfNote.trim() || null,
     }}),
     onSuccess: () => {
-      toast.success("Jarima qo'shildi");
+      toast.success(t("wr.fineAdded"));
       setFineOpen(false);
       setMfEmp(""); setMfReason(""); setMfNote(""); setMfAmount("20000");
       qc.invalidateQueries({ queryKey: ["jarima-data"] });
     },
-    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+    onError: (e: any) => toast.error(e?.message || t("wr.error")),
   });
 
   const empMap = useMemo(() => Object.fromEntries(employees.map((e) => [e.id, e.full_name])), [employees]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Hisobotni o'chirishni tasdiqlaysizmi?")) return;
+    if (!confirm(t("wr.confirmDelete"))) return;
     const { error } = await supabase.from("work_reports").delete().eq("id", id);
-    if (error) toast.error(error.message); else toast.success("O'chirildi");
+    if (error) toast.error(error.message); else toast.success(t("wr.deleted"));
   };
 
   if (!canAccess) {
-    return <Card className="p-10 text-center text-muted-foreground">Ruxsat yo'q</Card>;
+    return <Card className="p-10 text-center text-muted-foreground">{t("wr.noAccess")}</Card>;
   }
 
   return (
@@ -192,11 +194,11 @@ export function WorkReportsSection() {
       <Card className="p-4">
         <div className="flex flex-wrap items-end gap-3">
           <div className="min-w-[200px] flex-1">
-            <label className="text-xs text-muted-foreground mb-1 block">Ishchi</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("wr.employee")}</label>
             <Select value={empFilter} onValueChange={setEmpFilter}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Barchasi</SelectItem>
+                <SelectItem value="all">{t("wr.all")}</SelectItem>
                 {employees.map((e) => (
                   <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
                 ))}
@@ -204,11 +206,11 @@ export function WorkReportsSection() {
             </Select>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Boshlanish</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("wr.dateFrom")}</label>
             <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Tugash</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("wr.dateTo")}</label>
             <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
           </div>
         </div>
@@ -223,31 +225,31 @@ export function WorkReportsSection() {
         <Card className="p-4 border-amber-300/60 bg-amber-50/50 dark:bg-amber-950/20">
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <span className="font-medium text-sm md:text-base">Hisobot yozmaganlar uchun jarima</span>
-            <Badge variant="outline" className="ml-auto">20 000 so'm / kun</Badge>
+            <span className="font-medium text-sm md:text-base">{t("wr.fineTitle")}</span>
+            <Badge variant="outline" className="ml-auto">{t("wr.finePerDay")}</Badge>
           </div>
           <div className="flex flex-wrap items-end gap-3 mb-3">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Yil</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("wr.year")}</label>
               <Input type="number" className="w-24" value={fineYear} onChange={(e) => setFineYear(Number(e.target.value) || now.getFullYear())} />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Oy</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("wr.month")}</label>
               <Select value={String(fineMonth)} onValueChange={(v) => setFineMonth(Number(v))}>
                 <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentyabr","Oktyabr","Noyabr","Dekabr"].map((n, i) => (
-                    <SelectItem key={i} value={String(i + 1)}>{n}</SelectItem>
+                  {["wr.months.jan","wr.months.feb","wr.months.mar","wr.months.apr","wr.months.may","wr.months.jun","wr.months.jul","wr.months.aug","wr.months.sep","wr.months.oct","wr.months.nov","wr.months.dec"].map((key, i) => (
+                    <SelectItem key={i} value={String(i + 1)}>{t(key)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="min-w-[200px]">
-              <label className="text-xs text-muted-foreground mb-1 block">Xodim</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("wr.employee")}</label>
               <Select value={fineEmpFilter} onValueChange={setFineEmpFilter}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Barcha xodimlar</SelectItem>
+                  <SelectItem value="all">{t("wr.allEmployees")}</SelectItem>
                   {employees.filter(e => !e.terminated_at && e.report_required !== false).map((e) => (
                     <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
                   ))}
@@ -255,11 +257,11 @@ export function WorkReportsSection() {
               </Select>
             </div>
             <div className="text-sm">
-              <div className="text-muted-foreground">Aniqlangan kunlar</div>
+              <div className="text-muted-foreground">{t("wr.detectedDays")}</div>
               <div className="font-semibold text-base">
                 {filteredMissing.length}{" "}
                 <span className="text-xs text-muted-foreground">
-                  ({pendingFiltered.length} yangi)
+                  ({pendingFiltered.length} {t("wr.newSuffix")})
                 </span>
               </div>
             </div>
@@ -267,13 +269,13 @@ export function WorkReportsSection() {
               size="sm"
               variant="outline"
               disabled={applyMut.isPending || pendingFiltered.length === 0 || fineEmpFilter !== "all"}
-              title={fineEmpFilter !== "all" ? "Hammasi bo'yicha qo'shish uchun 'Barcha xodimlar'ni tanlang" : ""}
+              title={fineEmpFilter !== "all" ? t("wr.applyAllTitle") : ""}
               onClick={() => {
-                if (!confirm(`${pendingFiltered.length} ta jarima qo'shilsinmi? Har biri 20 000 so'm.`)) return;
+                if (!confirm(t("wr.confirmAddFines", { n: pendingFiltered.length }))) return;
                 applyMut.mutate();
               }}
             >
-              {applyMut.isPending ? "Qo'shilmoqda..." : "Barchasini qo'shish"}
+              {applyMut.isPending ? t("wr.adding") : t("wr.addAll")}
             </Button>
           </div>
           {filteredMissing.length > 0 && (
@@ -281,10 +283,10 @@ export function WorkReportsSection() {
               <table className="w-full text-sm">
                 <thead className="sticky top-0 bg-muted/60">
                   <tr>
-                    <th className="text-left px-3 py-2">Ishchi</th>
-                    <th className="text-left px-3 py-2">Sana</th>
-                    <th className="text-right px-3 py-2">Holat</th>
-                    <th className="text-right px-3 py-2 w-32">Amal</th>
+                    <th className="text-left px-3 py-2">{t("wr.col.employee")}</th>
+                    <th className="text-left px-3 py-2">{t("wr.col.date")}</th>
+                    <th className="text-right px-3 py-2">{t("wr.col.status")}</th>
+                    <th className="text-right px-3 py-2 w-32">{t("wr.col.action")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -297,8 +299,8 @@ export function WorkReportsSection() {
                         <td className="px-3 py-1.5 font-mono text-xs">{m.date}</td>
                         <td className="px-3 py-1.5 text-right">
                           {m.already_fined
-                            ? <Badge variant="secondary">Jarima qo'yilgan</Badge>
-                            : <Badge variant="destructive">Kutilmoqda</Badge>}
+                            ? <Badge variant="secondary">{t("wr.fineSet")}</Badge>
+                            : <Badge variant="destructive">{t("wr.pending")}</Badge>}
                         </td>
                         <td className="px-3 py-1.5 text-right">
                           {!m.already_fined ? (
@@ -314,7 +316,7 @@ export function WorkReportsSection() {
                                 );
                               }}
                             >
-                              {isBusy ? "..." : "Tasdiqlash"}
+                              {isBusy ? "..." : t("wr.confirm")}
                             </Button>
                           ) : m.fine_id ? (
                             <Button
@@ -322,12 +324,12 @@ export function WorkReportsSection() {
                               variant="outline"
                               disabled={isBusy}
                               onClick={() => {
-                                if (!confirm("Jarimani bekor qilishni tasdiqlaysizmi?")) return;
+                                if (!confirm(t("wr.confirmCancelFine"))) return;
                                 setConfirmingRow(rowKey);
                                 cancelRowMut.mutate(m.fine_id!, { onSettled: () => setConfirmingRow(null) });
                               }}
                             >
-                              {isBusy ? "..." : <><Trash2 className="h-3.5 w-3.5 mr-1" />Bekor qilish</>}
+                              {isBusy ? "..." : <><Trash2 className="h-3.5 w-3.5 mr-1" />{t("wr.cancel")}</>}
                             </Button>
                           ) : null}
                         </td>
@@ -339,7 +341,7 @@ export function WorkReportsSection() {
             </div>
           )}
           {filteredMissing.length === 0 && (
-            <div className="text-sm text-muted-foreground">Bu oyda hisobotsiz kun aniqlanmadi 🎉</div>
+            <div className="text-sm text-muted-foreground">{t("wr.noMissingReports")}</div>
           )}
         </Card>
         );
@@ -349,8 +351,8 @@ export function WorkReportsSection() {
         <Card className="p-4">
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
             <div>
-              <div className="font-medium text-sm md:text-base">Hisobot yozishi kerak bo'lgan xodimlar</div>
-              <div className="text-xs text-muted-foreground">Faqat belgilangan xodimlar uchun avtomatik jarima hisoblanadi</div>
+              <div className="font-medium text-sm md:text-base">{t("wr.requiredTitle")}</div>
+              <div className="text-xs text-muted-foreground">{t("wr.requiredSubtitle")}</div>
             </div>
             <Badge variant="outline">
               {employees.filter(e => !e.terminated_at && e.report_required !== false).length} / {employees.filter(e => !e.terminated_at).length}
@@ -377,18 +379,18 @@ export function WorkReportsSection() {
       {isAdmin && (
         <Card className="p-4">
           <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-            <div className="font-medium text-sm md:text-base">Qo'lda jarima qo'shish</div>
+            <div className="font-medium text-sm md:text-base">{t("wr.manualFineTitle")}</div>
             <Dialog open={fineOpen} onOpenChange={setFineOpen}>
               <DialogTrigger asChild>
-                <Button size="sm"><Plus className="h-4 w-4 mr-1" /> Jarima qo'shish</Button>
+                <Button size="sm"><Plus className="h-4 w-4 mr-1" /> {t("wr.addFine")}</Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader><DialogTitle>Yangi jarima</DialogTitle></DialogHeader>
+                <DialogHeader><DialogTitle>{t("wr.newFine")}</DialogTitle></DialogHeader>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Xodim</label>
+                    <label className="text-xs text-muted-foreground mb-1 block">{t("wr.employee")}</label>
                     <Select value={mfEmp} onValueChange={setMfEmp}>
-                      <SelectTrigger><SelectValue placeholder="Tanlang" /></SelectTrigger>
+                      <SelectTrigger><SelectValue placeholder={t("wr.choose")} /></SelectTrigger>
                       <SelectContent>
                         {employees.filter(e => !e.terminated_at).map((e) => (
                           <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
@@ -398,36 +400,36 @@ export function WorkReportsSection() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">Sana</label>
+                      <label className="text-xs text-muted-foreground mb-1 block">{t("wr.date")}</label>
                       <Input type="date" value={mfDate} onChange={(e) => setMfDate(e.target.value)} />
                     </div>
                     <div>
-                      <label className="text-xs text-muted-foreground mb-1 block">Summa (so'm)</label>
+                      <label className="text-xs text-muted-foreground mb-1 block">{t("wr.amount")}</label>
                       <Input type="number" value={mfAmount} onChange={(e) => setMfAmount(e.target.value)} />
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Sabab</label>
-                    <Input placeholder="Masalan: Hisobot yozmagan" value={mfReason} onChange={(e) => setMfReason(e.target.value)} />
+                    <label className="text-xs text-muted-foreground mb-1 block">{t("wr.reason")}</label>
+                    <Input placeholder={t("wr.reasonPlaceholder")} value={mfReason} onChange={(e) => setMfReason(e.target.value)} />
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Izoh (ixtiyoriy)</label>
+                    <label className="text-xs text-muted-foreground mb-1 block">{t("wr.noteOptional")}</label>
                     <Input value={mfNote} onChange={(e) => setMfNote(e.target.value)} />
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setFineOpen(false)}>Bekor qilish</Button>
+                  <Button variant="outline" onClick={() => setFineOpen(false)}>{t("wr.cancel")}</Button>
                   <Button
                     disabled={!mfEmp || !mfDate || Number(mfAmount) <= 0 || addFineMut.isPending}
                     onClick={() => addFineMut.mutate()}
                   >
-                    {addFineMut.isPending ? "Saqlanmoqda..." : "Saqlash"}
+                    {addFineMut.isPending ? t("wr.saving") : t("wr.save")}
                   </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>
           </div>
-          <div className="text-xs text-muted-foreground">Har bir xodim uchun alohida sabab bilan jarima qo'shishingiz mumkin. Jarima Jarima → Tarix bo'limida ko'rinadi va oylikdan avtomat ushlanadi.</div>
+          <div className="text-xs text-muted-foreground">{t("wr.manualFineHint")}</div>
         </Card>
       )}
 
@@ -438,7 +440,7 @@ export function WorkReportsSection() {
       {reports.length === 0 ? (
         <Card className="p-10 text-center text-muted-foreground">
           <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
-          Hisobotlar yo'q. Ishchilar Telegram bot orqali "📋 Bajarilgan ishlar" tugmasini bossin.
+          {t("wr.noReports")}
         </Card>
       ) : (
         <div className="space-y-2">
