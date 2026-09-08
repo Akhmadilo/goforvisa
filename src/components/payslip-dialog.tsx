@@ -140,6 +140,7 @@ export function PayslipDialog({
     staleTime: 60_000,
   });
 
+  const { t } = useT();
   const nf = (n: number) => new Intl.NumberFormat(localeOf(lang)).format(Math.round(n)) + " so'm";
 
   if (!target) return null;
@@ -240,7 +241,7 @@ export function PayslipDialog({
         footNote: target.note,
       });
     } catch (e: any) {
-      toast.error(e?.message ?? "PDF yaratilmadi");
+      toast.error(e?.message ?? t("pay.pdfNotCreated"));
     } finally {
       setExporting(false);
     }
@@ -263,43 +264,42 @@ export function PayslipDialog({
       <DialogContent className="max-h-[92vh] max-w-[min(96vw,900px)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" /> Oylik hisob varaqasi
+            <FileText className="h-5 w-5 text-primary" /> {t("pay.title")}
           </DialogTitle>
           <DialogDescription>
-            {target.employee_name} — {periodLabel}. Har bir summa qanday hisoblangani batafsil ko‘rsatilgan.
+            {t("pay.description", { name: target.employee_name, period: periodLabel })}
           </DialogDescription>
         </DialogHeader>
 
         <div ref={contentRef} className="space-y-4">
           {/* Umumiy */}
           <section className="rounded-lg border border-border bg-card p-4">
-            <div className="mb-2 text-sm font-semibold">1. Umumiy hisob</div>
-            <Row label="Belgilangan (asosiy) oylik" value={nf(Number(target.fixed_amount))} />
-            <Row label="Bonus / KPI" value={`+ ${nf(Number(target.kpi_amount))}`} tone="primary" />
-            <Row label="Jarimalar" value={`− ${nf(Number(target.penalty_amount))}`} tone="destructive" />
-            <Row label="Hisoblangan oylik (jami)" value={nf(target.gross)} />
-            <Row label="Oldindan olingan avans" value={target.advance > 0 ? `− ${nf(target.advance)}` : "—"} tone="muted" />
-            <Row label="Qo‘lga beriladigan summa" value={nf(target.total)} tone="primary" />
+            <div className="mb-2 text-sm font-semibold">{t("pay.section1.title")}</div>
+            <Row label={t("pay.fixedSalary")} value={nf(Number(target.fixed_amount))} />
+            <Row label={t("pay.bonusKpi")} value={`+ ${nf(Number(target.kpi_amount))}`} tone="primary" />
+            <Row label={t("pay.fines")} value={`− ${nf(Number(target.penalty_amount))}`} tone="destructive" />
+            <Row label={t("pay.grossSalary")} value={nf(target.gross)} />
+            <Row label={t("pay.advanceTaken")} value={target.advance > 0 ? `− ${nf(target.advance)}` : "—"} tone="muted" />
+            <Row label={t("pay.finalAmount")} value={nf(target.total)} tone="primary" />
             <div className="mt-2 rounded bg-muted p-2 text-xs text-muted-foreground">
-              Formula: Asosiy oylik + Bonus − Jarima = Hisoblangan oylik. Avans ilgari to‘langani uchun
-              faqat qo‘lga beriladigan summani kamaytiradi.
+              {t("pay.formula")}
             </div>
           </section>
 
           {/* Bonus izohi */}
           <section className="rounded-lg border border-border bg-card p-4">
-            <div className="mb-2 text-sm font-semibold">2. Bonus nima uchun shunday chiqdi</div>
+            <div className="mb-2 text-sm font-semibold">{t("pay.section2.title")}</div>
             {isLoading ? (
-              <div className="py-4 text-sm text-muted-foreground">Yuklanmoqda…</div>
+              <div className="py-4 text-sm text-muted-foreground">{t("pay.loading")}</div>
             ) : (
               <div className="space-y-3">
                 {data && data.ccCount > 0 && (
                   <div className="rounded-md border border-border p-3">
-                    <div className="text-xs font-semibold uppercase text-muted-foreground">Call-centre KPI</div>
-                    <Row label="Oyda yopilgan shartnomalar soni" value={`${data.ccCount} ta`} />
-                    <Row label="Bosqich bo‘yicha asosiy oylik" value={nf(data.ccBase)} />
-                    <Row label="Bosqich KPI foizi" value={`${data.ccPct}%`} />
-                    <Row label={`Bonus = ${nf(data.ccBase)} × ${data.ccPct}%`} value={nf(data.ccBonus)} tone="primary" />
+                    <div className="text-xs font-semibold uppercase text-muted-foreground">{t("pay.ccKpi")}</div>
+                    <Row label={t("pay.ccContractsCount")} value={`${data.ccCount} ${t("wr.newSuffix") === "yangi" ? "ta" : ""}`.trim() || `${data.ccCount}`} />
+                    <Row label={t("pay.ccTierSalary")} value={nf(data.ccBase)} />
+                    <Row label={t("pay.ccTierPct")} value={`${data.ccPct}%`} />
+                    <Row label={t("pay.ccBonusFormula", { base: nf(data.ccBase), pct: data.ccPct })} value={nf(data.ccBonus)} tone="primary" />
                   </div>
                 )}
 

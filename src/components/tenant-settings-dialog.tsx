@@ -16,6 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { useT } from "@/lib/i18n";
 
 export const TENANT_MODULES: { key: string; label: string }[] = [
   { key: "salaries_section", label: "Oyliklar" },
@@ -41,6 +42,7 @@ export function TenantSettingsDialog({
   tenantId: string;
   tenantName: string;
 }) {
+  const { t } = useT();
   const [open, setOpen] = useState(false);
   const qc = useQueryClient();
   const load = useServerFn(getTenantSettings);
@@ -83,11 +85,11 @@ export function TenantSettingsDialog({
         },
       }),
     onSuccess: () => {
-      toast.success("Sozlamalar saqlandi");
+      toast.success(t("tset.saved"));
       qc.invalidateQueries({ queryKey: ["tenant-settings", tenantId] });
       setOpen(false);
     },
-    onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
+    onError: (e: any) => toast.error(e?.message ?? t("tset.error")),
   });
 
   const toggle = (key: string, on: boolean) =>
@@ -98,21 +100,21 @@ export function TenantSettingsDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="icon" variant="ghost" title="Kompaniya sozlamalari">
+        <Button size="icon" variant="ghost" title={t("tset.settingsTooltip")}>
           <SlidersHorizontal className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{tenantName} — sozlamalar</DialogTitle>
+          <DialogTitle>{tenantName} — {t("tset.title")}</DialogTitle>
         </DialogHeader>
 
         {isLoading ? (
-          <div className="py-8 text-center text-sm text-muted-foreground">Yuklanmoqda…</div>
+          <div className="py-8 text-center text-sm text-muted-foreground">{t("tset.loading")}</div>
         ) : (
           <div className="space-y-6">
             <section className="space-y-2">
-              <Label>Bo'limlar (modullar)</Label>
+              <Label>{t("tset.modules")}</Label>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                 {TENANT_MODULES.map((m) => (
                   <label
@@ -123,18 +125,18 @@ export function TenantSettingsDialog({
                       checked={modules.includes(m.key)}
                       onCheckedChange={(v) => toggle(m.key, v === true)}
                     />
-                    {m.label}
+                    {t(`tset.module.${m.key}`)}
                   </label>
                 ))}
               </div>
               <p className="text-xs text-muted-foreground">
-                O'chirilgan bo'limlar shu kompaniya foydalanuvchilarida umuman ko'rinmaydi.
+                {t("tset.modulesHint")}
               </p>
             </section>
 
             <section className="grid gap-3 sm:grid-cols-2">
               <div>
-                <Label>Brend nomi</Label>
+                <Label>{t("tset.brandName")}</Label>
                 <Input
                   value={brandName}
                   onChange={(e) => setBrandName(e.target.value)}
@@ -142,7 +144,7 @@ export function TenantSettingsDialog({
                 />
               </div>
               <div>
-                <Label>Logotip URL</Label>
+                <Label>{t("tset.logoUrl")}</Label>
                 <Input
                   value={logo}
                   onChange={(e) => setLogo(e.target.value)}
@@ -150,7 +152,7 @@ export function TenantSettingsDialog({
                 />
               </div>
               <div>
-                <Label>Asosiy rang</Label>
+                <Label>{t("tset.primaryColor")}</Label>
                 <div className="flex gap-2">
                   <Input
                     value={color}
@@ -159,7 +161,7 @@ export function TenantSettingsDialog({
                   />
                   <input
                     type="color"
-                    aria-label="Rang tanlash"
+                    aria-label={t("tset.colorPicker")}
                     value={/^#[0-9a-fA-F]{6}$/.test(color) ? color : "#1f9d6b"}
                     onChange={(e) => setColor(e.target.value)}
                     className="h-9 w-12 rounded-md border border-border bg-background"
@@ -167,14 +169,14 @@ export function TenantSettingsDialog({
                 </div>
               </div>
               <div>
-                <Label>Valyuta</Label>
+                <Label>{t("tset.currency")}</Label>
                 <Input value={currency} onChange={(e) => setCurrency(e.target.value)} />
               </div>
             </section>
 
             <section className="grid gap-3 sm:grid-cols-2">
               <div>
-                <Label>KPI stavka (1$ uchun so'm)</Label>
+                <Label>{t("tset.kpiRate")}</Label>
                 <Input
                   type="number"
                   value={rules.kpi_rate_per_usd ?? ""}
@@ -183,7 +185,7 @@ export function TenantSettingsDialog({
                 />
               </div>
               <div>
-                <Label>Viza bonusi (1$ uchun so'm)</Label>
+                <Label>{t("tset.visaBonus")}</Label>
                 <Input
                   type="number"
                   value={rules.visa_bonus_per_usd ?? ""}
@@ -192,7 +194,7 @@ export function TenantSettingsDialog({
                 />
               </div>
               <div>
-                <Label>Hisobot yozmaganlik jarimasi (so'm)</Label>
+                <Label>{t("tset.reportFine")}</Label>
                 <Input
                   type="number"
                   value={rules.report_fine_uzs ?? ""}
@@ -201,7 +203,7 @@ export function TenantSettingsDialog({
                 />
               </div>
               <div>
-                <Label>Kechikish jarimasi (so'm)</Label>
+                <Label>{t("tset.lateFine")}</Label>
                 <Input
                   type="number"
                   value={rules.late_fine_uzs ?? ""}
@@ -215,7 +217,7 @@ export function TenantSettingsDialog({
 
         <DialogFooter>
           <Button onClick={() => saveM.mutate()} disabled={saveM.isPending || isLoading}>
-            Saqlash
+            {t("tset.save")}
           </Button>
         </DialogFooter>
       </DialogContent>
