@@ -562,7 +562,7 @@ function PositionSelect({ value, onChange }: { value: string; onChange: (v: stri
     onChange(name);
     setNewName("");
     setAdding(false);
-    toast.success("Pozitsiya qo'shildi");
+    toast.success(t("toast.positionAdded"));
   };
 
   const handleDelete = async (id: string, name: string) => {
