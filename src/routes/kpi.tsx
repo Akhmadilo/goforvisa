@@ -51,7 +51,7 @@ export { ccBaseFor, ccKpiPctFor } from "@/lib/cc-tiers";
 
 /** Admin-editable Call-centre ladder: sales count -> base salary + KPI %. */
 function CcTierEditor() {
-  const { lang } = useT();
+  const { t, lang } = useT();
   const isAdmin = useIsAdmin();
   const qc = useQueryClient();
   const { data: tiers } = useCcTiers();
