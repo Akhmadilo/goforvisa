@@ -849,7 +849,7 @@ function SalaryFormDialog({
                   onClick={() => setFixed(String(autoFixed))}
                   title={t("sal.auto.ccBase")}
                 >
-                  Avtomatik: {nf(autoFixed)}
+                  {t("sal.auto")}: {nf(autoFixed)}
                 </button>
               )}
             </div>
@@ -865,7 +865,7 @@ function SalaryFormDialog({
                   onClick={() => setKpi(String(autoBonus))}
                   title={t("sal.auto.ccBonus")}
                 >
-                  Avtomatik: {nf(autoBonus)}
+                  {t("sal.auto")}: {nf(autoBonus)}
                 </button>
               )}
             </div>
@@ -888,7 +888,7 @@ function SalaryFormDialog({
                       className="text-[11px] text-destructive hover:underline shrink-0"
                       onClick={() => removeExtraBonus(b.id)}
                     >
-                      O'chirish
+                      {t("common.delete")}
                     </button>
                   </div>
                 ))}
@@ -926,7 +926,7 @@ function SalaryFormDialog({
                   onClick={() => setPenalty(String(autoPenalty))}
                   title={t("sal.auto.applyPenalty")}
                 >
-                  Avtomatik: {nf(autoPenalty)}
+                  {t("sal.auto")}: {nf(autoPenalty)}
                 </button>
               )}
             </div>
@@ -947,7 +947,7 @@ function SalaryFormDialog({
                   onClick={() => setAdvance(String(autoAdvance))}
                   title={t("sal.auto.applyAdvance")}
                 >
-                  Avtomatik: {nf(autoAdvance)}
+                  {t("sal.auto")}: {nf(autoAdvance)}
                 </button>
               )}
             </div>
