@@ -543,18 +543,18 @@ function PlansCard() {
   const saveM = useMutation({
     mutationFn: (v: any) => save({ data: v }),
     onSuccess: () => {
-      toast.success("Saqlandi");
+      toast.success(t("plat.saved"));
       invalidate();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
+    onError: (e: any) => toast.error(e?.message ?? t("common.error")),
   });
   const delM = useMutation({
     mutationFn: (planId: string) => remove({ data: { planId } }),
     onSuccess: () => {
-      toast.success("O'chirildi");
+      toast.success(t("plat.deleted"));
       invalidate();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
+    onError: (e: any) => toast.error(e?.message ?? t("common.error")),
   });
 
   return (
@@ -674,10 +674,10 @@ function PlansCard() {
 /* ---------------- Kompaniya foydalanuvchilari ---------------- */
 
 const ROLE_LABEL: Record<string, string> = {
-  admin: "Admin",
-  owner_ceo: "Direktor / CEO",
-  financier: "Moliyachi",
-  user: "Xodim",
+  admin: t("role.admin"),
+  owner_ceo: t("role.owner_ceo"),
+  financier: t("role.financier"),
+  user: t("role.user"),
 };
 
 function TenantUsersDialog({ tenantId, tenantName }: { tenantId: string; tenantName: string }) {
@@ -703,30 +703,30 @@ function TenantUsersDialog({ tenantId, tenantName }: { tenantId: string; tenantN
   const addM = useMutation({
     mutationFn: () => addUser({ data: { tenantId, ...form } as any }),
     onSuccess: () => {
-      toast.success("Foydalanuvchi qo'shildi");
+      toast.success(t("plat.userAdded"));
       setForm({ name: "", email: "", password: "", role: "user" });
       invalidate();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
+    onError: (e: any) => toast.error(e?.message ?? t("common.error")),
   });
   const passM = useMutation({
     mutationFn: (v: { userId: string; password: string }) => setPass({ data: v }),
-    onSuccess: () => toast.success("Parol yangilandi"),
-    onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
+    onSuccess: () => toast.success(t("plat.passwordUpdated")),
+    onError: (e: any) => toast.error(e?.message ?? t("common.error")),
   });
   const delM = useMutation({
     mutationFn: (userId: string) => delUser({ data: { userId, tenantId } }),
     onSuccess: () => {
-      toast.success("O'chirildi");
+      toast.success(t("plat.deleted"));
       invalidate();
     },
-    onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
+    onError: (e: any) => toast.error(e?.message ?? t("common.error")),
   });
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="icon" variant="ghost" title="Foydalanuvchilar">
+        <Button size="icon" variant="ghost" title={t("plat.users")}>
           <Users className="h-4 w-4" />
         </Button>
       </DialogTrigger>
@@ -760,9 +760,9 @@ function TenantUsersDialog({ tenantId, tenantName }: { tenantId: string; tenantN
                 <Button
                   size="icon"
                   variant="ghost"
-                  title="Parolni o'zgartirish"
+                  title={t("plat.changePassword")}
                   onClick={() => {
-                    const p = prompt("Yangi parol (kamida 6 belgi)");
+                    const p = prompt(t("plat.newPassword"));
                     if (p && p.length >= 6) passM.mutate({ userId: u.user_id, password: p });
                   }}
                 >
@@ -838,7 +838,7 @@ function TenantUsersDialog({ tenantId, tenantName }: { tenantId: string; tenantN
               addM.isPending || !form.name || !form.email || form.password.length < 6
             }
           >
-            {addM.isPending ? "Qo'shilmoqda..." : "Qo'shish"}
+            {addM.isPending ? t("plat.adding") : t("common.add")}
           </Button>
         </DialogFooter>
       </DialogContent>
