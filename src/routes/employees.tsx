@@ -536,6 +536,7 @@ function DialogAvatarPreview({ stored }: { stored: string | null }) {
 }
 
 function PositionSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { t } = useT();
   const isAdmin = useIsAdmin();
   const qc = useQueryClient();
   const [adding, setAdding] = useState(false);
