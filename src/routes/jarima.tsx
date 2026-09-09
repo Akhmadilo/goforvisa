@@ -1653,6 +1653,7 @@ function statusBadge(s: AdvanceStatus) {
 }
 
 function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<string, string> }) {
+  const { t } = useT();
   const { isCeo, isAdmin: isAdm, canApproveAdvances } = useRoles();
   const qc = useQueryClient();
   const listFn = useServerFn(listAdvances);

@@ -95,8 +95,8 @@ function CcTierEditor() {
         .eq("id", t.id);
       if (error) throw error;
     },
-    onSuccess: (_d, t) => {
-      setDraft((d) => { const n = { ...d }; delete n[t.id]; return n; });
+    onSuccess: (_d, tier) => {
+      setDraft((d) => { const n = { ...d }; delete n[tier.id]; return n; });
       invalidate();
       toast.success(t("toast.saved"));
     },
