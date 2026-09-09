@@ -1108,6 +1108,7 @@ function MonthlyExport({
   employees: Emp[];
   signers: Signers;
 }) {
+  const { t } = useT();
   const now = new Date();
   const [year, setYear] = useState<number>(now.getFullYear());
   const [month, setMonth] = useState<number>(now.getMonth() + 1);
@@ -1156,6 +1157,7 @@ const UZ_MONTHS_FULL = [
 ];
 
 function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: Signers }) {
+  const { t } = useT();
   const now = new Date();
   const [empId, setEmpId] = useState<string>("");
   const [year, setYear] = useState<number>(now.getFullYear());
