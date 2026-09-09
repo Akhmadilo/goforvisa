@@ -78,6 +78,9 @@ export const miscDict: ExtraDict = {
     "toast.pdfReadyMonthly": "Oylik PDF tayyor",
     "toast.pdfCreated": "PDF tayyorlandi",
     "toast.pdfError": "PDF yaratishda xatolik",
+    "toast.excel": "Excel fayl yuklab olindi",
+    "toast.dateSaved": "Sana saqlandi",
+    "toast.selectPayMethod": "To'lov usulini tanlang",
   },
   en: {
     "sal.calcSalary": "Calculated salary",
@@ -150,6 +153,9 @@ export const miscDict: ExtraDict = {
     "toast.pdfReadyMonthly": "Monthly PDF ready",
     "toast.pdfCreated": "PDF created",
     "toast.pdfError": "Failed to create PDF",
+    "toast.excel": "Excel file downloaded",
+    "toast.dateSaved": "Date saved",
+    "toast.selectPayMethod": "Select a payment method",
   },
   ru: {
     "sal.calcSalary": "Начисленная зарплата",
@@ -222,5 +228,8 @@ export const miscDict: ExtraDict = {
     "toast.pdfReadyMonthly": "Месячный PDF готов",
     "toast.pdfCreated": "PDF создан",
     "toast.pdfError": "Ошибка при создании PDF",
+    "toast.excel": "Excel-файл скачан",
+    "toast.dateSaved": "Дата сохранена",
+    "toast.selectPayMethod": "Выберите способ оплаты",
   },
 };
