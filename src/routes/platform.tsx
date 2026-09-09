@@ -673,14 +673,14 @@ function PlansCard() {
 
 /* ---------------- Kompaniya foydalanuvchilari ---------------- */
 
-const ROLE_LABEL: Record<string, string> = {
-  admin: t("role.admin"),
-  owner_ceo: t("role.owner_ceo"),
-  financier: t("role.financier"),
-  user: t("role.user"),
-};
-
 function TenantUsersDialog({ tenantId, tenantName }: { tenantId: string; tenantName: string }) {
+  const { t } = useT();
+  const ROLE_LABEL: Record<string, string> = {
+    admin: t("role.admin"),
+    owner_ceo: t("role.owner_ceo"),
+    financier: t("role.financier"),
+    user: t("role.user"),
+  };
   const [open, setOpen] = useState(false);
   const qc = useQueryClient();
   const fetchUsers = useServerFn(listTenantUsers);
