@@ -679,7 +679,7 @@ function Dashboard() {
     if (pdfExporting) return;
     const el = document.getElementById("dashboard-pdf-root");
     if (!el) return;
-    const toastId = toast.loading("PDF tayyorlanmoqda...");
+    const toastId = toast.loading(t("pdf.preparing"));
     setPdfExporting(true);
     try {
       const { exportElementToPdf } = await import("@/lib/pdf-export");
@@ -688,10 +688,10 @@ function Dashboard() {
         title: t("dash.title"),
         subtitle: t("dash.subtitle"),
       });
-      toast.success("PDF tayyor — preview oynasidan yuklab oling", { id: toastId });
+      toast.success(t("pdf.ready"), { id: toastId });
     } catch (err) {
       console.error(err);
-      toast.error("PDF yaratishda xatolik. Sahifani yangilab qayta urinib ko'ring.", { id: toastId });
+      toast.error(t("pdf.error"), { id: toastId });
     } finally {
       setPdfExporting(false);
     }
