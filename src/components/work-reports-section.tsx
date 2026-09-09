@@ -122,7 +122,7 @@ export function WorkReportsSection() {
         employeeId: v.employeeId,
         date: v.date,
         amountUzs: 20000,
-        reason: "Hisobot yozmagan",
+        reason: t("wr.noReport"),
         note: null,
       }}),
     onSuccess: () => {
@@ -165,7 +165,7 @@ export function WorkReportsSection() {
       employeeId: mfEmp,
       date: mfDate,
       amountUzs: Number(mfAmount) || 0,
-      reason: mfReason.trim() || "Boshqa",
+      reason: mfReason.trim() || t("wr.other"),
       note: mfNote.trim() || null,
     }}),
     onSuccess: () => {

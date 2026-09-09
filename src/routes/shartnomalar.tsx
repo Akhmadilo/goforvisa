@@ -406,7 +406,7 @@ function ShartnomalarPage() {
     XLSX.utils.book_append_sheet(wb, ws, "Contracts");
     const stamp = new Date().toISOString().slice(0, 10);
     XLSX.writeFile(wb, `shartnomalar-${stamp}.xlsx`);
-    toast.success("Excel");
+    toast.success(t("toast.excel"));
   };
 
 
@@ -1178,7 +1178,7 @@ function VisaResultSelect({ contractId, value, takenDate }: { contractId: string
   const saveDate = async () => {
     const { error } = await supabase.from("contracts").update({ visa_taken_date: dateVal || null } as never).eq("id", contractId);
     if (error) { toast.error(error.message); return; }
-    toast.success("Sana saqlandi");
+    toast.success(t("toast.dateSaved"));
     setDateOpen(false);
     qc.invalidateQueries({ queryKey: ["contracts-db"] });
   };
@@ -1344,7 +1344,7 @@ function PaymentsDialog({
       return;
     }
     if (!method) {
-      toast.error("To'lov usulini tanlang");
+      toast.error(t("toast.selectPayMethod"));
       return;
     }
     if (isFullyPaid) {

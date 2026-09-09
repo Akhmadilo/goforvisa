@@ -514,7 +514,7 @@ function FinancePage() {
     if (pdfExporting) return;
     const el = document.getElementById("moliya-pdf-root");
     if (!el) return;
-    const toastId = toast.loading("PDF tayyorlanmoqda...");
+    const toastId = toast.loading(t("pdf.preparing"));
     setPdfExporting(true);
     try {
       const { exportElementToPdf } = await import("@/lib/pdf-export");
@@ -524,10 +524,10 @@ function FinancePage() {
         subtitle: `${basisLabel}  ·  ${currency}  ·  ${periodLabel}`,
         meta: "Moliyaviy hisobot",
       });
-      toast.success("PDF tayyor — preview oynasidan yuklab oling", { id: toastId });
+      toast.success(t("pdf.ready"), { id: toastId });
     } catch (err) {
       console.error(err);
-      toast.error("PDF yaratishda xatolik. Sahifani yangilab qayta urinib ko'ring.", { id: toastId });
+      toast.error(t("pdf.error"), { id: toastId });
     } finally {
       setPdfExporting(false);
     }
@@ -1504,7 +1504,7 @@ function AgedReceivablesCard({ contracts, t }: { contracts: Contract[]; t: Retur
           onClick={async () => {
             const list = shown;
             if (!list.length) {
-              toast.error("Qarzdorlar topilmadi");
+              toast.error(t("toast.noDebtors"));
               return;
             }
             try {
@@ -1528,9 +1528,9 @@ function AgedReceivablesCard({ contracts, t }: { contracts: Contract[]; t: Retur
                   remainingUsd: r.c.remainingUsd || 0,
                 })),
               });
-              toast.success("PDF tayyorlandi");
+              toast.success(t("toast.pdfCreated"));
             } catch (e) {
-              toast.error("PDF yaratishda xatolik");
+              toast.error(t("toast.pdfError"));
             }
           }}
         >

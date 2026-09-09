@@ -11,11 +11,12 @@ import { opsDict } from "./i18n-ops";
 import { finesDict } from "./i18n-fines";
 import { jarimaDict } from "./i18n-jarima";
 import { hr2Dict } from "./i18n-hr2";
+import { miscDict } from "./i18n-misc";
 
 export type LangDict = Record<string, string>;
 export type ExtraDict = { uz: LangDict; en: LangDict; ru: LangDict };
 
-const parts: ExtraDict[] = [cashflowDict, hrDict, adminDict, chartsDict, dashDict, opsDict, finesDict, jarimaDict, hr2Dict];
+const parts: ExtraDict[] = [cashflowDict, hrDict, adminDict, chartsDict, dashDict, opsDict, finesDict, jarimaDict, hr2Dict, miscDict];
 
 export const extraDict: ExtraDict = {
   uz: Object.assign({}, ...parts.map((p) => p.uz)),

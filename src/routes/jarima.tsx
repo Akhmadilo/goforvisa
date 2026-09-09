@@ -552,40 +552,40 @@ function JarimaPage() {
   const invalidate = () => qc.invalidateQueries({ queryKey: ["jarima-data"] });
   const delFineMut = useMutation({
     mutationFn: (id: string) => delFineFn({ data: { id } }),
-    onSuccess: () => { invalidate(); qc.invalidateQueries({ queryKey: ["emp-month"] }); toast.success("Jarima bekor qilindi"); },
+    onSuccess: () => { invalidate(); qc.invalidateQueries({ queryKey: ["emp-month"] }); toast.success(t("toast.fineCancelled")); },
     onError: (e: any) => toast.error(e?.message || "Xatolik"),
   });
 
   const linkMut = useMutation({
     mutationFn: (v: { telegramRowId: string; employeeId: string | null }) => linkFn({ data: v }),
-    onSuccess: () => { invalidate(); toast.success("Bog'landi"); },
+    onSuccess: () => { invalidate(); toast.success(t("toast.linked")); },
     onError: (e: any) => toast.error(e.message),
   });
   const botRoleMut = useMutation({
     mutationFn: (v: { telegramRowId: string; botRole: "none" | "owner" | "ceo" | "financier" | "director" | "finance" }) => botRoleFn({ data: v }),
-    onSuccess: () => { invalidate(); toast.success("Lavozim saqlandi"); },
+    onSuccess: () => { invalidate(); toast.success(t("toast.positionSaved")); },
     onError: (e: any) => toast.error(e.message),
   });
   const delTgMut = useMutation({
     mutationFn: (id: string) => delTgFn({ data: { telegramRowId: id } }),
-    onSuccess: () => { invalidate(); toast.success("Telegram akkaunt o'chirildi"); },
+    onSuccess: () => { invalidate(); toast.success(t("toast.tgRemoved")); },
     onError: (e: any) => toast.error(e?.message || "Xatolik"),
   });
   const schedMut = useMutation({
     mutationFn: (v: { employeeId: string; weekday: number; startTime: string; isWorking: boolean }) =>
       saveSchedFn({ data: v }),
-    onSuccess: () => { invalidate(); toast.success("Saqlandi"); },
+    onSuccess: () => { invalidate(); toast.success(t("toast.saved")); },
     onError: (e: any) => toast.error(e.message),
   });
   const ruleMut = useMutation({
     mutationFn: (v: { id?: string; employeeId?: string | null; min: number | null; max: number | null; amount: number; label: string | null; kind?: "late" | "absence" }) =>
       saveRuleFn({ data: v }),
-    onSuccess: () => { invalidate(); toast.success("Saqlandi"); },
+    onSuccess: () => { invalidate(); toast.success(t("toast.saved")); },
     onError: (e: any) => toast.error(e.message),
   });
   const delRuleMut = useMutation({
     mutationFn: (id: string) => delRuleFn({ data: { id } }),
-    onSuccess: () => { invalidate(); toast.success("O'chirildi"); },
+    onSuccess: () => { invalidate(); toast.success(t("toast.deleted")); },
   });
 
   return (
@@ -710,7 +710,7 @@ function JarimaPage() {
                                         amount_uzs: f.amount_uzs,
                                         reason: fineReasonLabel(f.reason),
                                       }, signers);
-                                      toast.success("PDF tayyor");
+                                      toast.success(t("toast.pdfReady"));
                                     } catch (e: any) {
                                       toast.error(e?.message || "Xatolik");
                                     }
@@ -1108,6 +1108,7 @@ function MonthlyExport({
   employees: Emp[];
   signers: Signers;
 }) {
+  const { t } = useT();
   const now = new Date();
   const [year, setYear] = useState<number>(now.getFullYear());
   const [month, setMonth] = useState<number>(now.getMonth() + 1);
@@ -1133,7 +1134,7 @@ function MonthlyExport({
         onClick={async () => {
           try {
             await generateMonthlyPdf(year, month, employees, fines, signers);
-            toast.success("Oylik PDF tayyor");
+            toast.success(t("toast.pdfReadyMonthly"));
           } catch (e: any) {
             toast.error(e?.message || "Xatolik");
           }
@@ -1156,6 +1157,7 @@ const UZ_MONTHS_FULL = [
 ];
 
 function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: Signers }) {
+  const { t } = useT();
   const now = new Date();
   const [empId, setEmpId] = useState<string>("");
   const [year, setYear] = useState<number>(now.getFullYear());
@@ -1188,7 +1190,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
       return absenceFn({ data: { employeeId: empId, date: e.date, amountUzs: amt, note: e.note || null } });
     },
     onSuccess: () => {
-      toast.success("Saqlandi");
+      toast.success(t("toast.saved"));
       setEditing(null);
       invalidate();
     },
@@ -1197,7 +1199,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
   const clearMut = useMutation({
     mutationFn: (date: string) => clearFn({ data: { employeeId: empId, date } }),
     onSuccess: () => {
-      toast.success("Tozalandi");
+      toast.success(t("toast.cleaned"));
       setEditing(null);
       invalidate();
     },
@@ -1206,7 +1208,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
   const delFineFn = useServerFn(deleteFine);
   const delFineMut = useMutation({
     mutationFn: (id: string) => delFineFn({ data: { id } }),
-    onSuccess: () => { toast.success("Jarima bekor qilindi"); invalidate(); },
+    onSuccess: () => { toast.success(t("toast.fineCancelled")); invalidate(); },
     onError: (e: any) => toast.error(e?.message || "Xatolik"),
   });
 
@@ -1331,7 +1333,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
                 await generateEmployeeCalendarPdf(emp.full_name, year, month, pdfCells, {
                   presentDays, fineDays: fineCount, totalFine, daysInMonth: days,
                 }, signers);
-                toast.success("PDF tayyor");
+                toast.success(t("toast.pdfReady"));
               } catch (e: any) {
                 toast.error(e?.message || "Xatolik");
               }
@@ -1653,6 +1655,7 @@ function statusBadge(s: AdvanceStatus) {
 }
 
 function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<string, string> }) {
+  const { t } = useT();
   const { isCeo, isAdmin: isAdm, canApproveAdvances } = useRoles();
   const qc = useQueryClient();
   const listFn = useServerFn(listAdvances);
@@ -1711,7 +1714,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
     if (!editDeduct) return;
     try {
       await changeDeductFn({ data: { id: editDeduct.id, deductYear: editDeduct.y, deductMonth: editDeduct.m } });
-      toast.success("Oylik o'zgartirildi");
+      toast.success(t("toast.salaryUpdated"));
       setEditDeduct(null);
       invalidate();
     } catch (e: any) {
@@ -1729,12 +1732,12 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
   const submitCreate = async () => {
     const amt = Number(newAmt.replace(/[^\d]/g, ""));
     if (!newEmp || !amt || amt <= 0 || newPurpose.trim().length < 3) {
-      toast.error("Hamma maydonlarni to'g'ri to'ldiring");
+      toast.error(t("toast.fillFields"));
       return;
     }
     try {
       await createFn({ data: { employeeId: newEmp, amount: amt, purpose: newPurpose.trim() } });
-      toast.success("So'rov yaratildi");
+      toast.success(t("toast.requestCreated"));
       setOpenCreate(false);
       setNewEmp(""); setNewAmt(""); setNewPurpose("");
       invalidate();

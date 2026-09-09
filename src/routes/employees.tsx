@@ -536,6 +536,7 @@ function DialogAvatarPreview({ stored }: { stored: string | null }) {
 }
 
 function PositionSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const { t } = useT();
   const isAdmin = useIsAdmin();
   const qc = useQueryClient();
   const [adding, setAdding] = useState(false);
@@ -562,7 +563,7 @@ function PositionSelect({ value, onChange }: { value: string; onChange: (v: stri
     onChange(name);
     setNewName("");
     setAdding(false);
-    toast.success("Pozitsiya qo'shildi");
+    toast.success(t("toast.positionAdded"));
   };
 
   const handleDelete = async (id: string, name: string) => {

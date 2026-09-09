@@ -156,13 +156,13 @@ export function PayslipDialog({
       if (d && (d.ccCount > 0 || d.kpiApprovals.length > 0 || d.extras.length > 0)) {
         const body: string[][] = [];
         if (d.ccCount > 0) {
-          body.push(["Call-centre KPI", `${d.ccCount} ta shartnoma`, `bosqich: ${nf(d.ccBase)} × ${d.ccPct}%`, nf(d.ccBonus)]);
+          body.push(["Call-centre KPI", t("ps.contractCount", { n: String(d.ccCount) }), `${t("ps.tier")}: ${nf(d.ccBase)} × ${d.ccPct}%`, nf(d.ccBonus)]);
         }
         d.kpiApprovals.forEach((k) =>
           body.push([`Shartnoma bonusi (${k.role})`, k.client, k.contractNo ?? "—", nf(k.bonus)]),
         );
         d.extras.forEach((e) =>
-          body.push(["Qo'shimcha bonus", e.description, e.date || "—", nf(e.amount)]),
+          body.push([t("ps.extraBonus"), e.description, e.date || "—", nf(e.amount)]),
         );
         const extrasTotal = d.extras.reduce((a, e) => a + e.amount, 0);
         body.push([

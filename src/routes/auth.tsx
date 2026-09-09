@@ -5,16 +5,18 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { useT } from "@/lib/i18n";
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
   head: () => ({
-    meta: [{ title: "Kirish — Dashboard" }],
+    meta: [{ title: "Sign in — GoForVisa" }],
   }),
 });
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { t } = useT();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
@@ -42,15 +44,14 @@ function AuthPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md p-6">
-        <h1 className="text-2xl font-bold mb-1">Dashboard</h1>
+        <h1 className="text-2xl font-bold mb-1">{t("auth.title")}</h1>
         <p className="text-sm text-muted-foreground mb-6">
-          Davom etish uchun tizimga kiring. Yangi hisob ochish faqat admin
-          tomonidan amalga oshiriladi.
+          {t("auth.subtitle")}
         </p>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email-login">Email</Label>
+            <Label htmlFor="email-login">{t("auth.email")}</Label>
             <Input
               id="email-login"
               type="email"
@@ -60,7 +61,7 @@ function AuthPage() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="pw-login">Parol</Label>
+            <Label htmlFor="pw-login">{t("auth.password")}</Label>
             <Input
               id="pw-login"
               type="password"
@@ -71,7 +72,7 @@ function AuthPage() {
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
           <Button type="submit" disabled={loading} className="w-full">
-            {loading ? "..." : "Kirish"}
+            {loading ? "..." : t("auth.login")}
           </Button>
         </form>
       </Card>

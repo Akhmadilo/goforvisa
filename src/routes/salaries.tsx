@@ -347,7 +347,7 @@ function SalariesPage() {
               <SumCard label={t("sal.stat.fixed")} value={fmt(totals.fixed)} />
               <SumCard label={t("sal.stat.bonus")} value={`+${fmt(totals.kpi)}`} accent="primary" />
               <SumCard label={t("sal.stat.penalty")} value={`−${fmt(totals.penalty)}`} accent="destructive" />
-              <SumCard label="Hisoblangan oylik" value={fmt(totals.gross)} bold />
+              <SumCard label={t("sal.calcSalary")} value={fmt(totals.gross)} bold />
               <SumCard label={t("sal.stat.payable")} value={fmt(totals.total)} accent="primary" bold />
             </div>
           )}
@@ -370,11 +370,11 @@ function SalariesPage() {
                       <TableHead className="text-right">{t("sal.col.fixed")}</TableHead>
                       <TableHead className="text-right">{t("sal.col.bonus")}</TableHead>
                       <TableHead className="text-right">{t("sal.col.penalty")}</TableHead>
-                      <TableHead className="text-right">Hisoblangan oylik</TableHead>
-                      <TableHead className="text-right">Avans</TableHead>
+                      <TableHead className="text-right">{t("sal.calcSalary")}</TableHead>
+                      <TableHead className="text-right">{t("sal.col.advance")}</TableHead>
                       <TableHead className="text-right">{t("sal.col.salary")}</TableHead>
-                      <TableHead className="text-right">To'landi</TableHead>
-                      <TableHead>Holat</TableHead>
+                      <TableHead className="text-right">{t("sal.col.paid")}</TableHead>
+                      <TableHead>{t("sal.col.status")}</TableHead>
                       <TableHead>{t("sal.col.note")}</TableHead>
                       <TableHead>{t("sal.col.creator")}</TableHead>
                       {canCreate && <TableHead className="w-[140px]"></TableHead>}
@@ -390,9 +390,9 @@ function SalariesPage() {
                         const paid = paidBySalary.get(e.id) ?? 0;
                         const remaining = Math.max(0, e.gross - paid);
                         const status =
-                          paid <= 0 ? { label: "To'lanmagan", cls: "bg-muted text-muted-foreground" }
-                          : remaining <= 0.5 ? { label: "Yopilgan", cls: "bg-primary/15 text-primary border-primary/30" }
-                          : { label: "Qisman", cls: "bg-accent/15 text-accent border-accent/30" };
+                          paid <= 0 ? { label: t("sal.status.unpaid"), cls: "bg-muted text-muted-foreground" }
+                          : remaining <= 0.5 ? { label: t("sal.status.closed"), cls: "bg-primary/15 text-primary border-primary/30" }
+                          : { label: t("sal.status.partial"), cls: "bg-accent/15 text-accent border-accent/30" };
                         return (
                           <TableRow key={e.id}>
                             <TableCell className="text-muted-foreground">{e.year}</TableCell>
@@ -427,10 +427,10 @@ function SalariesPage() {
                                 <div className="flex gap-1 justify-end">
                                   <Button size="sm" variant="outline" className="h-8"
                                     onClick={() => setPayFor({ id: e.id, name: e.employee_name, gross: e.gross, paid })}>
-                                    <Plus className="h-3.5 w-3.5 mr-1" /> To'lov
+                                    <Plus className="h-3.5 w-3.5 mr-1" /> {t("sal.pay")}
                                   </Button>
                                   <Button size="icon" variant="ghost" className="h-8 w-8"
-                                    title="Hisob varaqasi (PDF)"
+                                    title={t("sal.payslip")}
                                     onClick={() => setPayslipFor({
                                       id: e.id, employee_name: e.employee_name, year: e.year, month: e.month,
                                       fixed_amount: Number(e.fixed_amount), kpi_amount: Number(e.kpi_amount),
@@ -490,6 +490,7 @@ function PaymentDialog({
   payments: any[];
   onChanged: () => void;
 }) {
+  const { t } = useT();
   const fmt = (n: number) => new Intl.NumberFormat("uz-UZ").format(Math.round(n)) + " UZS";
   const [amount, setAmount] = useState("");
   const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10));
@@ -518,7 +519,7 @@ function PaymentDialog({
     });
     setSaving(false);
     if (error) { toast.error(error.message); return; }
-    toast.success("To'lov qo'shildi");
+    toast.success(t("sal.toast.payAdded"));
     setAmount(""); setNote("");
     onChanged();
   };
@@ -749,8 +750,8 @@ function SalaryFormDialog({
 
   const addExtraBonus = async () => {
     const amt = parseFloat(extraAmount);
-    if (!employeeName.trim()) { toast.error("Avval xodimni tanlang"); return; }
-    if (!amt) { toast.error("Bonus summasini kiriting"); return; }
+    if (!employeeName.trim()) { toast.error(t("sal.toast.selectEmployee")); return; }
+    if (!amt) { toast.error(t("sal.toast.bonusAmount")); return; }
     setExtraSaving(true);
     const { error } = await (supabase as any).from("extra_bonuses").insert({
       employee_name: employeeName.trim(),
@@ -763,7 +764,7 @@ function SalaryFormDialog({
     if (error) { toast.error(error.message); return; }
     setExtraAmount(""); setExtraDesc("");
     setExtraReload((v) => v + 1);
-    toast.success("Qo'shimcha bonus qo'shildi");
+    toast.success(t("sal.toast.bonusAdded"));
   };
 
   const removeExtraBonus = async (id: string) => {
@@ -847,9 +848,9 @@ function SalaryFormDialog({
                   type="button"
                   className="text-[11px] text-primary hover:underline"
                   onClick={() => setFixed(String(autoFixed))}
-                  title="Call-centre KPI dan avtomatik hisoblangan asosiy oylik"
+                  title={t("sal.auto.ccBase")}
                 >
-                  Avtomatik: {nf(autoFixed)}
+                  {t("sal.auto")}: {nf(autoFixed)}
                 </button>
               )}
             </div>
@@ -863,9 +864,9 @@ function SalaryFormDialog({
                   type="button"
                   className="text-[11px] text-primary hover:underline"
                   onClick={() => setKpi(String(autoBonus))}
-                  title="Call-centre KPI + tasdiqlangan Sales bonuslari"
+                  title={t("sal.auto.ccBonus")}
                 >
-                  Avtomatik: {nf(autoBonus)}
+                  {t("sal.auto")}: {nf(autoBonus)}
                 </button>
               )}
             </div>
@@ -874,7 +875,7 @@ function SalaryFormDialog({
 
           {/* Qo'shimcha bonus */}
           <div className="rounded-md border border-border p-3 space-y-2">
-            <div className="text-xs font-medium">Qo'shimcha bonus</div>
+            <div className="text-xs font-medium">{t("sal.extraBonus")}</div>
             {extras.length > 0 && (
               <div className="space-y-1">
                 {extras.map((b: any) => (
@@ -888,7 +889,7 @@ function SalaryFormDialog({
                       className="text-[11px] text-destructive hover:underline shrink-0"
                       onClick={() => removeExtraBonus(b.id)}
                     >
-                      O'chirish
+                      {t("common.delete")}
                     </button>
                   </div>
                 ))}
@@ -898,12 +899,12 @@ function SalaryFormDialog({
               <Input
                 type="number"
                 inputMode="decimal"
-                placeholder="Summa"
+                placeholder={t("sal.form.amount")}
                 value={extraAmount}
                 onChange={(e) => setExtraAmount(e.target.value)}
               />
               <Input
-                placeholder="Sababi (description)"
+                placeholder={t("sal.form.reason")}
                 value={extraDesc}
                 onChange={(e) => setExtraDesc(e.target.value)}
               />
@@ -912,7 +913,7 @@ function SalaryFormDialog({
               </Button>
             </div>
             <div className="text-[11px] text-muted-foreground">
-              Qo'shimcha bonuslar yuqoridagi "Avtomatik" bonus summasiga qo'shiladi.
+              {t("sal.extraBonusNote")}
             </div>
           </div>
 
@@ -924,38 +925,38 @@ function SalaryFormDialog({
                   type="button"
                   className="text-[11px] text-primary hover:underline"
                   onClick={() => setPenalty(String(autoPenalty))}
-                  title="Avtomatik aniqlangan jarima summasini qo'llash"
+                  title={t("sal.auto.applyPenalty")}
                 >
-                  Avtomatik: {nf(autoPenalty)}
+                  {t("sal.auto")}: {nf(autoPenalty)}
                 </button>
               )}
             </div>
             <Input type="number" inputMode="decimal" value={penalty} onChange={(e) => setPenalty(e.target.value)} />
             <div className="text-[11px] text-muted-foreground mt-1">
               {autoPenalty > 0
-                ? `Bu oyda jarimalar yig'indisi: ${nf(autoPenalty)} so'm`
-                : "Bu oyda jarima yo'q"}
+                ? t("sal.fineTotal", { v: nf(autoPenalty) })
+                : t("sal.noFine")}
             </div>
           </div>
           <div>
             <div className="flex items-center justify-between mb-1">
-              <label className="text-xs text-muted-foreground">Avans (ushlanmasi)</label>
+              <label className="text-xs text-muted-foreground">{t("sal.advanceLabel")}</label>
               {autoAdvance > 0 && (
                 <button
                   type="button"
                   className="text-[11px] text-primary hover:underline"
                   onClick={() => setAdvance(String(autoAdvance))}
-                  title="Avtomatik aniqlangan avans summasini qo'llash"
+                  title={t("sal.auto.applyAdvance")}
                 >
-                  Avtomatik: {nf(autoAdvance)}
+                  {t("sal.auto")}: {nf(autoAdvance)}
                 </button>
               )}
             </div>
             <Input type="number" inputMode="decimal" value={advance} onChange={(e) => setAdvance(e.target.value)} />
             <div className="text-[11px] text-muted-foreground mt-1">
               {autoAdvance > 0
-                ? `Bu oyda tasdiqlangan avans: ${nf(autoAdvance)} so'm`
-                : "Bu oyda tasdiqlangan avans yo'q"}
+                ? t("sal.advanceTotal", { v: nf(autoAdvance) })
+                : t("sal.noAdvance")}
             </div>
           </div>
           <div>

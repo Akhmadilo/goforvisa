@@ -51,7 +51,7 @@ export { ccBaseFor, ccKpiPctFor } from "@/lib/cc-tiers";
 
 /** Admin-editable Call-centre ladder: sales count -> base salary + KPI %. */
 function CcTierEditor() {
-  const { lang } = useT();
+  const { t, lang } = useT();
   const isAdmin = useIsAdmin();
   const qc = useQueryClient();
   const { data: tiers } = useCcTiers();
@@ -95,10 +95,10 @@ function CcTierEditor() {
         .eq("id", t.id);
       if (error) throw error;
     },
-    onSuccess: (_d, t) => {
-      setDraft((d) => { const n = { ...d }; delete n[t.id]; return n; });
+    onSuccess: (_d, tier) => {
+      setDraft((d) => { const n = { ...d }; delete n[tier.id]; return n; });
       invalidate();
-      toast.success("Saqlandi");
+      toast.success(t("toast.saved"));
     },
     onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
   });
@@ -111,7 +111,7 @@ function CcTierEditor() {
         .insert({ min_count: last ? last.min_count + 5 : 1, max_count: null, base_uzs: 0, kpi_pct: 0 });
       if (error) throw error;
     },
-    onSuccess: () => { invalidate(); toast.success("Bosqich qo'shildi"); },
+    onSuccess: () => { invalidate(); toast.success(t("toast.tierAdded")); },
     onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
   });
 
@@ -120,7 +120,7 @@ function CcTierEditor() {
       const { error } = await (supabase as any).from("call_centre_tiers").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { invalidate(); toast.success("O'chirildi"); },
+    onSuccess: () => { invalidate(); toast.success(t("toast.deleted")); },
     onError: (e: any) => toast.error(e?.message ?? "Xatolik"),
   });
 
@@ -409,7 +409,7 @@ function CommissionKpi({
   managerLabel: string;
   formulaHint: string;
 }) {
-  const { lang } = useT();
+  const { t, lang } = useT();
   const now = new Date();
   const [year, setYear] = useState<string>(String(now.getFullYear()));
   const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
@@ -508,7 +508,7 @@ function CommissionKpi({
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["sales_kpi_rates", role] });
-      toast.success("Saqlandi");
+      toast.success(t("toast.saved"));
     },
     onError: (e: any) => toast.error(e.message ?? "Xato"),
   });
@@ -549,7 +549,7 @@ function CommissionKpi({
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["sales_kpi_approvals", role] });
-      toast.success("Bekor qilindi");
+      toast.success(t("toast.cancelled"));
     },
   });
 
@@ -943,7 +943,7 @@ function KpiCommissionRow({
 
 
 function VisaBonusKpi() {
-  const { lang } = useT();
+  const { t, lang } = useT();
   const now = new Date();
   const [year, setYear] = useState<string>(String(now.getFullYear()));
   const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
@@ -1015,7 +1015,7 @@ function VisaBonusKpi() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["sales_kpi_rates", role] });
-      toast.success("Saqlandi");
+      toast.success(t("toast.saved"));
     },
   });
 
@@ -1050,7 +1050,7 @@ function VisaBonusKpi() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["sales_kpi_approvals", role] });
-      toast.success("Bekor qilindi");
+      toast.success(t("toast.cancelled"));
     },
   });
 
