@@ -409,7 +409,7 @@ function CommissionKpi({
   managerLabel: string;
   formulaHint: string;
 }) {
-  const { lang } = useT();
+  const { t, lang } = useT();
   const now = new Date();
   const [year, setYear] = useState<string>(String(now.getFullYear()));
   const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
@@ -943,7 +943,7 @@ function KpiCommissionRow({
 
 
 function VisaBonusKpi() {
-  const { lang } = useT();
+  const { t, lang } = useT();
   const now = new Date();
   const [year, setYear] = useState<string>(String(now.getFullYear()));
   const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
