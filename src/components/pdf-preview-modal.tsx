@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useT } from "@/lib/i18n";
 
 interface PdfPreviewDetail {
   url: string;
@@ -17,6 +18,7 @@ interface PdfPreviewDetail {
 }
 
 export function PdfPreviewModal() {
+  const { t } = useT();
   const [preview, setPreview] = useState<PdfPreviewDetail | null>(null);
 
   useEffect(() => {
@@ -57,26 +59,26 @@ export function PdfPreviewModal() {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            PDF ko‘rinishi
+            {t("pdf.title")}
           </DialogTitle>
           <DialogDescription>
-            {preview?.title ?? "Hujjat"} — yuklashdan oldin sahifalarni tekshiring.
+            {preview?.title ?? t("pdf.doc")} — {t("pdf.beforeDownload")}
           </DialogDescription>
         </DialogHeader>
         <div className="min-h-0 overflow-hidden rounded-md border bg-muted">
           {preview && (
             <iframe
               src={preview.url}
-              title={`${preview.title} PDF ko‘rinishi`}
+              title={`${preview.title} ${t("pdf.title")}`}
               className="h-full w-full bg-background"
             />
           )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={closePreview}>Yopish</Button>
+          <Button variant="outline" onClick={closePreview}>{t("pdf.close")}</Button>
           {preview && (
             <Button onClick={downloadPreview}>
-              <Download /> Yuklab olish
+              <Download /> {t("pdf.download")}
             </Button>
           )}
         </DialogFooter>
