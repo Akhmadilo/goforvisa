@@ -490,6 +490,7 @@ function PaymentDialog({
   payments: any[];
   onChanged: () => void;
 }) {
+  const { t } = useT();
   const fmt = (n: number) => new Intl.NumberFormat("uz-UZ").format(Math.round(n)) + " UZS";
   const [amount, setAmount] = useState("");
   const [paidAt, setPaidAt] = useState(new Date().toISOString().slice(0, 10));

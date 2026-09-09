@@ -524,6 +524,7 @@ function PlatformPage() {
 /* ---------------- Tarif rejalar (narxlar) ---------------- */
 
 function PlansCard() {
+  const { t } = useT();
   const qc = useQueryClient();
   const fetchPlans = useServerFn(listPlans);
   const save = useServerFn(upsertPlan);
