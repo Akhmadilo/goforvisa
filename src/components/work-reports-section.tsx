@@ -122,7 +122,8 @@ export function WorkReportsSection() {
         employeeId: v.employeeId,
         date: v.date,
         amountUzs: 20000,
-        reason: t("wr.noReport"),
+        // Must stay language-independent: detection compares against this exact value.
+        reason: "Hisobot yozmagan",
         note: null,
       }}),
     onSuccess: () => {
