@@ -1069,6 +1069,7 @@ function ExpenseDetailDrawer({
   canPay: boolean;
 }) {
   const { t, lang } = useT();
+  const refresh = useRefreshExpenses();
   const fmtL = (n: number, c?: string) => fmt(n, c ?? "UZS", localeOf(lang));
 
   const methodLabel = (m: string | null) => {
