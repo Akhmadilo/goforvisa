@@ -57,12 +57,29 @@ export function useWidgetPermissions() {
     return readSessionPerms(user.id) === null;
   });
 
+  // Which user the current `keys` snapshot belongs to. On a hard refresh the
+  // initial state is computed before auth resolves (user === null), so without
+  // this we could keep an EMPTY set while reporting loading=false — which
+  // makes gated pages think access is denied and bounce to the dashboard.
+  const [hydratedFor, setHydratedFor] = useState<string | null>(null);
+
   useEffect(() => {
     let mounted = true;
     if (authLoading || adminLoading) {
-      // While waiting on auth/admin, keep any existing snapshot visible but
-      // mark as loading so newly-arriving (uncached) users stay fail-closed.
-      if (!permsCache.has(user?.id ?? "") && (!user || readSessionPerms(user.id) === null)) {
+      // While waiting on auth/admin, restore any snapshot we already have for
+      // this user; otherwise stay fail-closed (loading) instead of showing an
+      // empty permission set.
+      if (user) {
+        const snap = permsCache.get(user.id) ?? readSessionPerms(user.id);
+        if (snap) {
+          permsCache.set(user.id, snap);
+          setKeys(snap);
+          setHydratedFor(user.id);
+          setLoading(false);
+        } else {
+          setLoading(true);
+        }
+      } else {
         setLoading(true);
       }
       return;
