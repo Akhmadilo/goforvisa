@@ -355,7 +355,10 @@ function ExpensesPage() {
     if (!confirm(t("exp.confirm.deleteExpense"))) return;
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) toast.error(error.message);
-    else toast.success(t("exp.toast.deleted"));
+    else {
+      toast.success(t("exp.toast.deleted"));
+      refreshExpenses();
+    }
   };
 
   return (
