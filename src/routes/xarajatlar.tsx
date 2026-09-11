@@ -902,6 +902,7 @@ function ExpenseFormDialog({
                 setSavingCat(false);
                 if (error) { toast.error(error.message); return; }
                 toast.success(t("exp.toast.catAdded"));
+                refresh();
                 setCategory(name);
                 setNewCatOpen(false);
               }}
