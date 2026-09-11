@@ -57,18 +57,36 @@ export function useWidgetPermissions() {
     return readSessionPerms(user.id) === null;
   });
 
+  // Which user the current `keys` snapshot belongs to. On a hard refresh the
+  // initial state is computed before auth resolves (user === null), so without
+  // this we could keep an EMPTY set while reporting loading=false — which
+  // makes gated pages think access is denied and bounce to the dashboard.
+  const [hydratedFor, setHydratedFor] = useState<string | null>(null);
+
   useEffect(() => {
     let mounted = true;
     if (authLoading || adminLoading) {
-      // While waiting on auth/admin, keep any existing snapshot visible but
-      // mark as loading so newly-arriving (uncached) users stay fail-closed.
-      if (!permsCache.has(user?.id ?? "") && (!user || readSessionPerms(user.id) === null)) {
+      // While waiting on auth/admin, restore any snapshot we already have for
+      // this user; otherwise stay fail-closed (loading) instead of showing an
+      // empty permission set.
+      if (user) {
+        const snap = permsCache.get(user.id) ?? readSessionPerms(user.id);
+        if (snap) {
+          permsCache.set(user.id, snap);
+          setKeys(snap);
+          setHydratedFor(user.id);
+          setLoading(false);
+        } else {
+          setLoading(true);
+        }
+      } else {
         setLoading(true);
       }
       return;
     }
     if (!user) {
       setKeys(new Set());
+      setHydratedFor(null);
       setLoading(false);
       return;
     }
@@ -77,6 +95,7 @@ export function useWidgetPermissions() {
       permsCache.set(user.id, adminKeys);
       writeSessionPerms(user.id, adminKeys);
       setKeys(adminKeys);
+      setHydratedFor(user.id);
       setLoading(false);
       return;
     }
@@ -84,14 +103,17 @@ export function useWidgetPermissions() {
     const memCached = permsCache.get(user.id);
     if (memCached) {
       setKeys(memCached);
+      setHydratedFor(user.id);
       setLoading(false);
     }
     const sessCached = readSessionPerms(user.id);
     if (sessCached && !memCached) {
       permsCache.set(user.id, sessCached);
       setKeys(sessCached);
+      setHydratedFor(user.id);
       setLoading(false);
     }
+    if (!memCached && !sessCached) setLoading(true);
     // Re-fetch in the background to keep the snapshot fresh.
     supabase
       .from("widget_permissions")
@@ -103,6 +125,7 @@ export function useWidgetPermissions() {
         permsCache.set(user.id, next);
         writeSessionPerms(user.id, next);
         setKeys(next);
+        setHydratedFor(user.id);
         setLoading(false);
       });
     return () => {
@@ -110,9 +133,12 @@ export function useWidgetPermissions() {
     };
   }, [user, isAdmin, authLoading, adminLoading]);
 
+  // Not ready until the snapshot actually belongs to the signed-in user.
+  const notReady = loading || (!!user && hydratedFor !== user.id);
+
   const can = useCallback(
-    (key: string) => !loading && (keys.has("*") || keys.has(key)),
-    [keys, loading],
+    (key: string) => !notReady && (keys.has("*") || keys.has(key)),
+    [keys, notReady],
   );
-  return { can, loading, isAdmin };
+  return { can, loading: notReady, isAdmin };
 }

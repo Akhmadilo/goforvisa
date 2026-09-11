@@ -1372,26 +1372,24 @@ function PaymentsDialog({
       return;
     }
     toast.success(t("contracts.toast.paymentAdded"));
-    // Guruhga darhol xabar (Bot bo'limidan yoqib/o'chirish mumkin)
-    try {
-      await notifyPayment({
-        data: {
-          contractId: contract.id,
-          amount,
-          currency,
-          method: method || null,
-          paidAt,
-        },
-      });
-    } catch (e) {
-      console.error("notifyPayment failed", e);
-    }
 
     setAmount(0);
     setMethod("cash");
     setNote("");
     refetch();
     qc.invalidateQueries({ queryKey: ["contract-payments"] });
+    qc.invalidateQueries({ queryKey: ["contracts-db"] });
+
+    // Guruhga xabar — fon rejimida, UI ni kutdirmaydi
+    void notifyPayment({
+      data: {
+        contractId: contract.id,
+        amount,
+        currency,
+        method: method || null,
+        paidAt,
+      },
+    }).catch((e) => console.error("notifyPayment failed", e));
   };
 
   const remove = async (id: string) => {
@@ -1404,6 +1402,7 @@ function PaymentsDialog({
     toast.success(t("contracts.toast.deleted"));
     refetch();
     qc.invalidateQueries({ queryKey: ["contract-payments"] });
+    qc.invalidateQueries({ queryKey: ["contracts-db"] });
   };
 
 

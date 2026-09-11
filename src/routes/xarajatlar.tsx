@@ -88,6 +88,18 @@ const CATEGORY_PALETTE = [
   "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30",
   "bg-lime-500/15 text-lime-600 dark:text-lime-400 border-lime-500/30",
 ];
+// Refresh every expense-related query right after a mutation so the UI
+// updates instantly instead of waiting for realtime / a manual reload.
+function useRefreshExpenses() {
+  const qc = useQueryClient();
+  return () => {
+    qc.invalidateQueries({ queryKey: ["expenses"] });
+    qc.invalidateQueries({ queryKey: ["expense_payments"] });
+    qc.invalidateQueries({ queryKey: ["expense_categories"] });
+    qc.invalidateQueries({ queryKey: ["salaries-as-expenses"] });
+  };
+}
+
 function categoryColor(name: string) {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
@@ -101,6 +113,7 @@ const fmt = (n: number, currency = "UZS", locale = "uz-UZ") =>
 
 function ExpensesPage() {
   const { t, lang } = useT();
+  const refreshExpenses = useRefreshExpenses();
   const fmtL = (n: number, c?: string) => fmt(n, c ?? "UZS", localeOf(lang));
   const { user, loading } = useAuth();
   const isAdmin = useIsAdmin();
@@ -343,7 +356,10 @@ function ExpensesPage() {
     if (!confirm(t("exp.confirm.deleteExpense"))) return;
     const { error } = await supabase.from("expenses").delete().eq("id", id);
     if (error) toast.error(error.message);
-    else toast.success(t("exp.toast.deleted"));
+    else {
+      toast.success(t("exp.toast.deleted"));
+      refreshExpenses();
+    }
   };
 
   return (
@@ -724,6 +740,7 @@ function ExpenseFormDialog({
   categories: string[];
 }) {
   const { t } = useT();
+  const refresh = useRefreshExpenses();
   const today = new Date().toISOString().slice(0, 10);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState(categories[0] ?? "");
@@ -773,6 +790,7 @@ function ExpenseFormDialog({
       return;
     }
     toast.success(expense ? t("exp.toast.updated") : t("exp.toast.added"));
+    refresh();
     onOpenChange(false);
   };
 
@@ -890,6 +908,7 @@ function ExpenseFormDialog({
                 setSavingCat(false);
                 if (error) { toast.error(error.message); return; }
                 toast.success(t("exp.toast.catAdded"));
+                refresh();
                 setCategory(name);
                 setNewCatOpen(false);
               }}
@@ -912,6 +931,7 @@ function PaymentDialog({
   paidSoFar: number;
 }) {
   const { t, lang } = useT();
+  const refresh = useRefreshExpenses();
   const fmtL = (n: number, c?: string) => fmt(n, c ?? "UZS", localeOf(lang));
   const today = new Date().toISOString().slice(0, 10);
   const [amount, setAmount] = useState("");
@@ -962,6 +982,7 @@ function PaymentDialog({
       return;
     }
     toast.success(t("exp.toast.payAdded"));
+    refresh();
     onOpenChange(false);
   };
 
@@ -1057,6 +1078,7 @@ function ExpenseDetailDrawer({
   canPay: boolean;
 }) {
   const { t, lang } = useT();
+  const refresh = useRefreshExpenses();
   const fmtL = (n: number, c?: string) => fmt(n, c ?? "UZS", localeOf(lang));
 
   const methodLabel = (m: string | null) => {
@@ -1075,7 +1097,10 @@ function ExpenseDetailDrawer({
     if (!confirm(t("exp.confirm.deletePayment"))) return;
     const { error } = await supabase.from("expense_payments").delete().eq("id", id);
     if (error) toast.error(error.message);
-    else toast.success(t("exp.toast.payDeleted"));
+    else {
+      toast.success(t("exp.toast.payDeleted"));
+      refresh();
+    }
   };
 
   return (
