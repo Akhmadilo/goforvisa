@@ -736,6 +736,7 @@ function ExpenseFormDialog({
   categories: string[];
 }) {
   const { t } = useT();
+  const refresh = useRefreshExpenses();
   const today = new Date().toISOString().slice(0, 10);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState(categories[0] ?? "");
