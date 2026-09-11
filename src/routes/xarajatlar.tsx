@@ -113,6 +113,7 @@ const fmt = (n: number, currency = "UZS", locale = "uz-UZ") =>
 
 function ExpensesPage() {
   const { t, lang } = useT();
+  const refreshExpenses = useRefreshExpenses();
   const fmtL = (n: number, c?: string) => fmt(n, c ?? "UZS", localeOf(lang));
   const { user, loading } = useAuth();
   const isAdmin = useIsAdmin();
