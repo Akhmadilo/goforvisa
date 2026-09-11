@@ -86,6 +86,7 @@ export function useWidgetPermissions() {
     }
     if (!user) {
       setKeys(new Set());
+      setHydratedFor(null);
       setLoading(false);
       return;
     }
@@ -94,6 +95,7 @@ export function useWidgetPermissions() {
       permsCache.set(user.id, adminKeys);
       writeSessionPerms(user.id, adminKeys);
       setKeys(adminKeys);
+      setHydratedFor(user.id);
       setLoading(false);
       return;
     }
@@ -101,14 +103,17 @@ export function useWidgetPermissions() {
     const memCached = permsCache.get(user.id);
     if (memCached) {
       setKeys(memCached);
+      setHydratedFor(user.id);
       setLoading(false);
     }
     const sessCached = readSessionPerms(user.id);
     if (sessCached && !memCached) {
       permsCache.set(user.id, sessCached);
       setKeys(sessCached);
+      setHydratedFor(user.id);
       setLoading(false);
     }
+    if (!memCached && !sessCached) setLoading(true);
     // Re-fetch in the background to keep the snapshot fresh.
     supabase
       .from("widget_permissions")
@@ -120,6 +125,7 @@ export function useWidgetPermissions() {
         permsCache.set(user.id, next);
         writeSessionPerms(user.id, next);
         setKeys(next);
+        setHydratedFor(user.id);
         setLoading(false);
       });
     return () => {
@@ -127,9 +133,12 @@ export function useWidgetPermissions() {
     };
   }, [user, isAdmin, authLoading, adminLoading]);
 
+  // Not ready until the snapshot actually belongs to the signed-in user.
+  const notReady = loading || (!!user && hydratedFor !== user.id);
+
   const can = useCallback(
-    (key: string) => !loading && (keys.has("*") || keys.has(key)),
-    [keys, loading],
+    (key: string) => !notReady && (keys.has("*") || keys.has(key)),
+    [keys, notReady],
   );
-  return { can, loading, isAdmin };
+  return { can, loading: notReady, isAdmin };
 }
