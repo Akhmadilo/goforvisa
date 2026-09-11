@@ -1402,6 +1402,7 @@ function PaymentsDialog({
     toast.success(t("contracts.toast.deleted"));
     refetch();
     qc.invalidateQueries({ queryKey: ["contract-payments"] });
+    qc.invalidateQueries({ queryKey: ["contracts-db"] });
   };
 
 
