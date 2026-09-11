@@ -785,6 +785,7 @@ function ExpenseFormDialog({
       return;
     }
     toast.success(expense ? t("exp.toast.updated") : t("exp.toast.added"));
+    refresh();
     onOpenChange(false);
   };
 
