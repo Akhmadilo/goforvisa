@@ -974,6 +974,7 @@ function PaymentDialog({
       return;
     }
     toast.success(t("exp.toast.payAdded"));
+    refresh();
     onOpenChange(false);
   };
 
