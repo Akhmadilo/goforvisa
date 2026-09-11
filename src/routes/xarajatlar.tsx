@@ -1087,7 +1087,10 @@ function ExpenseDetailDrawer({
     if (!confirm(t("exp.confirm.deletePayment"))) return;
     const { error } = await supabase.from("expense_payments").delete().eq("id", id);
     if (error) toast.error(error.message);
-    else toast.success(t("exp.toast.payDeleted"));
+    else {
+      toast.success(t("exp.toast.payDeleted"));
+      refresh();
+    }
   };
 
   return (
