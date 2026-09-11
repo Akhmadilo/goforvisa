@@ -924,6 +924,7 @@ function PaymentDialog({
   paidSoFar: number;
 }) {
   const { t, lang } = useT();
+  const refresh = useRefreshExpenses();
   const fmtL = (n: number, c?: string) => fmt(n, c ?? "UZS", localeOf(lang));
   const today = new Date().toISOString().slice(0, 10);
   const [amount, setAmount] = useState("");
