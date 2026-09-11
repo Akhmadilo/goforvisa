@@ -88,6 +88,18 @@ const CATEGORY_PALETTE = [
   "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/30",
   "bg-lime-500/15 text-lime-600 dark:text-lime-400 border-lime-500/30",
 ];
+// Refresh every expense-related query right after a mutation so the UI
+// updates instantly instead of waiting for realtime / a manual reload.
+function useRefreshExpenses() {
+  const qc = useQueryClient();
+  return () => {
+    qc.invalidateQueries({ queryKey: ["expenses"] });
+    qc.invalidateQueries({ queryKey: ["expense_payments"] });
+    qc.invalidateQueries({ queryKey: ["expense_categories"] });
+    qc.invalidateQueries({ queryKey: ["salaries-as-expenses"] });
+  };
+}
+
 function categoryColor(name: string) {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
