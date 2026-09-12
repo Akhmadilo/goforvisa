@@ -152,6 +152,7 @@ function FinancePage() {
   const [months, setMonths] = useState<number[]>([]);
   const [currency, setCurrency] = useState<"UZS" | "USD">("UZS");
   const [pdfExporting, setPdfExporting] = useState(false);
+  const [pnlExporting, setPnlExporting] = useState(false);
   const fmt = useMemo(() => makeFmt(currency), [currency]);
   const canAccessFinance = !!user && !permsLoading && can("finance_section");
 
@@ -533,8 +534,69 @@ function FinancePage() {
     }
   };
 
-
-
+  const exportPnlReport = async () => {
+    if (pnlExporting) return;
+    const toastId = toast.loading(t("pdf.preparing"));
+    setPnlExporting(true);
+    try {
+      const { exportPnlPdf } = await import("@/lib/pnl-pdf");
+      const rows = allMonths.map((k) => {
+        const [y, mm] = k.split("-");
+        return {
+          key: k,
+          label: `${MONTHS[Number(mm) - 1]} ${y}`,
+          revenue: pick(revenueByMonth.get(k)),
+          docCosts: pick(docCostsByMonth.get(k)),
+          expenses: pick(expenseByMonth.get(k)),
+          salaries: pick(salariesByMonth.get(k)),
+          contracts: contractsCountByMonth.get(k) ?? 0,
+        };
+      });
+      const slug = (s: string) => s.replace(/[^\p{L}\p{N}]+/gu, "_").replace(/^_|_$/g, "");
+      const fileBase =
+        rows.length === 1
+          ? slug(rows[0].label)
+          : months.length === 1
+            ? slug(`${MONTHS[months[0] - 1]}_${year === "all" ? "" : year}`)
+            : slug(`${year === "all" ? t("common.allYears") : year}`);
+      await exportPnlPdf({
+        filename: `P&L_${fileBase}.pdf`,
+        title: `${t("finance.pnl")} (P&L)`.toUpperCase(),
+        company: "GoForVisa",
+        periodLabel,
+        basisLabel,
+        currency,
+        months: rows,
+        categories: expenseCategories.map((c) => ({ name: c.name, total: c.total })),
+        labels: {
+          revenue: t("finance.pnl.revenue"),
+          docCosts: t("finance.pnl.docCosts"),
+          grossProfit: t("finance.pnl.grossProfit"),
+          salaries: t("finance.pnl.salaries"),
+          expenses: t("finance.pnl.expensesBreakdown"),
+          netProfit: t("finance.pnl.netProfit"),
+          contracts: t("finance.contracts"),
+          margin: t("finance.margin"),
+          total: t("common.total"),
+          month: t("finance.months"),
+          category: t("finance.category"),
+          amount: t("common.amount"),
+          share: t("finance.pnl.share"),
+          summary: t("finance.title"),
+          monthly: t("finance.pnl"),
+          categoriesTitle: t("finance.category"),
+          generated: "Yaratildi",
+          page: "",
+        },
+      });
+      toast.success(t("pdf.ready"), { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error(t("pdf.error"), { id: toastId });
+    } finally {
+      setPnlExporting(false);
+    }
+  };
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
@@ -564,6 +626,15 @@ function FinancePage() {
             </div>
 
             <div className="flex items-center gap-2 print:hidden">
+              <button
+                onClick={exportPnlReport}
+                disabled={pnlExporting}
+                className="h-9 px-2 md:px-3 rounded-lg border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-1.5 text-xs font-semibold disabled:opacity-50"
+                title="P&L PDF"
+              >
+                {pnlExporting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                <span className="hidden sm:inline">P&L</span>
+              </button>
               <button
                 onClick={exportExcel}
                 className="h-9 px-2 md:px-3 rounded-lg border border-border/70 bg-card/70 hover:bg-secondary hover:border-primary/40 transition-colors flex items-center gap-1.5 text-xs font-medium"
