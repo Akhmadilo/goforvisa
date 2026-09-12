@@ -533,8 +533,69 @@ function FinancePage() {
     }
   };
 
-
-
+  const exportPnlReport = async () => {
+    if (pnlExporting) return;
+    const toastId = toast.loading(t("pdf.preparing"));
+    setPnlExporting(true);
+    try {
+      const { exportPnlPdf } = await import("@/lib/pnl-pdf");
+      const rows = allMonths.map((k) => {
+        const [y, mm] = k.split("-");
+        return {
+          key: k,
+          label: `${MONTHS[Number(mm) - 1]} ${y}`,
+          revenue: pick(revenueByMonth.get(k)),
+          docCosts: pick(docCostsByMonth.get(k)),
+          expenses: pick(expenseByMonth.get(k)),
+          salaries: pick(salariesByMonth.get(k)),
+          contracts: contractsCountByMonth.get(k) ?? 0,
+        };
+      });
+      const slug = (s: string) => s.replace(/[^\p{L}\p{N}]+/gu, "_").replace(/^_|_$/g, "");
+      const fileBase =
+        rows.length === 1
+          ? slug(rows[0].label)
+          : months.length === 1
+            ? slug(`${MONTHS[months[0] - 1]}_${year === "all" ? "" : year}`)
+            : slug(`${year === "all" ? t("common.allYears") : year}`);
+      await exportPnlPdf({
+        filename: `P&L_${fileBase}.pdf`,
+        title: `${t("finance.pnl")} (P&L)`.toUpperCase(),
+        company: "GoForVisa",
+        periodLabel,
+        basisLabel,
+        currency,
+        months: rows,
+        categories: expenseCategories.map((c) => ({ name: c.name, total: c.total })),
+        labels: {
+          revenue: t("finance.pnl.revenue"),
+          docCosts: t("finance.pnl.docCosts"),
+          grossProfit: t("finance.pnl.grossProfit"),
+          salaries: t("finance.pnl.salaries"),
+          expenses: t("finance.pnl.expensesBreakdown"),
+          netProfit: t("finance.pnl.netProfit"),
+          contracts: t("finance.contracts"),
+          margin: t("finance.margin"),
+          total: t("common.total"),
+          month: t("finance.months"),
+          category: t("finance.category"),
+          amount: t("common.amount"),
+          share: t("finance.pnl.share"),
+          summary: t("finance.title"),
+          monthly: t("finance.pnl"),
+          categoriesTitle: t("finance.category"),
+          generated: t("common.created") || "Yaratildi",
+          page: "",
+        },
+      });
+      toast.success(t("pdf.ready"), { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error(t("pdf.error"), { id: toastId });
+    } finally {
+      setPnlExporting(false);
+    }
+  };
 
   return (
     <div className="relative min-h-screen bg-background text-foreground">
