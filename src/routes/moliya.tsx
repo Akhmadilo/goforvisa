@@ -152,6 +152,7 @@ function FinancePage() {
   const [months, setMonths] = useState<number[]>([]);
   const [currency, setCurrency] = useState<"UZS" | "USD">("UZS");
   const [pdfExporting, setPdfExporting] = useState(false);
+  const [pnlExporting, setPnlExporting] = useState(false);
   const fmt = useMemo(() => makeFmt(currency), [currency]);
   const canAccessFinance = !!user && !permsLoading && can("finance_section");
 
@@ -584,7 +585,7 @@ function FinancePage() {
           summary: t("finance.title"),
           monthly: t("finance.pnl"),
           categoriesTitle: t("finance.category"),
-          generated: t("common.created") || "Yaratildi",
+          generated: "Yaratildi",
           page: "",
         },
       });
@@ -625,6 +626,15 @@ function FinancePage() {
             </div>
 
             <div className="flex items-center gap-2 print:hidden">
+              <button
+                onClick={exportPnlReport}
+                disabled={pnlExporting}
+                className="h-9 px-2 md:px-3 rounded-lg border border-primary/40 bg-primary/10 text-primary hover:bg-primary/20 transition-colors flex items-center gap-1.5 text-xs font-semibold disabled:opacity-50"
+                title="P&L PDF"
+              >
+                {pnlExporting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                <span className="hidden sm:inline">P&L</span>
+              </button>
               <button
                 onClick={exportExcel}
                 className="h-9 px-2 md:px-3 rounded-lg border border-border/70 bg-card/70 hover:bg-secondary hover:border-primary/40 transition-colors flex items-center gap-1.5 text-xs font-medium"
