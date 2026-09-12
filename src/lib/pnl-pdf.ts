@@ -231,12 +231,13 @@ export async function exportPnlPdf(data: PnlPdfData) {
     pdf.setTextColor(...NAVY);
     pdf.text(tx(L.categoriesTitle), M.left, ny);
 
-    const catTotal = data.categories.reduce((s, c) => s + c.total, 0) || 1;
+    const cats = [...data.categories].sort((a, b) => b.total - a.total);
+    const catTotal = cats.reduce((s, c) => s + c.total, 0) || 1;
     autoTable(pdf, {
       startY: ny + 8,
       margin: { left: M.left, right: M.right, top: M.top + 50, bottom: M.bottom },
       head: [[L.category, L.amount, L.share].map(tx)],
-      body: data.categories.map((c) => [tx(c.name), money(c.total), `${((c.total / catTotal) * 100).toFixed(1)}%`]),
+      body: cats.map((c) => [tx(c.name), money(c.total), `${((c.total / catTotal) * 100).toFixed(1)}%`]),
       styles: { font: "helvetica", fontSize: 8.6, cellPadding: 4.5, textColor: NAVY, lineColor: LINE, lineWidth: 0.4, halign: "right" },
       headStyles: { fillColor: TEAL, textColor: [255, 255, 255], fontStyle: "bold", fontSize: 8.4, halign: "right" },
       alternateRowStyles: { fillColor: [248, 250, 252] },
