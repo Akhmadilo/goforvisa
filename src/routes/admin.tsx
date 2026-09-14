@@ -57,6 +57,48 @@ export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin Panel" }] }),
 });
 
+function PositionCell({ user }: { user: AdminUser }) {
+  const { t } = useT();
+  const qc = useQueryClient();
+  const saveFn = useServerFn(setUserPosition);
+  const [value, setValue] = useState(user.position ?? "");
+
+  useEffect(() => {
+    setValue(user.position ?? "");
+  }, [user.position]);
+
+  const mut = useMutation({
+    mutationFn: (position: string | null) =>
+      saveFn({ data: { userId: user.id, position } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      toast.success(t("me.positionSaved"));
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const commit = () => {
+    const next = value.trim();
+    if (next === (user.position ?? "")) return;
+    mut.mutate(next ? next : null);
+  };
+
+  return (
+    <Input
+      value={value}
+      disabled={mut.isPending}
+      placeholder={t("me.noPosition")}
+      className="h-8 w-40 text-xs"
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+      }}
+    />
+  );
+}
+
+
 function AdminPage() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
