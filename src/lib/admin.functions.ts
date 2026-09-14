@@ -8,6 +8,7 @@ export type AdminUser = {
   email: string | null;
   display_name: string | null;
   position: string | null;
+  avatar_url: string | null;
 
   created_at: string;
   last_sign_in_at: string | null;
@@ -52,13 +53,14 @@ export const listUsers = createServerFn({ method: "GET" })
 
     const ids = users.map((u) => u.id);
     const [{ data: profiles }, { data: roles }, { data: widgets }] = await Promise.all([
-      supabaseAdmin.from("profiles").select("id, display_name, position").in("id", ids),
+      supabaseAdmin.from("profiles").select("id, display_name, position, avatar_url").in("id", ids),
       supabaseAdmin.from("user_roles").select("user_id, role").in("user_id", ids),
       supabaseAdmin.from("widget_permissions").select("user_id, widget_key").in("user_id", ids),
     ]);
 
     const pMap = new Map((profiles ?? []).map((p: any) => [p.id, p.display_name]));
     const posMap = new Map((profiles ?? []).map((p: any) => [p.id, p.position]));
+    const avatarMap = new Map((profiles ?? []).map((p: any) => [p.id, p.avatar_url]));
 
     const rMap = new Map<string, string[]>();
     (roles ?? []).forEach((r: any) => {
@@ -73,17 +75,33 @@ export const listUsers = createServerFn({ method: "GET" })
       wMap.set(w.user_id, arr);
     });
 
-    return users.map((u) => ({
-      id: u.id,
-      email: u.email ?? null,
-      display_name: pMap.get(u.id) ?? null,
-      position: posMap.get(u.id) ?? null,
+    const avatarPaths = (profiles ?? []).map((p: any) => p.avatar_url).filter(Boolean) as string[];
+    const signedUrls = new Map<string, string>();
+    if (avatarPaths.length > 0) {
+      const { data: signedData } = await supabaseAdmin.storage
+        .from("avatars")
+        .createSignedUrls(avatarPaths, 3600);
+      (signedData ?? []).forEach((item: any) => {
+        if (item?.path && item?.signedUrl) signedUrls.set(item.path, item.signedUrl);
+      });
+    }
 
-      created_at: u.created_at,
-      last_sign_in_at: u.last_sign_in_at ?? null,
-      roles: rMap.get(u.id) ?? [],
-      widgets: wMap.get(u.id) ?? [],
-    }));
+    return users.map((u) => {
+      const path = avatarMap.get(u.id) ?? null;
+      const avatar = path && signedUrls.has(path) ? signedUrls.get(path)! : null;
+      return {
+        id: u.id,
+        email: u.email ?? null,
+        display_name: pMap.get(u.id) ?? null,
+        position: posMap.get(u.id) ?? null,
+        avatar_url: avatar,
+
+        created_at: u.created_at,
+        last_sign_in_at: u.last_sign_in_at ?? null,
+        roles: rMap.get(u.id) ?? [],
+        widgets: wMap.get(u.id) ?? [],
+      };
+    });
   });
 
 export const createUser = createServerFn({ method: "POST" })

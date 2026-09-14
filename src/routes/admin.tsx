@@ -24,6 +24,7 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Dialog,
   DialogContent,
@@ -51,6 +52,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useT, localeOf, type I18nKey } from "@/lib/i18n";
+
+function initialsOf(name: string | null | undefined, email: string | null | undefined) {
+  const src = (name || email || "").trim();
+  if (!src) return "?";
+  const parts = src.split(/[\s@._-]+/).filter(Boolean);
+  return (parts[0]?.[0] ?? "?").toUpperCase() + (parts[1]?.[0]?.toUpperCase() ?? "");
+}
 
 export const Route = createFileRoute("/admin")({
   component: AdminPage,
@@ -298,7 +306,17 @@ function AdminPage() {
                         {u.email}{" "}
                         {isSelf && <Badge variant="outline">{t("common.you")}</Badge>}
                       </TableCell>
-                      <TableCell>{u.display_name ?? "—"}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-8 w-8">
+                            {u.avatar_url && <AvatarImage src={u.avatar_url} alt={u.display_name ?? u.email ?? ""} />}
+                            <AvatarFallback className="text-xs">
+                              {initialsOf(u.display_name, u.email)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>{u.display_name ?? "—"}</span>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <PositionCell user={u} />
                       </TableCell>
