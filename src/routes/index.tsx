@@ -36,7 +36,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useMyProfile, useAvatarUrl } from "@/hooks/use-my-profile";
+import { useMyProfile } from "@/hooks/use-my-profile";
 import {
   Table,
   TableBody,
@@ -670,7 +670,6 @@ function Dashboard() {
 
   const [pdfExporting, setPdfExporting] = useState(false);
   const { data: myProfile } = useMyProfile();
-  const myPhotoUrl = useAvatarUrl(myProfile?.avatar_url);
   const profileName = myProfile?.display_name ?? "";
 
   const exportDashboardPdf = async () => {
