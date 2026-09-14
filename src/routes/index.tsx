@@ -36,6 +36,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useMyProfile, useAvatarUrl } from "@/hooks/use-my-profile";
 import {
   Table,
   TableBody,
@@ -668,12 +669,9 @@ function Dashboard() {
   ];
 
   const [pdfExporting, setPdfExporting] = useState(false);
-  const [profileName, setProfileName] = useState<string>("");
-  useEffect(() => {
-    if (!user) { setProfileName(""); return; }
-    supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle()
-      .then(({ data }) => setProfileName((data as any)?.display_name ?? ""));
-  }, [user]);
+  const { data: myProfile } = useMyProfile();
+  const myPhotoUrl = useAvatarUrl(myProfile?.avatar_url);
+  const profileName = myProfile?.display_name ?? "";
 
   const exportDashboardPdf = async () => {
     if (pdfExporting) return;
@@ -757,17 +755,26 @@ function Dashboard() {
             </div>
             {displayName && (
               <div className="flex items-center gap-2 pl-2 border-l border-border">
-                <div
-                  className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold text-primary-foreground"
-                  style={{ background: "var(--gradient-primary)" }}
-                  title={user?.email ?? ""}
-                >
-                  {initials || "U"}
-                </div>
+                {myPhotoUrl ? (
+                  <img
+                    src={myPhotoUrl}
+                    alt={displayName}
+                    title={user?.email ?? ""}
+                    className="h-8 w-8 rounded-full object-cover border border-border"
+                  />
+                ) : (
+                  <div
+                    className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold text-primary-foreground"
+                    style={{ background: "var(--gradient-primary)" }}
+                    title={user?.email ?? ""}
+                  >
+                    {initials || "U"}
+                  </div>
+                )}
                 <div className="hidden md:block leading-tight">
                   <div className="text-sm font-medium">{displayName}</div>
                   <div className="text-[11px] text-muted-foreground">
-                    {isAdmin ? "Admin" : t("common.user")}
+                    {myProfile?.position || (isAdmin ? "Admin" : t("common.user"))}
                   </div>
                 </div>
               </div>

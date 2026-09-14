@@ -18,7 +18,9 @@ export function useMyProfile() {
   const query = useQuery({
     queryKey: ["my-profile", user?.id],
     enabled: !!user?.id,
-    staleTime: 60_000,
+    staleTime: 5_000,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30_000,
     queryFn: async (): Promise<MyProfile | null> => {
       const { data, error } = await supabase
         .from("profiles")
