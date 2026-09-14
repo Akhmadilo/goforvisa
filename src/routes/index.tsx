@@ -753,32 +753,6 @@ function Dashboard() {
                   : "—"}
               </div>
             </div>
-            {displayName && (
-              <div className="flex items-center gap-2 pl-2 border-l border-border">
-                {myPhotoUrl ? (
-                  <img
-                    src={myPhotoUrl}
-                    alt={displayName}
-                    title={user?.email ?? ""}
-                    className="h-8 w-8 rounded-full object-cover border border-border"
-                  />
-                ) : (
-                  <div
-                    className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-semibold text-primary-foreground"
-                    style={{ background: "var(--gradient-primary)" }}
-                    title={user?.email ?? ""}
-                  >
-                    {initials || "U"}
-                  </div>
-                )}
-                <div className="hidden md:block leading-tight">
-                  <div className="text-sm font-medium">{displayName}</div>
-                  <div className="text-[11px] text-muted-foreground">
-                    {myProfile?.position || (isAdmin ? "Admin" : t("common.user"))}
-                  </div>
-                </div>
-              </div>
-            )}
             <button
               onClick={() => refetch()}
               disabled={isFetching}
