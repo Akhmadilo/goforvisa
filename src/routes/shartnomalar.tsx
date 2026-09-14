@@ -502,7 +502,10 @@ function ShartnomalarPage() {
 
   const uploadFile = async (file: File, prefix: string): Promise<string> => {
     const ext = file.name.split(".").pop() || "bin";
-    const path = `${prefix}/${crypto.randomUUID()}.${ext}`;
+    // Files are stored under the company's own folder so other companies cannot reach them.
+    const { data: tenantId, error: tErr } = await supabase.rpc("current_tenant_id");
+    if (tErr || !tenantId) throw tErr ?? new Error("Kompaniya aniqlanmadi");
+    const path = `${tenantId}/${prefix}/${crypto.randomUUID()}.${ext}`;
     const { error } = await supabase.storage.from("contract-files").upload(path, file, {
       upsert: false,
       contentType: file.type,
