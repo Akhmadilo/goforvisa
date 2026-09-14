@@ -34,6 +34,21 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Ruxsat yo'q: faqat admin uchun");
 }
 
+/**
+ * Ensure the target user actually belongs to the caller's tenant before any
+ * service-role operation touches their account.
+ */
+async function assertSameTenant(supabase: any, tenantId: string, targetUserId: string) {
+  const { data, error } = await supabase
+    .from("tenant_members")
+    .select("user_id")
+    .eq("tenant_id", tenantId)
+    .eq("user_id", targetUserId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Foydalanuvchi ushbu kompaniyaga tegishli emas");
+}
+
 export const listUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<AdminUser[]> => {
@@ -193,6 +208,7 @@ export const setUserRole = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const tenantId = await currentTenantId(context.supabase);
+    await assertSameTenant(context.supabase, tenantId, data.userId);
     if (data.enabled) {
       const { error } = await supabaseAdmin
         .from("user_roles")
@@ -206,7 +222,8 @@ export const setUserRole = createServerFn({ method: "POST" })
         .from("user_roles")
         .delete()
         .eq("user_id", data.userId)
-        .eq("role", data.role);
+        .eq("role", data.role)
+        .eq("tenant_id", tenantId);
       if (error) throw new Error(error.message);
     }
     return { ok: true };
@@ -254,6 +271,8 @@ export const deleteUser = createServerFn({ method: "POST" })
     if (data.userId === context.userId) {
       throw new Error("O'zingizni o'chira olmaysiz");
     }
+    const tenantId = await currentTenantId(context.supabase);
+    await assertSameTenant(context.supabase, tenantId, data.userId);
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -271,6 +290,8 @@ export const resetUserPassword = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
+    const tenantId = await currentTenantId(context.supabase);
+    await assertSameTenant(context.supabase, tenantId, data.userId);
     const { error } = await supabaseAdmin.auth.admin.updateUserById(data.userId, {
       password: data.password,
       email_confirm: true,
