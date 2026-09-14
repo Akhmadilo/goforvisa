@@ -668,12 +668,9 @@ function Dashboard() {
   ];
 
   const [pdfExporting, setPdfExporting] = useState(false);
-  const [profileName, setProfileName] = useState<string>("");
-  useEffect(() => {
-    if (!user) { setProfileName(""); return; }
-    supabase.from("profiles").select("display_name").eq("id", user.id).maybeSingle()
-      .then(({ data }) => setProfileName((data as any)?.display_name ?? ""));
-  }, [user]);
+  const { data: myProfile } = useMyProfile();
+  const myPhotoUrl = useAvatarUrl(myProfile?.avatar_url);
+  const profileName = myProfile?.display_name ?? "";
 
   const exportDashboardPdf = async () => {
     if (pdfExporting) return;
