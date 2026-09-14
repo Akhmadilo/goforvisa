@@ -9,6 +9,8 @@ import {
   createUser,
   setUserWidgets,
   resetUserPassword,
+  setUserPosition,
+
   type AdminUser,
 } from "@/lib/admin.functions";
 import { WIDGETS, WIDGET_GROUPS, type WidgetGroup } from "@/lib/widgets";
@@ -54,6 +56,48 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
   head: () => ({ meta: [{ title: "Admin Panel" }] }),
 });
+
+function PositionCell({ user }: { user: AdminUser }) {
+  const { t } = useT();
+  const qc = useQueryClient();
+  const saveFn = useServerFn(setUserPosition);
+  const [value, setValue] = useState(user.position ?? "");
+
+  useEffect(() => {
+    setValue(user.position ?? "");
+  }, [user.position]);
+
+  const mut = useMutation({
+    mutationFn: (position: string | null) =>
+      saveFn({ data: { userId: user.id, position } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      toast.success(t("me.positionSaved"));
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const commit = () => {
+    const next = value.trim();
+    if (next === (user.position ?? "")) return;
+    mut.mutate(next ? next : null);
+  };
+
+  return (
+    <Input
+      value={value}
+      disabled={mut.isPending}
+      placeholder={t("me.noPosition")}
+      className="h-8 w-40 text-xs"
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+      }}
+    />
+  );
+}
+
 
 function AdminPage() {
   const { user, loading } = useAuth();
@@ -236,6 +280,8 @@ function AdminPage() {
                 <TableRow>
                   <TableHead>{t("admin.col.email")}</TableHead>
                   <TableHead>{t("admin.col.name")}</TableHead>
+                  <TableHead>{t("me.position")}</TableHead>
+
                   <TableHead>{t("admin.col.permissions")}</TableHead>
                   <TableHead>{t("admin.col.lastLogin")}</TableHead>
                   <TableHead>{t("admin.col.admin")}</TableHead>
@@ -253,6 +299,10 @@ function AdminPage() {
                         {isSelf && <Badge variant="outline">{t("common.you")}</Badge>}
                       </TableCell>
                       <TableCell>{u.display_name ?? "—"}</TableCell>
+                      <TableCell>
+                        <PositionCell user={u} />
+                      </TableCell>
+
                       <TableCell className="text-xs">
                         {isAdmin ? (
                           <Badge>{t("admin.allAdmin")}</Badge>

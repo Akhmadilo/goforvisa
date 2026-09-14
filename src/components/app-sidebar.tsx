@@ -26,6 +26,8 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { UserCorner } from "@/components/user-corner";
+
 
 function SidebarContent({ onClick }: { onClick?: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -164,9 +166,11 @@ export function AppSidebar() {
 
   return (
     <>
+      <UserCorner />
       <aside className="hidden md:flex fixed inset-y-0 left-0 z-30 w-56 flex-col border-r border-border bg-card/60 backdrop-blur">
         <SidebarContent />
       </aside>
+
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>

@@ -7,6 +7,8 @@ export type AdminUser = {
   id: string;
   email: string | null;
   display_name: string | null;
+  position: string | null;
+
   created_at: string;
   last_sign_in_at: string | null;
   roles: string[];
@@ -50,12 +52,14 @@ export const listUsers = createServerFn({ method: "GET" })
 
     const ids = users.map((u) => u.id);
     const [{ data: profiles }, { data: roles }, { data: widgets }] = await Promise.all([
-      supabaseAdmin.from("profiles").select("id, display_name").in("id", ids),
+      supabaseAdmin.from("profiles").select("id, display_name, position").in("id", ids),
       supabaseAdmin.from("user_roles").select("user_id, role").in("user_id", ids),
       supabaseAdmin.from("widget_permissions").select("user_id, widget_key").in("user_id", ids),
     ]);
 
     const pMap = new Map((profiles ?? []).map((p: any) => [p.id, p.display_name]));
+    const posMap = new Map((profiles ?? []).map((p: any) => [p.id, p.position]));
+
     const rMap = new Map<string, string[]>();
     (roles ?? []).forEach((r: any) => {
       const arr = rMap.get(r.user_id) ?? [];
@@ -73,6 +77,8 @@ export const listUsers = createServerFn({ method: "GET" })
       id: u.id,
       email: u.email ?? null,
       display_name: pMap.get(u.id) ?? null,
+      position: posMap.get(u.id) ?? null,
+
       created_at: u.created_at,
       last_sign_in_at: u.last_sign_in_at ?? null,
       roles: rMap.get(u.id) ?? [],
@@ -187,6 +193,36 @@ export const setUserRole = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
+export const setUserPosition = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        userId: z.string().uuid(),
+        position: z.string().max(120).nullable(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const tenantId = await currentTenantId(context.supabase);
+    const { data: member } = await supabaseAdmin
+      .from("tenant_members")
+      .select("user_id")
+      .eq("tenant_id", tenantId)
+      .eq("user_id", data.userId)
+      .maybeSingle();
+    if (!member) throw new Error("Foydalanuvchi topilmadi");
+
+    const value = data.position?.trim() ? data.position.trim() : null;
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .upsert({ id: data.userId, position: value } as any);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 
 export const deleteUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
