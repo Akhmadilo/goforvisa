@@ -23,10 +23,32 @@ function parseNum(v: unknown): number {
   return isNaN(n) ? 0 : n;
 }
 
+/** Only admins or users with the salaries widget permission may read wage data. */
+async function assertSalaryAccess(supabase: any, userId: string) {
+  const [{ data: role, error: rErr }, { data: widget, error: wErr }] = await Promise.all([
+    supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("role", "admin")
+      .maybeSingle(),
+    supabase
+      .from("widget_permissions")
+      .select("widget_key")
+      .eq("user_id", userId)
+      .eq("widget_key", "salaries_section")
+      .maybeSingle(),
+  ]);
+  if (rErr) throw new Error(rErr.message);
+  if (wErr) throw new Error(wErr.message);
+  if (!role && !widget) throw new Error("Ruxsat yo'q");
+}
+
 export const getWages = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(
-  async (): Promise<WageRow[]> => {
+  async ({ context }): Promise<WageRow[]> => {
+    await assertSalaryAccess(context.supabase, context.userId);
     const lovableKey = process.env.LOVABLE_API_KEY;
     const sheetsKey = process.env.GOOGLE_SHEETS_API_KEY;
     if (!lovableKey) throw new Error("LOVABLE_API_KEY missing");
