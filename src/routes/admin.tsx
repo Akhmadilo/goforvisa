@@ -78,7 +78,22 @@ function PositionCell({ user }: { user: AdminUser }) {
   const mut = useMutation({
     mutationFn: (position: string | null) =>
       saveFn({ data: { userId: user.id, position } }),
-    onSuccess: () => {
+    onSuccess: (result) => {
+      setValue(result.position ?? "");
+      qc.setQueryData<AdminUser[]>(["admin-users"], (current) =>
+        current?.map((item) =>
+          item.id === result.userId
+            ? { ...item, position: result.position }
+            : item,
+        ),
+      );
+      qc.setQueriesData<{ id: string; position: string | null } | null>(
+        { queryKey: ["my-profile"] },
+        (current) =>
+          current?.id === result.userId
+            ? { ...current, position: result.position }
+            : current,
+      );
       qc.invalidateQueries({ queryKey: ["admin-users"] });
       qc.invalidateQueries({ queryKey: ["my-profile"] });
       toast.success(t("me.positionSaved"));

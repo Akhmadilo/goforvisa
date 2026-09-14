@@ -225,20 +225,24 @@ export const setUserPosition = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const tenantId = await currentTenantId(context.supabase);
-    const { data: member } = await supabaseAdmin
+    const { data: member, error: memberError } = await context.supabase
       .from("tenant_members")
       .select("user_id")
       .eq("tenant_id", tenantId)
       .eq("user_id", data.userId)
       .maybeSingle();
+    if (memberError) throw new Error(memberError.message);
     if (!member) throw new Error("Foydalanuvchi topilmadi");
 
     const value = data.position?.trim() ? data.position.trim() : null;
-    const { error } = await supabaseAdmin
+    const { data: profile, error } = await context.supabase
       .from("profiles")
-      .upsert({ id: data.userId, position: value } as any);
+      .update({ position: value })
+      .eq("id", data.userId)
+      .select("id, position")
+      .single();
     if (error) throw new Error(error.message);
-    return { ok: true };
+    return { ok: true, userId: profile.id, position: profile.position };
   });
 
 
