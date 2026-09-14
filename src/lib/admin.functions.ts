@@ -52,12 +52,14 @@ export const listUsers = createServerFn({ method: "GET" })
 
     const ids = users.map((u) => u.id);
     const [{ data: profiles }, { data: roles }, { data: widgets }] = await Promise.all([
-      supabaseAdmin.from("profiles").select("id, display_name").in("id", ids),
+      supabaseAdmin.from("profiles").select("id, display_name, position").in("id", ids),
       supabaseAdmin.from("user_roles").select("user_id, role").in("user_id", ids),
       supabaseAdmin.from("widget_permissions").select("user_id, widget_key").in("user_id", ids),
     ]);
 
     const pMap = new Map((profiles ?? []).map((p: any) => [p.id, p.display_name]));
+    const posMap = new Map((profiles ?? []).map((p: any) => [p.id, p.position]));
+
     const rMap = new Map<string, string[]>();
     (roles ?? []).forEach((r: any) => {
       const arr = rMap.get(r.user_id) ?? [];
