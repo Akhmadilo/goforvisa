@@ -80,6 +80,7 @@ function PositionCell({ user }: { user: AdminUser }) {
       saveFn({ data: { userId: user.id, position } }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["admin-users"] });
+      qc.invalidateQueries({ queryKey: ["my-profile"] });
       toast.success(t("me.positionSaved"));
     },
     onError: (e: Error) => toast.error(e.message),
