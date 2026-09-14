@@ -469,6 +469,24 @@ export type Database = {
           },
         ]
       }
+      cron_secrets: {
+        Row: {
+          created_at: string
+          name: string
+          secret: string
+        }
+        Insert: {
+          created_at?: string
+          name: string
+          secret: string
+        }
+        Update: {
+          created_at?: string
+          name?: string
+          secret?: string
+        }
+        Relationships: []
+      }
       daily_cash_reports: {
         Row: {
           chat_id: number
