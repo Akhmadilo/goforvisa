@@ -306,7 +306,17 @@ function AdminPage() {
                         {u.email}{" "}
                         {isSelf && <Badge variant="outline">{t("common.you")}</Badge>}
                       </TableCell>
-                      <TableCell>{u.display_name ?? "—"}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-8 w-8">
+                            {u.avatar_url && <AvatarImage src={u.avatar_url} alt={u.display_name ?? u.email ?? ""} />}
+                            <AvatarFallback className="text-xs">
+                              {initialsOf(u.display_name, u.email)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span>{u.display_name ?? "—"}</span>
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <PositionCell user={u} />
                       </TableCell>
