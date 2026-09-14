@@ -236,6 +236,8 @@ function AdminPage() {
                 <TableRow>
                   <TableHead>{t("admin.col.email")}</TableHead>
                   <TableHead>{t("admin.col.name")}</TableHead>
+                  <TableHead>{t("me.position")}</TableHead>
+
                   <TableHead>{t("admin.col.permissions")}</TableHead>
                   <TableHead>{t("admin.col.lastLogin")}</TableHead>
                   <TableHead>{t("admin.col.admin")}</TableHead>
