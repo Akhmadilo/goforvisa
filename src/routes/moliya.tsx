@@ -931,7 +931,7 @@ function FinancePage() {
                       <TableCell className="pl-6 text-muted-foreground">− {c.name}</TableCell>
                       <TableCell className="text-right tabular-nums">{fmt(c.total)}</TableCell>
                       <TableCell className="text-right tabular-nums text-muted-foreground">
-                        {totals.expense > 0 ? ((c.total / totals.expense) * 100).toFixed(1) : "0.0"}%
+                        {totals.revenue > 0 ? ((c.total / totals.revenue) * 100).toFixed(1) : "0.0"}%
                       </TableCell>
                     </TableRow>
                   ))}
