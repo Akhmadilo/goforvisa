@@ -257,5 +257,18 @@ export const miscDict: ExtraDict = {
     "toast.excel": "Excel-файл скачан",
     "toast.dateSaved": "Дата сохранена",
     "toast.selectPayMethod": "Выберите способ оплаты",
+    "me.profile": "Профиль",
+    "me.changePhoto": "Изменить фото",
+    "me.removePhoto": "Удалить фото",
+    "me.uploading": "Загрузка...",
+    "me.photoUpdated": "Фото обновлено",
+    "me.photoRemoved": "Фото удалено",
+    "me.noPosition": "Должность не указана",
+    "me.positionHint": "Должность назначает только админ",
+    "me.imageOnly": "Загрузите файл изображения",
+    "me.tooLarge": "Размер изображения должен быть меньше 5MB",
+    "me.position": "Должность",
+    "me.positionSaved": "Должность сохранена",
+
   },
 };
