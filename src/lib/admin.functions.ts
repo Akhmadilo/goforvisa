@@ -271,6 +271,8 @@ export const deleteUser = createServerFn({ method: "POST" })
     if (data.userId === context.userId) {
       throw new Error("O'zingizni o'chira olmaysiz");
     }
+    const tenantId = await currentTenantId(context.supabase);
+    await assertSameTenant(context.supabase, tenantId, data.userId);
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
