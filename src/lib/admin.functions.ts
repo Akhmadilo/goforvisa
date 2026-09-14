@@ -208,6 +208,7 @@ export const setUserRole = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     const tenantId = await currentTenantId(context.supabase);
+    await assertSameTenant(context.supabase, tenantId, data.userId);
     if (data.enabled) {
       const { error } = await supabaseAdmin
         .from("user_roles")
@@ -221,7 +222,8 @@ export const setUserRole = createServerFn({ method: "POST" })
         .from("user_roles")
         .delete()
         .eq("user_id", data.userId)
-        .eq("role", data.role);
+        .eq("role", data.role)
+        .eq("tenant_id", tenantId);
       if (error) throw new Error(error.message);
     }
     return { ok: true };
