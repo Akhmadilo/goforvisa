@@ -36,6 +36,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useMyProfile, useAvatarUrl } from "@/hooks/use-my-profile";
 import {
   Table,
   TableBody,
