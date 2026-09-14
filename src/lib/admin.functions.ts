@@ -77,6 +77,8 @@ export const listUsers = createServerFn({ method: "GET" })
       id: u.id,
       email: u.email ?? null,
       display_name: pMap.get(u.id) ?? null,
+      position: posMap.get(u.id) ?? null,
+
       created_at: u.created_at,
       last_sign_in_at: u.last_sign_in_at ?? null,
       roles: rMap.get(u.id) ?? [],
