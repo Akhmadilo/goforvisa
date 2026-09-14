@@ -9,6 +9,8 @@ import {
   createUser,
   setUserWidgets,
   resetUserPassword,
+  setUserPosition,
+
   type AdminUser,
 } from "@/lib/admin.functions";
 import { WIDGETS, WIDGET_GROUPS, type WidgetGroup } from "@/lib/widgets";
