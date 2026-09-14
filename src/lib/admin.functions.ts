@@ -188,6 +188,36 @@ export const setUserRole = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export const setUserPosition = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        userId: z.string().uuid(),
+        position: z.string().max(120).nullable(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context.supabase, context.userId);
+    const tenantId = await currentTenantId(context.supabase);
+    const { data: member } = await supabaseAdmin
+      .from("tenant_members")
+      .select("user_id")
+      .eq("tenant_id", tenantId)
+      .eq("user_id", data.userId)
+      .maybeSingle();
+    if (!member) throw new Error("Foydalanuvchi topilmadi");
+
+    const value = data.position?.trim() ? data.position.trim() : null;
+    const { error } = await supabaseAdmin
+      .from("profiles")
+      .upsert({ id: data.userId, position: value } as any);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+
 export const deleteUser = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ userId: z.string().uuid() }).parse(d))
