@@ -255,6 +255,10 @@ function AdminPage() {
                         {isSelf && <Badge variant="outline">{t("common.you")}</Badge>}
                       </TableCell>
                       <TableCell>{u.display_name ?? "—"}</TableCell>
+                      <TableCell>
+                        <PositionCell user={u} />
+                      </TableCell>
+
                       <TableCell className="text-xs">
                         {isAdmin ? (
                           <Badge>{t("admin.allAdmin")}</Badge>
