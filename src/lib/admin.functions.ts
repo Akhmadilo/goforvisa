@@ -34,6 +34,21 @@ async function assertAdmin(supabase: any, userId: string) {
   if (!data) throw new Error("Ruxsat yo'q: faqat admin uchun");
 }
 
+/**
+ * Ensure the target user actually belongs to the caller's tenant before any
+ * service-role operation touches their account.
+ */
+async function assertSameTenant(supabase: any, tenantId: string, targetUserId: string) {
+  const { data, error } = await supabase
+    .from("tenant_members")
+    .select("user_id")
+    .eq("tenant_id", tenantId)
+    .eq("user_id", targetUserId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Foydalanuvchi ushbu kompaniyaga tegishli emas");
+}
+
 export const listUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<AdminUser[]> => {
