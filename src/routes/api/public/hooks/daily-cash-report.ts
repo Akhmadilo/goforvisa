@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createClient } from "@supabase/supabase-js";
+import { verifyCronSecret } from "@/lib/cron-auth.server";
 
 function todayDate(): string {
   const d = new Date(Date.now() + 5 * 3600 * 1000);
@@ -39,9 +40,7 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
     handlers: {
       POST: async ({ request }) => {
         // Private cron secret (never shipped to the browser).
-        const expected = process.env.CRON_SECRET;
-        const provided = request.headers.get("x-hook-secret") || "";
-        if (!expected || provided !== expected) {
+        if (!(await verifyCronSecret(request))) {
           return new Response("Unauthorized", { status: 401 });
         }
 
