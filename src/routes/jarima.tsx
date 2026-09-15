@@ -1124,7 +1124,7 @@ function MonthlyExport({
         <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
         <SelectContent>
           {UZ_MONTHS.map((_m, i) => (
-            <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+            <SelectItem key={i} value={String(i + 1)}>{t(`fines.month.${i + 1}`)}</SelectItem>
           ))}
         </SelectContent>
       </Select>
@@ -1299,7 +1299,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
               <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {UZ_MONTHS_FULL.map((_m, i) => (
-                  <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
+                  <SelectItem key={i} value={String(i + 1)}>{t(`fines.month.${i + 1}`)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
