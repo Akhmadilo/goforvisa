@@ -32,11 +32,11 @@ import {
 } from "@/lib/jarima.functions";
 
 const NO_REPORT_REASON = "Hisobot yozmagan";
-function fineReasonLabel(reason?: string | null): string {
-  if (!reason) return "—";
-  if (reason === "late") return "Kech qolgani uchun";
-  if (reason === "absent") return "Ishga kelmagani uchun";
-  if (reason === NO_REPORT_REASON) return "Hisobot yozmagani uchun";
+function fineReasonLabel(reason: string | null | undefined, t: (k: string, v?: any) => string): string {
+  if (!reason) return t("fines.reason.none");
+  if (reason === "late") return t("fines.reason.late");
+  if (reason === "absent") return t("fines.reason.absent");
+  if (reason === NO_REPORT_REASON) return t("fines.reason.noReport");
   return reason;
 }
 import { Pencil } from "lucide-react";
@@ -553,7 +553,7 @@ function JarimaPage() {
   const delFineMut = useMutation({
     mutationFn: (id: string) => delFineFn({ data: { id } }),
     onSuccess: () => { invalidate(); qc.invalidateQueries({ queryKey: ["emp-month"] }); toast.success(t("toast.fineCancelled")); },
-    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+    onError: (e: any) => toast.error(e?.message || t("fines.error")),
   });
 
   const linkMut = useMutation({
@@ -569,7 +569,7 @@ function JarimaPage() {
   const delTgMut = useMutation({
     mutationFn: (id: string) => delTgFn({ data: { telegramRowId: id } }),
     onSuccess: () => { invalidate(); toast.success(t("toast.tgRemoved")); },
-    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+    onError: (e: any) => toast.error(e?.message || t("fines.error")),
   });
   const schedMut = useMutation({
     mutationFn: (v: { employeeId: string; weekday: number; startTime: string; isWorking: boolean }) =>
@@ -600,32 +600,32 @@ function JarimaPage() {
         </div>
 
         {isLoading ? (
-          <Card className="p-12 text-center text-muted-foreground">Yuklanmoqda...</Card>
+          <Card className="p-12 text-center text-muted-foreground">{t("fines.loading")}</Card>
         ) : (
           <Tabs defaultValue="today" className="space-y-4">
             <TabsList className="flex-wrap h-auto">
-              <TabsTrigger value="today">Bugun</TabsTrigger>
-              <TabsTrigger value="history">Tarix</TabsTrigger>
-              <TabsTrigger value="byEmployee">Ishchi bo'yicha</TabsTrigger>
-              <TabsTrigger value="advance">💰 Avans</TabsTrigger>
-              <TabsTrigger value="leave">📅 Javob so'rash</TabsTrigger>
-              <TabsTrigger value="work">📋 Bajarilgan ishlar</TabsTrigger>
-              {isAdmin && <TabsTrigger value="settings">Sozlamalar</TabsTrigger>}
+              <TabsTrigger value="today">{t("fines.tab.today")}</TabsTrigger>
+              <TabsTrigger value="history">{t("fines.tab.history")}</TabsTrigger>
+              <TabsTrigger value="byEmployee">{t("fines.tab.byEmployee")}</TabsTrigger>
+              <TabsTrigger value="advance">{t("fines.tab.advance")}</TabsTrigger>
+              <TabsTrigger value="leave">{t("fines.tab.leave")}</TabsTrigger>
+              <TabsTrigger value="work">{t("fines.tab.work")}</TabsTrigger>
+              {isAdmin && <TabsTrigger value="settings">{t("fines.tab.settings")}</TabsTrigger>}
             </TabsList>
 
             {/* === BUGUN === */}
             <TabsContent value="today" className="space-y-4">
               <Card className="p-4">
-                <div className="font-medium text-sm md:text-base mb-3">Bugun kelganlar ({todayAttendance.length})</div>
+                <div className="font-medium text-sm md:text-base mb-3">{t("fines.today.arrivedCount", { n: todayAttendance.length })}</div>
                 <div className="overflow-x-auto -mx-4 px-4">
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Ishchi</TableHead>
-                        <TableHead>Kelish vaqti</TableHead>
+                        <TableHead>{t("fines.col.employee")}</TableHead>
+                        <TableHead>{t("fines.col.checkInTime")}</TableHead>
                         <TableHead>FACE ID</TableHead>
-                        <TableHead>Kechikish</TableHead>
-                        <TableHead className="text-right">Jarima</TableHead>
+                        <TableHead>{t("fines.col.late")}</TableHead>
+                        <TableHead className="text-right">{t("fines.col.fine")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -636,15 +636,15 @@ function JarimaPage() {
                             <TableCell>{empMap.get(a.employee_id) || "—"}</TableCell>
                             <TableCell>{timeFromIso(a.check_in_at)}</TableCell>
                             <TableCell>{a.face_id_confirmed ? "✅" : "—"}</TableCell>
-                            <TableCell>{fine ? `${fine.minutes_late} daq` : "—"}</TableCell>
+                            <TableCell>{fine ? t("fines.minutesShort", { n: fine.minutes_late }) : "—"}</TableCell>
                             <TableCell className="text-right">
-                              {fine ? <Badge variant="destructive">{fmt(fine.amount_uzs)} so'm</Badge> : <Badge variant="secondary">0</Badge>}
+                              {fine ? <Badge variant="destructive">{fmt(fine.amount_uzs)} {t("settings.som")}</Badge> : <Badge variant="secondary">0</Badge>}
                             </TableCell>
                           </TableRow>
                         );
                       })}
                       {todayAttendance.length === 0 && (
-                        <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">Hech kim kelmadi</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground">{t("fines.today.nobodyArrived")}</TableCell></TableRow>
                       )}
                     </TableBody>
                   </Table>
@@ -652,7 +652,7 @@ function JarimaPage() {
               </Card>
 
               <Card className="p-4">
-                <div className="font-medium mb-3">Hali kelmaganlar ({notArrived.length})</div>
+                <div className="font-medium mb-3">{t("fines.today.notArrivedCount", { n: notArrived.length })}</div>
                 <div className="flex flex-wrap gap-2">
                   {notArrived.map(e => (
                     <Badge key={e.id} variant="outline">{e.full_name}</Badge>
@@ -666,7 +666,7 @@ function JarimaPage() {
             <TabsContent value="history">
               <Card className="p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-                  <div className="font-medium">Oxirgi jarimalar</div>
+                  <div className="font-medium">{t("fines.history.recent")}</div>
                   <MonthlyExport
                     fines={(data?.fines || []) as MonthlyFine[]}
                     employees={employees}
@@ -677,12 +677,12 @@ function JarimaPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Sana</TableHead>
-                        <TableHead>Ishchi</TableHead>
-                        <TableHead>Kechikish</TableHead>
-                        <TableHead>Sabab</TableHead>
-                        <TableHead className="text-right">Summa</TableHead>
-                        <TableHead className="text-right">Amal</TableHead>
+                        <TableHead>{t("fines.col.date")}</TableHead>
+                        <TableHead>{t("fines.col.employee")}</TableHead>
+                        <TableHead>{t("fines.col.late")}</TableHead>
+                        <TableHead>{t("fines.col.reason")}</TableHead>
+                        <TableHead className="text-right">{t("fines.col.amount")}</TableHead>
+                        <TableHead className="text-right">{t("fines.col.action")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -692,27 +692,27 @@ function JarimaPage() {
                           <TableRow key={f.id}>
                             <TableCell>{f.date}</TableCell>
                             <TableCell>{name}</TableCell>
-                            <TableCell>{f.reason === "absent" || f.reason === NO_REPORT_REASON ? "—" : `${f.minutes_late} daq`}</TableCell>
-                            <TableCell>{fineReasonLabel(f.reason)}</TableCell>
-                            <TableCell className="text-right">{fmt(f.amount_uzs)} so'm</TableCell>
+                            <TableCell>{f.reason === "absent" || f.reason === NO_REPORT_REASON ? "—" : t("fines.minutesShort", { n: f.minutes_late })}</TableCell>
+                            <TableCell>{fineReasonLabel(f.reason, t)}</TableCell>
+                            <TableCell className="text-right">{fmt(f.amount_uzs)} {t("settings.som")}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex justify-end gap-1">
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={async () => {
-                                    if (!confirm(`Jarimani tasdiqlaysizmi?\n\nXodim: ${name}\nSumma: ${fmt(f.amount_uzs)} so'm\n\nTasdiqlovchi: ${signers.admin}`)) return;
+                                    if (!confirm(t("fines.confirmApprove", { name, amount: fmt(f.amount_uzs), admin: signers.admin }))) return;
                                     try {
                                       await generateFinePdf({
                                         date: f.date,
                                         employeeName: name,
                                         minutes_late: f.minutes_late,
                                         amount_uzs: f.amount_uzs,
-                                        reason: fineReasonLabel(f.reason),
+                                        reason: fineReasonLabel(f.reason, t),
                                       }, signers);
                                       toast.success(t("toast.pdfReady"));
                                     } catch (e: any) {
-                                      toast.error(e?.message || "Xatolik");
+                                      toast.error(e?.message || t("fines.error"));
                                     }
                                   }}
                                 >
@@ -726,7 +726,7 @@ function JarimaPage() {
                                     className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
                                     disabled={delFineMut.isPending}
                                     onClick={() => {
-                                      if (!confirm(`Jarimani bekor qilasizmi?\n\nXodim: ${name}\nSana: ${f.date}\nSumma: ${fmt(f.amount_uzs)} so'm`)) return;
+                                      if (!confirm(t("fines.confirmCancel", { name, date: f.date, amount: fmt(f.amount_uzs) }))) return;
                                       delFineMut.mutate(f.id);
                                     }}
                                   >
@@ -739,7 +739,7 @@ function JarimaPage() {
                         );
                       })}
                       {(data?.fines || []).length === 0 && (
-                        <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">Jarimalar yo'q</TableCell></TableRow>
+                        <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground">{t("fines.history.none")}</TableCell></TableRow>
                       )}
                     </TableBody>
                   </Table>
@@ -778,16 +778,16 @@ function JarimaPage() {
                 <Card className="p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <Link2 className="h-4 w-4" />
-                    <span className="font-medium text-sm md:text-base">Telegram akkauntlar</span>
+                    <span className="font-medium text-sm md:text-base">{t("fines.settings.telegramAccounts")}</span>
                   </div>
                   <div className="overflow-x-auto -mx-4 px-4">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Telegram</TableHead>
-                          <TableHead>Ism</TableHead>
-                          <TableHead>Ishchi</TableHead>
-                          <TableHead>Bot lavozimi</TableHead>
+                          <TableHead>{t("fines.col.telegram")}</TableHead>
+                          <TableHead>{t("fines.col.name")}</TableHead>
+                          <TableHead>{t("fines.col.employee")}</TableHead>
+                          <TableHead>{t("fines.col.botRole")}</TableHead>
                           <TableHead className="w-[60px]"></TableHead>
                         </TableRow>
                       </TableHeader>
@@ -808,7 +808,7 @@ function JarimaPage() {
                               >
                                 <SelectTrigger className="w-[200px] md:w-[260px]"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="none">— bog'lanmagan —</SelectItem>
+                                  <SelectItem value="none">{t("fines.settings.notLinked")}</SelectItem>
                                   {employees.map(e => (
                                     <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
                                   ))}
@@ -825,10 +825,10 @@ function JarimaPage() {
                                >
                                  <SelectTrigger className="w-[160px] md:w-[200px]"><SelectValue /></SelectTrigger>
                                  <SelectContent>
-                                   <SelectItem value="none">— oddiy ishchi —</SelectItem>
+                                   <SelectItem value="none">{t("fines.settings.plainWorker")}</SelectItem>
                                    <SelectItem value="owner">Owner</SelectItem>
                                    <SelectItem value="ceo">CEO</SelectItem>
-                                   <SelectItem value="financier">Moliyachi</SelectItem>
+                                   <SelectItem value="financier">{t("fines.settings.financier")}</SelectItem>
                                  </SelectContent>
                                </Select>
                             </TableCell>
@@ -888,13 +888,14 @@ function ScheduleEditor({
   schedules: { employee_id: string; weekday: number; start_time: string; is_working: boolean }[];
   onSave: (v: { employeeId: string; weekday: number; startTime: string; isWorking: boolean }) => void;
 }) {
+  const { t } = useT();
   const getDay = (empId: string, wd: number) =>
     schedules.find(s => s.employee_id === empId && s.weekday === wd)
     || { start_time: "10:00", is_working: wd !== 0 };
 
   return (
     <Card className="p-4">
-      <div className="font-medium mb-3">Haftalik ish jadvali (har xodim uchun alohida)</div>
+      <div className="font-medium mb-3">{t("fines.schedule.title")}</div>
       <Accordion type="multiple" className="w-full">
         {employees.map(emp => (
           <AccordionItem key={emp.id} value={emp.id}>
@@ -906,7 +907,7 @@ function ScheduleEditor({
                   return (
                     <DayRow
                       key={wd}
-                      label={d}
+                      label={t(`fines.wd.${wd}`)}
                       startTime={cur.start_time.slice(0, 5)}
                       isWorking={cur.is_working}
                       onSave={(startTime, isWorking) => onSave({ employeeId: emp.id, weekday: wd, startTime, isWorking })}
@@ -918,7 +919,7 @@ function ScheduleEditor({
           </AccordionItem>
         ))}
         {employees.length === 0 && (
-          <div className="text-sm text-muted-foreground">Xodimlar yo'q.</div>
+          <div className="text-sm text-muted-foreground">{t("fines.schedule.noEmployees")}</div>
         )}
       </Accordion>
     </Card>
@@ -928,6 +929,7 @@ function ScheduleEditor({
 function DayRow({
   label, startTime, isWorking, onSave,
 }: { label: string; startTime: string; isWorking: boolean; onSave: (st: string, iw: boolean) => void }) {
+  const { t } = useT();
   const [st, setSt] = useState(startTime);
   const [iw, setIw] = useState(isWorking);
   return (
@@ -935,7 +937,7 @@ function DayRow({
       <span className="w-10 font-medium">{label}</span>
       <Switch checked={iw} onCheckedChange={setIw} />
       <Input type="time" value={st} onChange={e => setSt(e.target.value)} className="w-32" disabled={!iw} />
-      <Button size="sm" onClick={() => onSave(st, iw)}>Saqlash</Button>
+      <Button size="sm" onClick={() => onSave(st, iw)}>{t("common.save")}</Button>
     </div>
   );
 }
@@ -948,9 +950,10 @@ function FineRulesEditor({
   onSave: (v: { id?: string; employeeId?: string | null; min: number | null; max: number | null; amount: number; label: string | null; kind?: "late" | "absence" }) => void;
   onDelete: (id: string) => void;
 }) {
+  const { t } = useT();
   return (
     <Card className="p-4">
-      <div className="font-medium mb-3">Jarima qoidalari (har xodim uchun alohida)</div>
+      <div className="font-medium mb-3">{t("fines.rules.title")}</div>
       <Accordion type="multiple" className="w-full">
         {employees.map(emp => {
           const empRules = rules.filter(r => r.employee_id === emp.id);
@@ -971,7 +974,7 @@ function FineRulesEditor({
           );
         })}
         {employees.length === 0 && (
-          <div className="text-sm text-muted-foreground">Xodimlar yo'q.</div>
+          <div className="text-sm text-muted-foreground">{t("fines.schedule.noEmployees")}</div>
         )}
       </Accordion>
     </Card>
@@ -987,6 +990,7 @@ function EmployeeRules({
   onSave: (v: { id?: string; employeeId?: string | null; min: number | null; max: number | null; amount: number; label: string | null; kind?: "late" | "absence" }) => void;
   onDelete: (id: string) => void;
 }) {
+  const { t } = useT();
   const [newMin, setNewMin] = useState(0);
   const [newMax, setNewMax] = useState("");
   const [newAmt, setNewAmt] = useState(0);
@@ -1003,16 +1007,16 @@ function EmployeeRules({
     <div className="space-y-4 pt-2">
       <div>
         <div className="text-xs text-muted-foreground mb-2">
-          {hasOwn ? "Bu xodim uchun shaxsiy qoidalar" : `Hozir umumiy qoidalardan foydalanmoqda (${fallbackLate.length} ta). Quyida qo'shsangiz shaxsiy qoidalar ishlaydi.`}
+          {hasOwn ? t("fines.rules.hasOwn") : t("fines.rules.usingGlobal", { n: fallbackLate.length })}
         </div>
         <div className="overflow-x-auto -mx-4 px-4">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Min (daq)</TableHead>
-                <TableHead>Max (daq)</TableHead>
-                <TableHead>Summa (so'm)</TableHead>
-                <TableHead>Yorliq</TableHead>
+                <TableHead>{t("fines.col.min")}</TableHead>
+                <TableHead>{t("fines.col.max")}</TableHead>
+                <TableHead>{t("fines.col.amountUzs")}</TableHead>
+                <TableHead>{t("fines.col.label")}</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -1022,9 +1026,9 @@ function EmployeeRules({
               ))}
               <TableRow>
                 <TableCell><Input type="number" value={newMin} onChange={e => setNewMin(Number(e.target.value))} /></TableCell>
-                <TableCell><Input type="number" placeholder="cheksiz" value={newMax} onChange={e => setNewMax(e.target.value)} /></TableCell>
+                <TableCell><Input type="number" placeholder={t("fines.rules.maxPlaceholder")} value={newMax} onChange={e => setNewMax(e.target.value)} /></TableCell>
                 <TableCell><Input type="number" value={newAmt} onChange={e => setNewAmt(Number(e.target.value))} /></TableCell>
-                <TableCell><Input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="masalan: 10:00–10:30" /></TableCell>
+                <TableCell><Input value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder={t("fines.rules.labelPlaceholder")} /></TableCell>
                 <TableCell>
                   <Button size="sm" onClick={() => {
                     onSave({ employeeId, min: newMin, max: newMax === "" ? null : Number(newMax), amount: newAmt, label: newLabel || null, kind: "late" });
@@ -1038,11 +1042,11 @@ function EmployeeRules({
       </div>
 
       <div className="border rounded p-3">
-        <div className="font-medium text-sm mb-1">Kelmagan kun uchun jarima</div>
-        <div className="text-xs text-muted-foreground mb-3">Xodim ish kunida (dam olish yoki tasdiqlangan ta'tilsiz) kelmasa shu summa qo'llaniladi.</div>
+        <div className="font-medium text-sm mb-1">{t("fines.rules.absenceTitle")}</div>
+        <div className="text-xs text-muted-foreground mb-3">{t("fines.rules.absenceHint")}</div>
         <div className="flex items-end gap-2 flex-wrap">
           <div className="flex flex-col">
-            <label className="text-xs text-muted-foreground mb-1">Summa (so'm)</label>
+            <label className="text-xs text-muted-foreground mb-1">{t("fines.rules.absenceAmountLabel")}</label>
             <Input
               type="number"
               className="w-40"
@@ -1061,7 +1065,7 @@ function EmployeeRules({
               label: "Kelmagan kun",
               kind: "absence",
             })}
-          >Saqlash</Button>
+          >{t("common.save")}</Button>
           {absenceRule && (
             <Button size="sm" variant="ghost" onClick={() => onDelete(absenceRule.id)}>
               <Trash2 className="h-4 w-4" />
@@ -1081,6 +1085,7 @@ function RuleRow({
   onSave: (v: { id: string; employeeId?: string | null; min: number | null; max: number | null; amount: number; label: string | null; kind?: "late" | "absence" }) => void;
   onDelete: (id: string) => void;
 }) {
+  const { t } = useT();
   const [min, setMin] = useState<number>(rule.min_minutes ?? 0);
   const [max, setMax] = useState(rule.max_minutes == null ? "" : String(rule.max_minutes));
   const [amt, setAmt] = useState(Number(rule.amount_uzs));
@@ -1088,13 +1093,13 @@ function RuleRow({
   return (
     <TableRow>
       <TableCell><Input type="number" value={min} onChange={e => setMin(Number(e.target.value))} /></TableCell>
-      <TableCell><Input type="number" placeholder="cheksiz" value={max} onChange={e => setMax(e.target.value)} /></TableCell>
+      <TableCell><Input type="number" placeholder={t("fines.rules.maxPlaceholder")} value={max} onChange={e => setMax(e.target.value)} /></TableCell>
       <TableCell><Input type="number" value={amt} onChange={e => setAmt(Number(e.target.value))} /></TableCell>
       <TableCell><Input value={label} onChange={e => setLabel(e.target.value)} /></TableCell>
       <TableCell className="flex gap-1">
         <Button size="sm" variant="secondary" onClick={() =>
           onSave({ id: rule.id, employeeId, min, max: max === "" ? null : Number(max), amount: amt, label: label || null, kind: "late" })
-        }>Saqlash</Button>
+        }>{t("common.save")}</Button>
         <Button size="sm" variant="ghost" onClick={() => onDelete(rule.id)}><Trash2 className="h-4 w-4" /></Button>
       </TableCell>
     </TableRow>
@@ -1136,7 +1141,7 @@ function MonthlyExport({
             await generateMonthlyPdf(year, month, employees, fines, signers);
             toast.success(t("toast.pdfReadyMonthly"));
           } catch (e: any) {
-            toast.error(e?.message || "Xatolik");
+            toast.error(e?.message || t("fines.error"));
           }
         }}
       >
@@ -1194,7 +1199,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
       setEditing(null);
       invalidate();
     },
-    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+    onError: (e: any) => toast.error(e?.message || t("fines.error")),
   });
   const clearMut = useMutation({
     mutationFn: (date: string) => clearFn({ data: { employeeId: empId, date } }),
@@ -1203,13 +1208,13 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
       setEditing(null);
       invalidate();
     },
-    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+    onError: (e: any) => toast.error(e?.message || t("fines.error")),
   });
   const delFineFn = useServerFn(deleteFine);
   const delFineMut = useMutation({
     mutationFn: (id: string) => delFineFn({ data: { id } }),
     onSuccess: () => { toast.success(t("toast.fineCancelled")); invalidate(); },
-    onError: (e: any) => toast.error(e?.message || "Xatolik"),
+    onError: (e: any) => toast.error(e?.message || t("fines.error")),
   });
 
   const fetchFn = useServerFn(getEmployeeMonth);
@@ -1280,9 +1285,9 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
       <Card className="p-4">
         <div className="flex flex-wrap items-end gap-3">
           <div className="flex-1 min-w-[200px]">
-            <label className="text-xs text-muted-foreground mb-1 block">Ishchi</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("fines.col.employee")}</label>
             <Select value={empId} onValueChange={setEmpId}>
-              <SelectTrigger><SelectValue placeholder="Ishchini tanlang..." /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={t("fines.selectEmployeePlaceholder")} /></SelectTrigger>
               <SelectContent>
                 {employees.map(e => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}
               </SelectContent>
@@ -1335,7 +1340,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
                 }, signers);
                 toast.success(t("toast.pdfReady"));
               } catch (e: any) {
-                toast.error(e?.message || "Xatolik");
+                toast.error(e?.message || t("fines.error"));
               }
             }}
           >
@@ -1351,24 +1356,24 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
           Ishchini tanlang
         </Card>
       ) : isLoading ? (
-        <Card className="p-10 text-center text-muted-foreground">Yuklanmoqda...</Card>
+        <Card className="p-10 text-center text-muted-foreground">{t("fines.loading")}</Card>
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Card className="p-3">
-              <div className="text-xs text-muted-foreground">Kelgan kunlar</div>
+              <div className="text-xs text-muted-foreground">{t("fines.stat.presentDays")}</div>
               <div className="text-lg md:text-xl font-bold">{presentDays}</div>
             </Card>
             <Card className="p-3">
-              <div className="text-xs text-muted-foreground">Jarima kunlar</div>
+              <div className="text-xs text-muted-foreground">{t("fines.stat.fineDays")}</div>
               <div className="text-lg md:text-xl font-bold">{fineCount}</div>
             </Card>
             <Card className="p-3">
-              <div className="text-xs text-muted-foreground">Jami jarima</div>
+              <div className="text-xs text-muted-foreground">{t("fines.stat.totalFine")}</div>
               <div className="text-lg md:text-xl font-bold text-red-600 dark:text-red-400">{fmt(totalFine)} so'm</div>
             </Card>
             <Card className="p-3">
-              <div className="text-xs text-muted-foreground">Oydagi ish kunlari</div>
+              <div className="text-xs text-muted-foreground">{t("fines.stat.workingDaysInMonth")}</div>
               <div className="text-lg md:text-xl font-bold">{workingDays}</div>
             </Card>
           </div>
@@ -1380,7 +1385,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
               {UZ_MONTHS_FULL[month - 1]} {year}
             </div>
             <div className="grid grid-cols-7 gap-1 text-[11px] text-muted-foreground mb-1 text-center">
-              {WEEKDAYS.map(w => <div key={w} className="py-1 font-medium">{w}</div>)}
+              {WEEKDAYS.map((w, wi) => <div key={w} className="py-1 font-medium">{t(`fines.wd.${wi}`)}</div>)}
             </div>
             <div className="grid grid-cols-7 gap-1">
               {Array.from({ length: startWeekday }).map((_, i) => (
@@ -1421,18 +1426,18 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
                       )}
                     </div>
                     {leave ? (
-                      <div className="text-[10px] text-sky-700 dark:text-sky-300 font-semibold" title={leave.reason || leave.note || ""}>Dam olish</div>
+                      <div className="text-[10px] text-sky-700 dark:text-sky-300 font-semibold" title={leave.reason || leave.note || ""}>{t("fines.legend.dayOff")}</div>
                     ) : isDayOff ? (
-                      <div className="text-[10px] text-muted-foreground">Dam</div>
+                      <div className="text-[10px] text-muted-foreground">{t("fines.dayOff")}</div>
                     ) : fine?.reason === "absent" ? (
                       <>
-                        <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold" title="Ishga kelmagani uchun">Kelmadi</div>
+                        <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold" title={t("fines.reason.absent")}>{t("fines.absent")}</div>
                         <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold">-{fmt(fine.amount_uzs)}</div>
                       </>
                     ) : fine?.reason === NO_REPORT_REASON ? (
                       <>
                         {att && <div className="text-[10px] tabular-nums">{timeFromIso(att.check_in_at)}</div>}
-                        <div className="text-[10px] text-amber-700 dark:text-amber-300 font-semibold" title="Hisobot yozmagani uchun">Hisobot yo'q</div>
+                        <div className="text-[10px] text-amber-700 dark:text-amber-300 font-semibold" title={t("fines.reason.noReport")}>{t("fines.noReportShort")}</div>
                         <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold">-{fmt(fine.amount_uzs)}</div>
                       </>
                     ) : att ? (
@@ -1454,26 +1459,26 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
               })}
             </div>
             <div className="flex gap-3 mt-3 text-[11px] text-muted-foreground flex-wrap">
-              <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-emerald-100 dark:bg-emerald-950/40 border" /> O'z vaqtida</span>
-              <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-red-100 dark:bg-red-950/40 border" /> Jarima</span>
-              <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-sky-100 dark:bg-sky-950/40 border" /> Dam olish</span>
-              <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-muted/30 border" /> Kelmadi</span>
+              <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-emerald-100 dark:bg-emerald-950/40 border" /> {t("fines.legend.onTime")}</span>
+              <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-red-100 dark:bg-red-950/40 border" /> {t("fines.legend.fine")}</span>
+              <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-sky-100 dark:bg-sky-950/40 border" /> {t("fines.legend.dayOff")}</span>
+              <span className="flex items-center gap-1"><span className="inline-block w-3 h-3 rounded bg-muted/30 border" /> {t("fines.legend.absent")}</span>
             </div>
           </Card>
 
           {/* Table view */}
           <Card className="p-4">
-            <div className="text-sm font-semibold mb-3">Kunlar ro'yxati</div>
+            <div className="text-sm font-semibold mb-3">{t("fines.daysList")}</div>
             <div className="overflow-x-auto -mx-4 px-4">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Sana</TableHead>
-                    <TableHead>Kun</TableHead>
-                    <TableHead>Holat</TableHead>
-                    <TableHead>Kelish</TableHead>
-                    <TableHead>Kechikish</TableHead>
-                    <TableHead className="text-right">Jarima</TableHead>
+                    <TableHead>{t("fines.col.date")}</TableHead>
+                    <TableHead>{t("fines.col.day")}</TableHead>
+                    <TableHead>{t("fines.col.status")}</TableHead>
+                    <TableHead>{t("fines.col.checkIn")}</TableHead>
+                    <TableHead>{t("fines.col.late")}</TableHead>
+                    <TableHead className="text-right">{t("fines.col.fine")}</TableHead>
                     {canEditAttendance && <TableHead className="w-12"></TableHead>}
                   </TableRow>
                 </TableHeader>
@@ -1487,14 +1492,14 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
                     return (
                       <TableRow key={d}>
                         <TableCell className="tabular-nums">{dateStr}</TableCell>
-                        <TableCell>{WEEKDAYS[wd]}</TableCell>
+                        <TableCell>{t(`fines.wd.${wd}`)}</TableCell>
                         <TableCell>
-                          {cell?.leave ? <Badge className="bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30" variant="outline">Dam olish</Badge>
-                            : isDayOff ? <Badge variant="outline">Dam</Badge>
-                            : cell?.fine?.reason === "absent" ? <Badge variant="destructive" title="Ishga kelmagani uchun">Kelmadi</Badge>
-                            : cell?.fine?.reason === NO_REPORT_REASON ? <Badge variant="destructive" title="Hisobot yozmagani uchun">Hisobot yo'q</Badge>
-                            : cell?.fine ? <Badge variant="destructive" title="Kech qolgani uchun">Kech qoldi</Badge>
-                            : cell?.att ? <Badge variant="secondary">Kelgan</Badge>
+                          {cell?.leave ? <Badge className="bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30" variant="outline">{t("fines.legend.dayOff")}</Badge>
+                            : isDayOff ? <Badge variant="outline">{t("fines.dayOff")}</Badge>
+                            : cell?.fine?.reason === "absent" ? <Badge variant="destructive" title={t("fines.reason.absent")}>{t("fines.absent")}</Badge>
+                            : cell?.fine?.reason === NO_REPORT_REASON ? <Badge variant="destructive" title={t("fines.reason.noReport")}>{t("fines.noReportShort")}</Badge>
+                            : cell?.fine ? <Badge variant="destructive" title={t("fines.reason.late")}>{t("fines.reason.late")}</Badge>
+                            : cell?.att ? <Badge variant="secondary">{t("fines.badge.present")}</Badge>
                             : <Badge variant="outline">—</Badge>}
                         </TableCell>
                         <TableCell className="tabular-nums">{cell?.att ? timeFromIso(cell.att.check_in_at) : "—"}</TableCell>
@@ -1547,11 +1552,11 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Kunni tahrirlash</DialogTitle>
+            <DialogTitle>{t("fines.editDay")}</DialogTitle>
           </DialogHeader>
           {editing && (
             <div className="space-y-3">
-              <div className="text-sm text-muted-foreground">Sana: <b className="text-foreground">{editing.date}</b></div>
+              <div className="text-sm text-muted-foreground">{t("fines.dialog.dateLabel")}: <b className="text-foreground">{editing.date}</b></div>
               <div className="flex gap-2">
                 <Button
                   type="button"
@@ -1575,7 +1580,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
               {editing.mode === "present" ? (
                 <>
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Kelish vaqti (Toshkent)</label>
+                    <label className="text-xs text-muted-foreground mb-1 block">{t("fines.dialog.checkInLabel")}</label>
                     <Input
                       type="time"
                       value={editing.time}
@@ -1589,20 +1594,20 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
               ) : (
                 <>
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Jarima summasi (so'm)</label>
+                    <label className="text-xs text-muted-foreground mb-1 block">{t("fines.dialog.absenceAmountLabel")}</label>
                     <Input
                       type="text"
                       inputMode="numeric"
                       pattern="[0-9\s]*"
-                      placeholder="120 000"
+                      placeholder={t("fines.dialog.absenceAmountPlaceholder")}
                       value={editing.amount}
                       onChange={(e) => setEditing({ ...editing, amount: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Izoh (ixtiyoriy)</label>
+                    <label className="text-xs text-muted-foreground mb-1 block">{t("fines.dialog.noteLabel")}</label>
                     <Input
-                      placeholder="Sababi..."
+                      placeholder={t("fines.dialog.notePlaceholder")}
                       value={editing.note}
                       onChange={(e) => setEditing({ ...editing, note: e.target.value })}
                     />
@@ -1620,7 +1625,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
             >
               Tozalash
             </Button>
-            <Button variant="outline" onClick={() => setEditing(null)}>Bekor</Button>
+            <Button variant="outline" onClick={() => setEditing(null)}>{t("fines.dialog.cancel")}</Button>
             <Button
               onClick={() => editing && updateMut.mutate(editing)}
               disabled={
@@ -1704,7 +1709,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
       setNote("");
       invalidate();
     } catch (e: any) {
-      toast.error(e?.message || "Xatolik");
+      toast.error(e?.message || t("fines.error"));
     }
   };
 
@@ -1718,7 +1723,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
       setEditDeduct(null);
       invalidate();
     } catch (e: any) {
-      toast.error(e?.message || "Xatolik");
+      toast.error(e?.message || t("fines.error"));
     }
   };
 
@@ -1742,7 +1747,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
       setNewEmp(""); setNewAmt(""); setNewPurpose("");
       invalidate();
     } catch (e: any) {
-      toast.error(e?.message || "Xatolik");
+      toast.error(e?.message || t("fines.error"));
     }
   };
 
@@ -1805,12 +1810,12 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Xodim</TableHead>
-              <TableHead className="text-right">Summa</TableHead>
-              <TableHead>Maqsad</TableHead>
+              <TableHead>{t("fines.advance.employeeLabel")}</TableHead>
+              <TableHead className="text-right">{t("fines.col.amount")}</TableHead>
+              <TableHead>{t("fines.col.purpose")}</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Sana</TableHead>
-              <TableHead className="text-right">Amal</TableHead>
+              <TableHead>{t("fines.col.date")}</TableHead>
+              <TableHead className="text-right">{t("fines.col.action")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1825,7 +1830,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
   );
 
   if (isLoading) {
-    return <Card className="p-10 text-center text-muted-foreground">Yuklanmoqda...</Card>;
+    return <Card className="p-10 text-center text-muted-foreground">{t("fines.loading")}</Card>;
   }
 
   return (
@@ -1833,7 +1838,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
       <Card className="p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <div className="font-medium">Avans so'rovlari</div>
+            <div className="font-medium">{t("fines.advance.requests")}</div>
             <div className="text-xs text-muted-foreground mt-1">
               Ishchi botda <b>💰 Avans so'rash</b> tugmasini bossa, direktorga Telegram orqali xabar boradi. Direktor tasdiqlasa, admin shu yerda yakuniylashtiradi va summa keyingi oylikdan ushlanadi.
             </div>
@@ -1851,10 +1856,10 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
         pending,
         (r) => isAdm ? (
           <div className="flex gap-2 justify-end">
-            <Button size="sm" variant="outline" onClick={() => { setNote(""); setDecision({ id: r.id, approve: true, role: "ceo" }); }}>Admin override: Tasdiq</Button>
-            <Button size="sm" variant="ghost" onClick={() => { setNote(""); setDecision({ id: r.id, approve: false, role: "ceo" }); }}>Rad</Button>
+            <Button size="sm" variant="outline" onClick={() => { setNote(""); setDecision({ id: r.id, approve: true, role: "ceo" }); }}>{t("fines.advance.adminOverrideApprove")}</Button>
+            <Button size="sm" variant="ghost" onClick={() => { setNote(""); setDecision({ id: r.id, approve: false, role: "ceo" }); }}>{t("fines.advance.reject")}</Button>
           </div>
-        ) : <span className="text-xs text-muted-foreground">Direktor Telegramdan tasdiqlaydi</span>,
+        ) : <span className="text-xs text-muted-foreground">{t("fines.advance.directorTelegramNote")}</span>,
       )}
 
       {section(
@@ -1862,10 +1867,10 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
         awaitingAdmin,
         (r) => isAdm ? (
           <div className="flex gap-2 justify-end">
-            <Button size="sm" variant="default" onClick={() => { setNote(""); setDeductYear(nowTash.getUTCFullYear()); setDeductMonth(nowTash.getUTCMonth()+1); setDecision({ id: r.id, approve: true, role: "admin" }); }}>Tasdiq + Ber</Button>
-            <Button size="sm" variant="outline" onClick={() => { setNote(""); setDecision({ id: r.id, approve: false, role: "admin" }); }}>Rad</Button>
+            <Button size="sm" variant="default" onClick={() => { setNote(""); setDeductYear(nowTash.getUTCFullYear()); setDeductMonth(nowTash.getUTCMonth()+1); setDecision({ id: r.id, approve: true, role: "admin" }); }}>{t("fines.advance.approveAndPay")}</Button>
+            <Button size="sm" variant="outline" onClick={() => { setNote(""); setDecision({ id: r.id, approve: false, role: "admin" }); }}>{t("fines.advance.reject")}</Button>
           </div>
-        ) : <span className="text-xs text-muted-foreground">Faqat admin</span>,
+        ) : <span className="text-xs text-muted-foreground">{t("fines.advance.adminOnly")}</span>,
       )}
 
       {section("📜 Tarix", done, () => null)}
@@ -1883,7 +1888,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
             <Textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder={decision?.approve ? "Ixtiyoriy" : "Sababini yozing"}
+              placeholder={decision?.approve ? t("fines.advance.notePlaceholderApprove") : t("fines.advance.notePlaceholderReject")}
               maxLength={500}
             />
             {decision?.role === "admin" && decision?.approve && (
@@ -1910,7 +1915,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDecision(null)}>Bekor</Button>
+            <Button variant="outline" onClick={() => setDecision(null)}>{t("fines.dialog.cancel")}</Button>
             <Button
               onClick={submitDecision}
               disabled={!decision?.approve && note.trim().length < 3}
@@ -1926,10 +1931,10 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
       <Dialog open={!!editDeduct} onOpenChange={(o) => !o && setEditDeduct(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Ushlash oyini o'zgartirish</DialogTitle>
+            <DialogTitle>{t("fines.advance.changeDeductTitle")}</DialogTitle>
           </DialogHeader>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Qaysi oylikdan ushlansin?</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("fines.advance.deductMonthLabel")}</label>
             {editDeduct && (
               <Select
                 value={`${editDeduct.y}-${editDeduct.m}`}
@@ -1951,8 +1956,8 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
             </p>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditDeduct(null)}>Bekor</Button>
-            <Button onClick={submitChangeDeduct}>Saqlash</Button>
+            <Button variant="outline" onClick={() => setEditDeduct(null)}>{t("fines.dialog.cancel")}</Button>
+            <Button onClick={submitChangeDeduct}>{t("common.save")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1961,30 +1966,30 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
       <Dialog open={openCreate} onOpenChange={setOpenCreate}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Avans so'rovi (qo'lda)</DialogTitle>
+            <DialogTitle>{t("fines.advance.manualCreateTitle")}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Xodim</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("fines.advance.employeeLabel")}</label>
               <Select value={newEmp} onValueChange={setNewEmp}>
-                <SelectTrigger><SelectValue placeholder="Tanlang..." /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={t("fines.advance.employeeSelect")} /></SelectTrigger>
                 <SelectContent>
                   {employees.map(e => <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Summa (so'm)</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("fines.advance.amountLabel")}</label>
               <Input value={newAmt} onChange={(e) => setNewAmt(e.target.value)} placeholder="500000" inputMode="numeric" />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground mb-1 block">Maqsad</label>
+              <label className="text-xs text-muted-foreground mb-1 block">{t("fines.advance.purposeLabel")}</label>
               <Textarea value={newPurpose} onChange={(e) => setNewPurpose(e.target.value)} maxLength={500} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpenCreate(false)}>Bekor</Button>
-            <Button onClick={submitCreate}>Yaratish</Button>
+            <Button variant="outline" onClick={() => setOpenCreate(false)}>{t("fines.dialog.cancel")}</Button>
+            <Button onClick={submitCreate}>{t("fines.advance.create")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
