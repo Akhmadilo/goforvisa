@@ -150,6 +150,8 @@ export const jarimaDict: ExtraDict = {
     "fines.month.5": "May", "fines.month.6": "Iyun", "fines.month.7": "Iyul", "fines.month.8": "Avgust",
     "fines.month.9": "Sentyabr", "fines.month.10": "Oktyabr", "fines.month.11": "Noyabr", "fines.month.12": "Dekabr",
     "fines.currentMonthSuffix": " (joriy)",
+    "fines.cancelFine": "Jarimani bekor qilish",
+    "fines.wd.0": "Yak", "fines.wd.1": "Du", "fines.wd.2": "Se", "fines.wd.3": "Cho", "fines.wd.4": "Pa", "fines.wd.5": "Ju", "fines.wd.6": "Sha",
   },
   en: {
     "fines.loading": "Loading...",
@@ -299,6 +301,8 @@ export const jarimaDict: ExtraDict = {
     "fines.month.5": "May", "fines.month.6": "June", "fines.month.7": "July", "fines.month.8": "August",
     "fines.month.9": "September", "fines.month.10": "October", "fines.month.11": "November", "fines.month.12": "December",
     "fines.currentMonthSuffix": " (current)",
+    "fines.cancelFine": "Cancel fine",
+    "fines.wd.0": "Sun", "fines.wd.1": "Mon", "fines.wd.2": "Tue", "fines.wd.3": "Wed", "fines.wd.4": "Thu", "fines.wd.5": "Fri", "fines.wd.6": "Sat",
   },
   ru: {
     "fines.loading": "Загрузка...",
@@ -448,5 +452,7 @@ export const jarimaDict: ExtraDict = {
     "fines.month.5": "Май", "fines.month.6": "Июнь", "fines.month.7": "Июль", "fines.month.8": "Август",
     "fines.month.9": "Сентябрь", "fines.month.10": "Октябрь", "fines.month.11": "Ноябрь", "fines.month.12": "Декабрь",
     "fines.currentMonthSuffix": " (текущий)",
+    "fines.cancelFine": "Отменить штраф",
+    "fines.wd.0": "Вс", "fines.wd.1": "Пн", "fines.wd.2": "Вт", "fines.wd.3": "Ср", "fines.wd.4": "Чт", "fines.wd.5": "Пт", "fines.wd.6": "Сб",
   },
 };
