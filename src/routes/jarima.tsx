@@ -837,11 +837,11 @@ function JarimaPage() {
                                 size="icon"
                                 variant="ghost"
                                 onClick={() => {
-                                  if (confirm("Ushbu Telegram akkauntni jadvaldan o'chirmoqchimisiz?")) {
+                                  if (confirm(t("fines.settings.confirmDeleteTelegram"))) {
                                     delTgMut.mutate(tg.id);
                                   }
                                 }}
-                                title="O'chirish"
+                                title={t("fines.settings.deleteTitle")}
                               >
                                 <Trash2 className="h-4 w-4 text-destructive" />
                               </Button>
@@ -1123,7 +1123,7 @@ function MonthlyExport({
       <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
         <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
         <SelectContent>
-          {UZ_MONTHS.map((m, i) => (
+          {UZ_MONTHS.map((_m, i) => (
             <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
           ))}
         </SelectContent>
@@ -1146,7 +1146,7 @@ function MonthlyExport({
         }}
       >
         <FileText className="h-4 w-4 mr-1" />
-        Oylik PDF
+        {t("fines.monthlyPdfBtn")}
       </Button>
     </div>
   );
@@ -1298,7 +1298,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
             <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
               <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {UZ_MONTHS_FULL.map((m, i) => (
+                {UZ_MONTHS_FULL.map((_m, i) => (
                   <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>
                 ))}
               </SelectContent>
@@ -1382,7 +1382,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
           {/* Calendar grid */}
           <Card className="p-4">
             <div className="text-sm font-semibold mb-3">
-              {UZ_MONTHS_FULL[month - 1]} {year}
+              {t(`fines.month.${month}`)} {year}
             </div>
             <div className="grid grid-cols-7 gap-1 text-[11px] text-muted-foreground mb-1 text-center">
               {WEEKDAYS.map((w, wi) => <div key={w} className="py-1 font-medium">{t(`fines.wd.${wi}`)}</div>)}
@@ -1419,7 +1419,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
                             fine,
                           )}
                           className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-                          title="Kunni tahrirlash"
+                          title={t("fines.editDay")}
                         >
                           <Pencil className="h-3 w-3" />
                         </button>
@@ -1503,7 +1503,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
                             : <Badge variant="outline">—</Badge>}
                         </TableCell>
                         <TableCell className="tabular-nums">{cell?.att ? timeFromIso(cell.att.check_in_at) : "—"}</TableCell>
-                        <TableCell>{cell?.fine && cell.fine.reason === "late" ? `${cell.fine.minutes_late} daq` : "—"}</TableCell>
+                        <TableCell>{cell?.fine && cell.fine.reason === "late" ? t("fines.minutesShort", { n: cell.fine.minutes_late }) : "—"}</TableCell>
                         <TableCell className="text-right tabular-nums">
                           {cell?.fine ? <span className="text-red-600 dark:text-red-400 font-semibold">{fmt(cell.fine.amount_uzs)}</span> : "0"}
                         </TableCell>
@@ -1516,7 +1516,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
                                   variant="ghost"
                                   className="h-7 w-7 p-0"
                                   onClick={() => openEdit(dateStr, cell?.att, cell?.fine)}
-                                  title="Kunni tahrirlash"
+                                  title={t("fines.editDay")}
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
                                 </Button>
@@ -1528,10 +1528,10 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
                                   className="h-7 w-7 p-0 text-destructive hover:bg-destructive hover:text-destructive-foreground"
                                   disabled={delFineMut.isPending}
                                   onClick={() => {
-                                    if (!confirm(`Jarimani bekor qilasizmi?\n\nSana: ${dateStr}\nSumma: ${fmt(cell.fine!.amount_uzs)} so'm`)) return;
+                                    if (!confirm(t("fines.confirmCancelShort", { date: dateStr, amount: fmt(cell.fine!.amount_uzs) }))) return;
                                     delFineMut.mutate(cell.fine!.id);
                                   }}
-                                  title="Jarimani bekor qilish"
+                                  title={t("fines.cancelFine")}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
@@ -1565,7 +1565,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
                   className="flex-1"
                   onClick={() => setEditing({ ...editing, mode: "present" })}
                 >
-                  Kelgan
+                  {t("fines.dialog.present")}
                 </Button>
                 <Button
                   type="button"
@@ -1574,7 +1574,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
                   className="flex-1"
                   onClick={() => setEditing({ ...editing, mode: "absent" })}
                 >
-                  Kelmadi
+                  {t("fines.dialog.absent")}
                 </Button>
               </div>
               {editing.mode === "present" ? (
@@ -1588,7 +1588,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
                     />
                   </div>
                   <div className="text-[11px] text-muted-foreground">
-                    Saqlangach kechikish jarimasi qoidalar bo'yicha qayta hisoblanadi.
+                    {t("fines.dialog.recalcHint")}
                   </div>
                 </>
               ) : (
@@ -1646,14 +1646,14 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
 // AdvanceTab — request management with CEO + Finance workflow
 // ============================================================
 
-function statusBadge(s: AdvanceStatus) {
+function statusBadge(s: AdvanceStatus, t: (k: string, v?: any) => string) {
   const map: Record<AdvanceStatus, { label: string; variant: any }> = {
-    pending: { label: "Direktor tasdig'i kutilmoqda (Telegram)", variant: "secondary" },
-    ceo_approved: { label: "Direktor ✓ — Admin yakuniylashtirishi kutilmoqda", variant: "default" },
-    approved: { label: "Tasdiqlandi — To'lov kutilmoqda", variant: "default" },
-    paid: { label: "✅ Berildi (oylikdan ushlanadi)", variant: "secondary" },
-    rejected: { label: "❌ Rad etildi", variant: "destructive" },
-    cancelled: { label: "Bekor", variant: "outline" },
+    pending: { label: t("fines.advance.pendingDirector"), variant: "secondary" },
+    ceo_approved: { label: t("fines.advance.ceoApproved"), variant: "default" },
+    approved: { label: t("fines.advance.approved"), variant: "default" },
+    paid: { label: t("fines.advance.paid"), variant: "secondary" },
+    rejected: { label: t("fines.advance.rejected"), variant: "destructive" },
+    cancelled: { label: t("fines.advance.cancelled"), variant: "outline" },
   };
   const it = map[s] || { label: s, variant: "outline" };
   return <Badge variant={it.variant}>{it.label}</Badge>;
@@ -1763,7 +1763,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
       <TableCell className="max-w-[280px]"><div className="truncate" title={r.purpose}>{r.purpose}</div></TableCell>
       <TableCell>
         <div className="flex flex-col gap-1">
-          {statusBadge(r.status)}
+          {statusBadge(r.status, t)}
           {r.status === "paid" && (
             isAdm ? (
               <button
