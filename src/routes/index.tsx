@@ -240,6 +240,7 @@ function Dashboard() {
     "top_clients",
     "yoy_comparison",
     "operators_performance",
+    "visa_direction_margin",
   ].some(can);
 
 

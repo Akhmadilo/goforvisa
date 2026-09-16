@@ -32,6 +32,7 @@ export const WIDGETS = [
   { key: "payment_status", group: "dashboard", label: "To'lov holati (to'langan · qoldiq)" },
   { key: "top_clients", group: "dashboard", label: "Eng katta mijozlar (Top 10)" },
   { key: "yoy_comparison", group: "dashboard", label: "Yil bo'yicha taqqoslash (YoY)" },
+  { key: "visa_direction_margin", group: "dashboard", label: "Viza yo'nalishlari · marja va natijalar" },
   { key: "operators_performance", group: "dashboard", label: "Sotuvchilar va call operatorlar samaradorligi" },
   // Salaries
   { key: "salaries_section", group: "salaries", label: "Bo'limga kirish (sahifa)" },
