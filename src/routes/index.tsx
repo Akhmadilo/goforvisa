@@ -240,6 +240,7 @@ function Dashboard() {
     "top_clients",
     "yoy_comparison",
     "operators_performance",
+    "visa_direction_margin",
   ].some(can);
 
 
@@ -637,6 +638,92 @@ function Dashboard() {
       })
       .slice(-12);
   }, [filtered]);
+
+  // ============= Visa directions: margin + outcomes =============
+  const directionStats = useMemo(() => {
+    type Row = {
+      name: string;
+      contracts: number;
+      people: number;
+      revenue: number;
+      docs: number;
+      profit: number;
+      margin: number;
+      avgProfit: number;
+      taken: number;
+      rejected: number;
+      inProcess: number;
+      approval: number;
+    };
+    const map = new Map<string, Row>();
+    for (const c of filtered) {
+      const key = (c.type || "").trim() || "—";
+      const r =
+        map.get(key) ??
+        ({
+          name: key,
+          contracts: 0,
+          people: 0,
+          revenue: 0,
+          docs: 0,
+          profit: 0,
+          margin: 0,
+          avgProfit: 0,
+          taken: 0,
+          rejected: 0,
+          inProcess: 0,
+          approval: 0,
+        } as Row);
+      r.contracts += 1;
+      r.people += Number(c.people || 1);
+      r.revenue += toUsd(c, getRate);
+      r.docs += Number(c.docsUsd || 0);
+      r.profit += netProfit(c);
+      const s = visaStage(c.visaResult);
+      if (s === "taken") r.taken += 1;
+      else if (s === "rejected") r.rejected += 1;
+      else if (s === "inProcess" || s === "submitted") r.inProcess += 1;
+      map.set(key, r);
+    }
+    const rows = Array.from(map.values()).map((r) => {
+      const decided = r.taken + r.rejected;
+      return {
+        ...r,
+        margin: r.revenue > 0 ? (r.profit / r.revenue) * 100 : 0,
+        avgProfit: r.contracts > 0 ? r.profit / r.contracts : 0,
+        approval: decided > 0 ? (r.taken / decided) * 100 : 0,
+      };
+    });
+    rows.sort((a, b) => b.profit - a.profit);
+
+    const totalProfit = rows.reduce((s, r) => s + r.profit, 0);
+    const totalRevenue = rows.reduce((s, r) => s + r.revenue, 0);
+    const totalContracts = rows.reduce((s, r) => s + r.contracts, 0);
+    const avgMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+    const avgProfitPerContract = totalContracts > 0 ? totalProfit / totalContracts : 0;
+
+    // Meaningful directions only (avoid 1-contract noise when several exist).
+    const meaningful = rows.filter((r) => r.contracts >= 3);
+    const pool = meaningful.length > 0 ? meaningful : rows;
+    const best = pool.slice().sort((a, b) => b.margin - a.margin)[0] ?? null;
+    // "Much effort, little profit": high share of contracts, low profit per contract.
+    const worst =
+      pool
+        .slice()
+        .filter((r) => r.avgProfit <= avgProfitPerContract)
+        .sort(
+          (a, b) =>
+            b.contracts / Math.max(1, b.avgProfit) - a.contracts / Math.max(1, a.avgProfit),
+        )[0] ?? null;
+
+    return {
+      rows,
+      chart: rows.slice(0, 10),
+      totals: { profit: totalProfit, revenue: totalRevenue, contracts: totalContracts, avgMargin, avgProfitPerContract },
+      best,
+      worst,
+    };
+  }, [filtered, getRate]);
 
 
 
@@ -1148,6 +1235,162 @@ function Dashboard() {
           </div>
         </section>
         )}
+
+        {/* ============= Visa directions: margin & outcomes ============= */}
+        {can("visa_direction_margin") && directionStats.rows.length > 0 && (
+        <section className="print-keep space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-base md:text-lg font-bold tracking-tight">{t("dir.sectionTitle")}</h2>
+              <p className="text-xs text-muted-foreground">{t("dir.sectionSubtitle")}</p>
+            </div>
+            <Badge variant="secondary" className="hidden sm:inline-flex">
+              {t("dir.count", { n: directionStats.rows.length })}
+            </Badge>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <Card className="p-4 shadow-[var(--shadow-card)] relative overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-1" style={{ background: VISA_STAGE_COLORS.taken }} />
+              <div className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wide">{t("dir.bestMargin")}</div>
+              <div className="mt-1 text-lg md:text-xl font-bold">{directionStats.best?.name ?? "—"}</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {directionStats.best
+                  ? `${directionStats.best.margin.toFixed(1)}% · ${fmtUsd(directionStats.best.avgProfit)} / ${t("dir.perContract")}`
+                  : "—"}
+              </div>
+            </Card>
+            <Card className="p-4 shadow-[var(--shadow-card)] relative overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-1" style={{ background: VISA_STAGE_COLORS.rejected }} />
+              <div className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wide">{t("dir.worstEffort")}</div>
+              <div className="mt-1 text-lg md:text-xl font-bold">{directionStats.worst?.name ?? "—"}</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {directionStats.worst
+                  ? `${directionStats.worst.contracts} ${t("dir.contractsShort")} · ${directionStats.worst.margin.toFixed(1)}% · ${fmtUsd(directionStats.worst.avgProfit)} / ${t("dir.perContract")}`
+                  : "—"}
+              </div>
+            </Card>
+            <Card className="p-4 shadow-[var(--shadow-card)] relative overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-1" style={{ background: "#8b5cf6" }} />
+              <div className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wide">{t("dir.avgMargin")}</div>
+              <div className="mt-1 text-lg md:text-xl font-bold" style={{ color: "#8b5cf6" }}>
+                {directionStats.totals.avgMargin.toFixed(1)}%
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {fmtUsd(directionStats.totals.avgProfitPerContract)} / {t("dir.perContract")}
+              </div>
+            </Card>
+          </div>
+
+          <Card className="p-4 md:p-5 shadow-[var(--shadow-card)] print-keep">
+            <h3 className="font-semibold text-sm md:text-base mb-1">{t("dir.chartTitle")}</h3>
+            <p className="text-xs text-muted-foreground mb-3">{t("dir.chartSub")}</p>
+            <div className="h-[280px] md:h-[320px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={directionStats.chart} margin={{ top: 10, right: 10 }}>
+                  <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+                  <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} angle={-20} textAnchor="end" height={70} interval={0} />
+                  <YAxis yAxisId="left" stroke="var(--color-muted-foreground)" fontSize={11} />
+                  <YAxis yAxisId="right" orientation="right" stroke="var(--color-muted-foreground)" fontSize={11} unit="%" />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--color-card)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "8px",
+                    }}
+                    formatter={(v: number, n: string) =>
+                      n === t("dir.marginPct") ? `${Number(v).toFixed(1)}%` : fmtUsd(Number(v))
+                    }
+                  />
+                  <Legend wrapperStyle={{ fontSize: "12px" }} />
+                  <Bar yAxisId="left" dataKey="revenue" name={t("dashx.table.revenueUsd")} fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} />
+                  <Bar yAxisId="left" dataKey="profit" name={t("dashx.table.netProfitUsd")} fill="var(--color-chart-3)" radius={[4, 4, 0, 0]} />
+                  <Line yAxisId="right" type="monotone" dataKey="margin" name={t("dir.marginPct")} stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3 }} />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+
+          <Card className="p-4 md:p-5 shadow-[var(--shadow-card)] print-keep overflow-x-auto">
+            <h3 className="font-semibold text-sm md:text-base mb-3">{t("dir.tableTitle")}</h3>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("dir.col.direction")}</TableHead>
+                  <TableHead className="text-right">{t("dashx.table.contracts")}</TableHead>
+                  <TableHead className="text-right">{t("dir.col.people")}</TableHead>
+                  <TableHead className="text-right">{t("dashx.table.revenueUsd")}</TableHead>
+                  <TableHead className="text-right">{t("dir.col.docs")}</TableHead>
+                  <TableHead className="text-right">{t("dashx.table.netProfitUsd")}</TableHead>
+                  <TableHead className="text-right">{t("dir.marginPct")}</TableHead>
+                  <TableHead className="text-right">{t("dir.col.avgProfit")}</TableHead>
+                  <TableHead className="text-right">{t("visa.Olindi")}</TableHead>
+                  <TableHead className="text-right">{t("visa.RadEtildi")}</TableHead>
+                  <TableHead className="text-right">{t("visa.Jarayonda")}</TableHead>
+                  <TableHead className="text-right">{t("dashx.visa.approvalRate")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {directionStats.rows.map((r) => (
+                  <TableRow key={r.name}>
+                    <TableCell className="font-medium whitespace-nowrap">{r.name}</TableCell>
+                    <TableCell className="text-right">{r.contracts}</TableCell>
+                    <TableCell className="text-right">{r.people}</TableCell>
+                    <TableCell className="text-right">{fmtUsd(r.revenue)}</TableCell>
+                    <TableCell className="text-right">{fmtUsd(r.docs)}</TableCell>
+                    <TableCell className="text-right font-semibold">{fmtUsd(r.profit)}</TableCell>
+                    <TableCell
+                      className="text-right font-semibold"
+                      style={{
+                        color:
+                          r.margin >= directionStats.totals.avgMargin
+                            ? VISA_STAGE_COLORS.taken
+                            : VISA_STAGE_COLORS.rejected,
+                      }}
+                    >
+                      {r.margin.toFixed(1)}%
+                    </TableCell>
+                    <TableCell className="text-right">{fmtUsd(r.avgProfit)}</TableCell>
+                    <TableCell className="text-right" style={{ color: VISA_STAGE_COLORS.taken }}>{r.taken}</TableCell>
+                    <TableCell className="text-right" style={{ color: VISA_STAGE_COLORS.rejected }}>{r.rejected}</TableCell>
+                    <TableCell className="text-right" style={{ color: VISA_STAGE_COLORS.inProcess }}>{r.inProcess}</TableCell>
+                    <TableCell className="text-right">
+                      {r.taken + r.rejected > 0 ? `${r.approval.toFixed(0)}%` : "—"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+
+          <Card className="p-4 md:p-5 shadow-[var(--shadow-card)] print-keep">
+            <h3 className="font-semibold text-sm md:text-base mb-1">{t("dir.outcomeChartTitle")}</h3>
+            <p className="text-xs text-muted-foreground mb-3">{t("dir.outcomeChartSub")}</p>
+            <div className="h-[280px] md:h-[320px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={directionStats.chart} margin={{ top: 10, right: 10 }}>
+                  <CartesianGrid stroke="var(--color-border)" strokeDasharray="3 3" />
+                  <XAxis dataKey="name" stroke="var(--color-muted-foreground)" fontSize={11} angle={-20} textAnchor="end" height={70} interval={0} />
+                  <YAxis stroke="var(--color-muted-foreground)" fontSize={11} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "var(--color-card)",
+                      border: "1px solid var(--color-border)",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: "12px" }} />
+                  <Bar dataKey="taken" name={t("visa.Olindi")} stackId="d" fill={VISA_STAGE_COLORS.taken} />
+                  <Bar dataKey="inProcess" name={t("visa.Jarayonda")} stackId="d" fill={VISA_STAGE_COLORS.inProcess} />
+                  <Bar dataKey="rejected" name={t("visa.RadEtildi")} stackId="d" fill={VISA_STAGE_COLORS.rejected} radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+        </section>
+        )}
+
+
 
         {(can("managers_revenue") || can("contract_types")) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
