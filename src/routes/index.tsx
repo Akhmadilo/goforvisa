@@ -638,6 +638,92 @@ function Dashboard() {
       .slice(-12);
   }, [filtered]);
 
+  // ============= Visa directions: margin + outcomes =============
+  const directionStats = useMemo(() => {
+    type Row = {
+      name: string;
+      contracts: number;
+      people: number;
+      revenue: number;
+      docs: number;
+      profit: number;
+      margin: number;
+      avgProfit: number;
+      taken: number;
+      rejected: number;
+      inProcess: number;
+      approval: number;
+    };
+    const map = new Map<string, Row>();
+    for (const c of filtered) {
+      const key = (c.type || "").trim() || "—";
+      const r =
+        map.get(key) ??
+        ({
+          name: key,
+          contracts: 0,
+          people: 0,
+          revenue: 0,
+          docs: 0,
+          profit: 0,
+          margin: 0,
+          avgProfit: 0,
+          taken: 0,
+          rejected: 0,
+          inProcess: 0,
+          approval: 0,
+        } as Row);
+      r.contracts += 1;
+      r.people += Number(c.people || 1);
+      r.revenue += toUsd(c, getRate);
+      r.docs += Number(c.docsUsd || 0);
+      r.profit += netProfit(c);
+      const s = visaStage(c.visaResult);
+      if (s === "taken") r.taken += 1;
+      else if (s === "rejected") r.rejected += 1;
+      else if (s === "inProcess" || s === "submitted") r.inProcess += 1;
+      map.set(key, r);
+    }
+    const rows = Array.from(map.values()).map((r) => {
+      const decided = r.taken + r.rejected;
+      return {
+        ...r,
+        margin: r.revenue > 0 ? (r.profit / r.revenue) * 100 : 0,
+        avgProfit: r.contracts > 0 ? r.profit / r.contracts : 0,
+        approval: decided > 0 ? (r.taken / decided) * 100 : 0,
+      };
+    });
+    rows.sort((a, b) => b.profit - a.profit);
+
+    const totalProfit = rows.reduce((s, r) => s + r.profit, 0);
+    const totalRevenue = rows.reduce((s, r) => s + r.revenue, 0);
+    const totalContracts = rows.reduce((s, r) => s + r.contracts, 0);
+    const avgMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+    const avgProfitPerContract = totalContracts > 0 ? totalProfit / totalContracts : 0;
+
+    // Meaningful directions only (avoid 1-contract noise when several exist).
+    const meaningful = rows.filter((r) => r.contracts >= 3);
+    const pool = meaningful.length > 0 ? meaningful : rows;
+    const best = pool.slice().sort((a, b) => b.margin - a.margin)[0] ?? null;
+    // "Much effort, little profit": high share of contracts, low profit per contract.
+    const worst =
+      pool
+        .slice()
+        .filter((r) => r.avgProfit <= avgProfitPerContract)
+        .sort(
+          (a, b) =>
+            b.contracts / Math.max(1, b.avgProfit) - a.contracts / Math.max(1, a.avgProfit),
+        )[0] ?? null;
+
+    return {
+      rows,
+      chart: rows.slice(0, 10),
+      totals: { profit: totalProfit, revenue: totalRevenue, contracts: totalContracts, avgMargin, avgProfitPerContract },
+      best,
+      worst,
+    };
+  }, [filtered, getRate]);
+
 
 
 
