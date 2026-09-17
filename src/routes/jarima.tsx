@@ -1294,7 +1294,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
             </Select>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Oy</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("common.month")}</label>
             <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
               <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -1305,7 +1305,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
             </Select>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1 block">Yil</label>
+            <label className="text-xs text-muted-foreground mb-1 block">{t("common.year")}</label>
             <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
               <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -1755,7 +1755,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
   const awaitingAdmin = list.filter(r => r.status === "ceo_approved");
   const done = list.filter(r => r.status === "paid" || r.status === "approved" || r.status === "rejected");
 
-  const monthNames = ["Yanvar","Fevral","Mart","Aprel","May","Iyun","Iyul","Avgust","Sentyabr","Oktyabr","Noyabr","Dekabr"];
+  const monthNames = Array.from({ length: 12 }, (_, i) => t(`fines.month.${i + 1}`));
   const renderRow = (r: any, actions?: React.ReactNode) => (
     <TableRow key={r.id}>
       <TableCell>{r.employee_id ? (empMap.get(r.employee_id) || "—") : "—"}</TableCell>
@@ -1774,17 +1774,17 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
                   m: r.deducted_month ?? (nowTash.getUTCMonth() + 1),
                 })}
                 className="text-[11px] text-muted-foreground hover:text-foreground hover:underline text-left"
-                title="Bosing — qaysi oylikdan ushlanishini tanlash"
+                title={t("fines.advance.chooseDeductTitle")}
               >
                 {r.deducted_month && r.deducted_year
-                  ? `📅 ${monthNames[r.deducted_month - 1]} ${r.deducted_year} oyligidan ✏️`
-                  : "📅 Ushlash oyi belgilanmagan — tanlash ✏️"}
+                  ? t("fines.advance.deductFrom", { month: monthNames[r.deducted_month - 1], year: r.deducted_year })
+                  : t("fines.advance.deductNotSetEdit")}
               </button>
             ) : (
               <span className="text-[11px] text-muted-foreground">
                 {r.deducted_month && r.deducted_year
-                  ? `📅 ${monthNames[r.deducted_month - 1]} ${r.deducted_year} oyligidan`
-                  : "📅 Ushlash oyi belgilanmagan"}
+                  ? t("fines.advance.deductFromReadonly", { month: monthNames[r.deducted_month - 1], year: r.deducted_year })
+                  : t("fines.advance.deductNotSet")}
               </span>
             )
           )}
@@ -1813,7 +1813,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
               <TableHead>{t("fines.advance.employeeLabel")}</TableHead>
               <TableHead className="text-right">{t("fines.col.amount")}</TableHead>
               <TableHead>{t("fines.col.purpose")}</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>{t("fines.col.status")}</TableHead>
               <TableHead>{t("fines.col.date")}</TableHead>
               <TableHead className="text-right">{t("fines.col.action")}</TableHead>
             </TableRow>
@@ -1852,7 +1852,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
       </Card>
 
       {section(
-        "1️⃣ Direktor tasdig'i kutilmoqda (Telegram)",
+        `1️⃣ ${t("fines.advance.pendingDirector")}`,
         pending,
         (r) => isAdm ? (
           <div className="flex gap-2 justify-end">
@@ -1863,7 +1863,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
       )}
 
       {section(
-        "2️⃣ Admin yakuniy tasdig'i kutilmoqda",
+        `2️⃣ ${t("fines.advance.adminFinalWaiting")}`,
         awaitingAdmin,
         (r) => isAdm ? (
           <div className="flex gap-2 justify-end">
@@ -1873,17 +1873,17 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
         ) : <span className="text-xs text-muted-foreground">{t("fines.advance.adminOnly")}</span>,
       )}
 
-      {section("📜 Tarix", done, () => null)}
+      {section(t("fines.advance.history"), done, () => null)}
 
       {/* Decision dialog */}
       <Dialog open={!!decision} onOpenChange={(o) => !o && setDecision(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{decision?.approve ? "Tasdiqlash" : "Rad etish"}</DialogTitle>
+            <DialogTitle>{decision?.approve ? t("fines.advance.approveTitle") : t("fines.advance.rejectTitle")}</DialogTitle>
           </DialogHeader>
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">
-              Izoh {!decision?.approve && <span className="text-red-500">*</span>}
+              {t("fines.advance.noteLabel")} {!decision?.approve && <span className="text-red-500">*</span>}
             </label>
             <Textarea
               value={note}
@@ -1894,7 +1894,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
             {decision?.role === "admin" && decision?.approve && (
               <div className="mt-3">
                 <label className="text-xs text-muted-foreground mb-1 block">
-                  Qaysi oylikdan ushlansin?
+                  {t("fines.advance.deductMonthLabel")}
                 </label>
                 <Select
                   value={`${deductYear}-${deductMonth}`}
@@ -1921,7 +1921,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
               disabled={!decision?.approve && note.trim().length < 3}
               variant={decision?.approve ? "default" : "destructive"}
             >
-              {decision?.approve ? "Tasdiq" : "Rad etish"}
+              {decision?.approve ? t("fines.advance.confirm") : t("fines.advance.rejectAction")}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1952,7 +1952,7 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
               </Select>
             )}
             <p className="text-[11px] text-muted-foreground mt-2">
-              Eski oyning avans ushlanmasi kamayadi, yangi oyga qo'shiladi.
+              {t("fines.advance.changeDeductNote")}
             </p>
           </div>
           <DialogFooter>

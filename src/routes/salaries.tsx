@@ -533,15 +533,15 @@ function PaymentDialog({
   return (
     <Dialog open={!!target} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>To'lovlar — {target.name}</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{t("sal.payment.title", { name: target.name })}</DialogTitle></DialogHeader>
         <div className="grid grid-cols-3 gap-2 text-sm">
-          <Card className="p-2"><div className="text-xs text-muted-foreground">Umumiy</div><div className="font-semibold">{fmt(target.gross)}</div></Card>
-          <Card className="p-2"><div className="text-xs text-muted-foreground">To'landi</div><div className="font-semibold text-primary">{fmt(totalPaid)}</div></Card>
-          <Card className="p-2"><div className="text-xs text-muted-foreground">Qoldiq</div><div className="font-semibold text-destructive">{fmt(remaining)}</div></Card>
+          <Card className="p-2"><div className="text-xs text-muted-foreground">{t("sal.payment.total")}</div><div className="font-semibold">{fmt(target.gross)}</div></Card>
+          <Card className="p-2"><div className="text-xs text-muted-foreground">{t("sal.payment.paid")}</div><div className="font-semibold text-primary">{fmt(totalPaid)}</div></Card>
+          <Card className="p-2"><div className="text-xs text-muted-foreground">{t("sal.payment.remaining")}</div><div className="font-semibold text-destructive">{fmt(remaining)}</div></Card>
         </div>
         <div className="space-y-2 max-h-48 overflow-auto">
           {payments.length === 0 ? (
-            <div className="text-xs text-muted-foreground text-center py-3">To'lovlar yo'q</div>
+            <div className="text-xs text-muted-foreground text-center py-3">{t("sal.payment.empty")}</div>
           ) : payments.map((p) => (
             <div key={p.id} className="flex items-center justify-between text-sm border rounded px-2 py-1">
               <div>
@@ -557,13 +557,13 @@ function PaymentDialog({
           ))}
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <div><label className="text-xs">Summa</label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
-          <div><label className="text-xs">Sana</label><Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} /></div>
+          <div><label className="text-xs">{t("common.amount")}</label><Input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+          <div><label className="text-xs">{t("common.date")}</label><Input type="date" value={paidAt} onChange={(e) => setPaidAt(e.target.value)} /></div>
         </div>
-        <div><label className="text-xs">Izoh</label><Input value={note} onChange={(e) => setNote(e.target.value)} /></div>
+        <div><label className="text-xs">{t("common.note")}</label><Input value={note} onChange={(e) => setNote(e.target.value)} /></div>
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={onClose}>Yopish</Button>
-          <Button onClick={submit} disabled={saving || !amount}>To'lov qo'shish</Button>
+          <Button variant="outline" onClick={onClose}>{t("pay.close")}</Button>
+          <Button onClick={submit} disabled={saving || !amount}>{t("sal.payment.add")}</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -909,7 +909,7 @@ function SalaryFormDialog({
                 onChange={(e) => setExtraDesc(e.target.value)}
               />
               <Button type="button" size="sm" onClick={addExtraBonus} disabled={extraSaving}>
-                Qo'shish
+                {t("common.add")}
               </Button>
             </div>
             <div className="text-[11px] text-muted-foreground">
