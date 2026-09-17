@@ -1444,7 +1444,7 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
                       <>
                         <div className="text-[10px] tabular-nums">{timeFromIso(att.check_in_at)}</div>
                         {fine ? (
-                          <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold" title="Kech qolgani uchun">
+              <div className="text-[10px] text-red-700 dark:text-red-300 font-semibold" title={t("fines.lateTitle")}>
                             Kech -{fmt(fine.amount_uzs)}
                           </div>
                         ) : (
