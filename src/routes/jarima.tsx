@@ -1840,12 +1840,12 @@ function AdvanceTab({ employees, empMap }: { employees: Emp[]; empMap: Map<strin
           <div>
             <div className="font-medium">{t("fines.advance.requests")}</div>
             <div className="text-xs text-muted-foreground mt-1">
-              Ishchi botda <b>💰 Avans so'rash</b> tugmasini bossa, direktorga Telegram orqali xabar boradi. Direktor tasdiqlasa, admin shu yerda yakuniylashtiradi va summa keyingi oylikdan ushlanadi.
+               {t("fines.advance.instructions")}
             </div>
           </div>
           {canApproveAdvances && (
             <Button size="sm" onClick={() => setOpenCreate(true)}>
-              <Plus className="h-4 w-4 mr-1" /> Qo'lda yaratish
+               <Plus className="h-4 w-4 mr-1" /> {t("fines.advance.manualCreate")}
             </Button>
           )}
         </div>

@@ -965,7 +965,7 @@ function SalaryFormDialog({
           </div>
           <div className="rounded-md bg-secondary px-3 py-2 space-y-1">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Hisoblangan oylik (hisobot uchun)</span>
+              <span className="text-muted-foreground">{t("sal.reportCalculated")}</span>
               <span className="font-semibold">
                 {nf((parseFloat(fixed) || 0) + (parseFloat(kpi) || 0) - (parseFloat(penalty) || 0))} {t("sal.uzs")}
               </span>
@@ -975,7 +975,7 @@ function SalaryFormDialog({
               <span>−{nf(parseFloat(advance) || 0)} {t("sal.uzs")}</span>
             </div>
             <div className="flex items-center justify-between pt-1 border-t border-border">
-              <span className="text-sm text-muted-foreground">Berilishi kerak</span>
+              <span className="text-sm text-muted-foreground">{t("sal.amountDue")}</span>
               <span className="text-base font-bold text-primary">
                 {nf(total)} {t("sal.uzs")}
               </span>

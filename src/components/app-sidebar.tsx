@@ -68,7 +68,7 @@ function SidebarContent({ onClick }: { onClick?: () => void }) {
         <img src={brandLogo} alt={brandName} className="h-8 w-8 rounded" />
         <div className="leading-tight">
           <div className="text-sm font-semibold">{brandName}</div>
-          <div className="text-[11px] text-muted-foreground">Platform</div>
+          <div className="text-[11px] text-muted-foreground">{t("nav.product")}</div>
         </div>
       </div>
 
@@ -106,7 +106,7 @@ function SidebarContent({ onClick }: { onClick?: () => void }) {
             }`}
           >
             <Bot className="h-4 w-4" />
-            <span>Bot</span>
+             <span>{t("nav.bot")}</span>
           </Link>
         )}
         <Link
@@ -132,7 +132,7 @@ function SidebarContent({ onClick }: { onClick?: () => void }) {
             }`}
           >
             <Building2 className="h-4 w-4" />
-            <span>Platforma</span>
+             <span>{t("nav.platform")}</span>
           </Link>
         )}
       </nav>
@@ -176,7 +176,7 @@ export function AppSidebar() {
         <SheetTrigger asChild>
           <button
             type="button"
-            aria-label="Open menu"
+             aria-label={t("common.openMenu")}
             className="md:hidden fixed top-3 left-3 z-40 h-10 w-10 rounded-md border border-border bg-card/90 backdrop-blur shadow-sm flex items-center justify-center"
           >
             <Menu className="h-5 w-5" />
