@@ -127,16 +127,16 @@ function CcTierEditor() {
   return (
     <Card>
       <CardHeader className="py-2 px-4 flex flex-row items-center justify-between gap-2">
-        <CardTitle className="text-sm">Oylik jadvali (sotuv soni bo'yicha)</CardTitle>
+        <CardTitle className="text-sm">{t("kpix.tierTitle")}</CardTitle>
         {isAdmin && (
           <div className="flex items-center gap-1">
             {editing && (
               <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => addMut.mutate()} disabled={addMut.isPending}>
-                + Bosqich
+                {t("kpix.addTier")}
               </Button>
             )}
             <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditing((v) => !v)}>
-              {editing ? "Yopish" : "Tahrirlash"}
+              {editing ? t("kpix.close") : t("common.edit")}
             </Button>
           </div>
         )}
@@ -146,17 +146,17 @@ function CcTierEditor() {
           <Table>
             <TableHeader>
               <TableRow className="h-8">
-                <TableHead className="h-8 py-1 text-xs">Sotuv soni</TableHead>
-                <TableHead className="h-8 py-1 text-xs">Asosiy oylik</TableHead>
+                <TableHead className="h-8 py-1 text-xs">{t("kpix.salesCount")}</TableHead>
+                <TableHead className="h-8 py-1 text-xs">{t("kpix.baseSalary")}</TableHead>
                 <TableHead className="h-8 py-1 text-xs">KPI %</TableHead>
-                {isAdmin && editing && <TableHead className="h-8 py-1 text-xs text-right">Amal</TableHead>}
+                {isAdmin && editing && <TableHead className="h-8 py-1 text-xs text-right">{t("kpix.action")}</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
               {(tiers ?? []).length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={isAdmin && editing ? 4 : 3} className="text-center text-muted-foreground py-4 text-xs">
-                    Jadval bo'sh
+                    {t("kpix.emptyTable")}
                   </TableCell>
                 </TableRow>
               ) : (tiers ?? []).map((t) => {
@@ -176,10 +176,10 @@ function CcTierEditor() {
                         <TableCell className="py-1"><Input className="h-7 w-14 text-xs" value={val(t, "kpi")} onChange={(e) => setVal(t, "kpi", e.target.value)} /></TableCell>
                         <TableCell className="py-1 text-right whitespace-nowrap">
                           <Button size="sm" variant={dirty ? "default" : "ghost"} className="h-7 text-xs" disabled={!dirty || saveMut.isPending} onClick={() => saveMut.mutate(t)}>
-                            Saqlash
+                            {t("common.save")}
                           </Button>
                           <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => delMut.mutate(t.id)}>
-                            O'chirish
+                            {t("common.delete")}
                           </Button>
                         </TableCell>
                       </>
@@ -225,13 +225,13 @@ export function isCancelledResult(v: string | null | undefined) {
 function PeriodPicker({
   year, month, setYear, setMonth,
 }: { year: string; month: string; setYear: (v: string) => void; setMonth: (v: string) => void }) {
-  const { lang } = useT();
+  const { t, lang } = useT();
   const now = new Date();
   const years = Array.from({ length: 5 }, (_, i) => String(now.getFullYear() - 2 + i));
   const months = getMonthNames(lang);
   return (
     <Card>
-      <CardHeader className="pb-3"><CardTitle className="text-base">Davr</CardTitle></CardHeader>
+      <CardHeader className="pb-3"><CardTitle className="text-base">{t("kpix.period")}</CardTitle></CardHeader>
       <CardContent className="flex flex-wrap gap-2">
         <Select value={year} onValueChange={setYear}>
           <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
@@ -249,14 +249,15 @@ function PeriodPicker({
 function EmployeeFilter({
   value, onChange, names,
 }: { value: string; onChange: (v: string) => void; names: string[] }) {
+  const { t } = useT();
   return (
     <Card>
-      <CardHeader className="pb-3"><CardTitle className="text-base">Xodim</CardTitle></CardHeader>
+      <CardHeader className="pb-3"><CardTitle className="text-base">{t("kpix.employee")}</CardTitle></CardHeader>
       <CardContent>
         <Select value={value} onValueChange={onChange}>
-          <SelectTrigger className="w-64"><SelectValue placeholder="Barchasi" /></SelectTrigger>
+          <SelectTrigger className="w-64"><SelectValue placeholder={t("kpix.all")} /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">Barchasi</SelectItem>
+            <SelectItem value="__all__">{t("kpix.all")}</SelectItem>
             {names.map((n) => <SelectItem key={n} value={n}>{n}</SelectItem>)}
           </SelectContent>
         </Select>
@@ -266,7 +267,7 @@ function EmployeeFilter({
 }
 
 function CallCentreKpi() {
-  const { lang } = useT();
+  const { t, lang } = useT();
   const now = new Date();
   const [year, setYear] = useState<string>(String(now.getFullYear()));
   const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
@@ -358,24 +359,24 @@ function CallCentreKpi() {
 
 
       <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base">Call-operatorlar oyligi</CardTitle></CardHeader>
+        <CardHeader className="pb-3"><CardTitle className="text-base">{t("kpix.callSalary")}</CardTitle></CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Call-operator</TableHead>
-                  <TableHead className="text-right">Shartnoma</TableHead>
-                  <TableHead className="text-right">Asosiy oylik</TableHead>
+                  <TableHead>{t("kpix.operator")}</TableHead>
+                  <TableHead className="text-right">{t("kpix.contract")}</TableHead>
+                  <TableHead className="text-right">{t("kpix.baseSalary")}</TableHead>
                   <TableHead className="text-right">KPI %</TableHead>
                   <TableHead className="text-right">Bonus</TableHead>
-                  <TableHead className="text-right">Umumiy oylik</TableHead>
+                  <TableHead className="text-right">{t("kpix.totalSalary")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">Bu davr uchun ma'lumot yo'q</TableCell>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">{t("kpix.noPeriodData")}</TableCell>
                   </TableRow>
                 ) : rows.map((r) => (
                   <TableRow key={r.name}>
@@ -661,7 +662,7 @@ function CommissionKpi({
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Formula</CardTitle>
+          <CardTitle className="text-base">{t("kpix.formula")}</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
           {formulaHint}
@@ -677,13 +678,13 @@ function CommissionKpi({
                 <TableHeader>
                   <TableRow>
                     <TableHead>{managerLabel}</TableHead>
-                    <TableHead className="w-48">Stavka (so'm/$)</TableHead>
-                    <TableHead className="text-right">Ekvivalent</TableHead>
+                    <TableHead className="w-48">{t("kpix.rate")}</TableHead>
+                    <TableHead className="text-right">{t("kpix.equivalent")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   <TableRow className="bg-muted/40">
-                    <TableCell className="font-medium">Standart (barcha xodimlar)</TableCell>
+                    <TableCell className="font-medium">{t("kpix.standard")}</TableCell>
                     <TableCell>
                       <RateEditor
                         initial={defaultRate}
@@ -716,7 +717,7 @@ function CommissionKpi({
       )}
 
       {filteredGroups.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">Bu oyda to'liq to'lov amalga oshmagan</CardContent></Card>
+        <Card><CardContent className="py-8 text-center text-muted-foreground">{t("kpix.noFullPayment")}</CardContent></Card>
       ) : filteredGroups.map((g) => {
         const isOpen = expanded.has(g.name);
         return (
@@ -740,13 +741,13 @@ function CommissionKpi({
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Mijoz</TableHead>
-                        <TableHead>Shartnoma №</TableHead>
-                        <TableHead>Yopilgan sana</TableHead>
-                        <TableHead className="text-right">Komissiya ($)</TableHead>
-                        <TableHead className="text-right">Bonus (so'm)</TableHead>
-                        <TableHead>Oylikka qo'shiladi</TableHead>
-                        <TableHead className="text-right">Holat</TableHead>
+                        <TableHead>{t("kpix.client")}</TableHead>
+                        <TableHead>{t("kpix.contractNo")}</TableHead>
+                        <TableHead>{t("kpix.closedDate")}</TableHead>
+                        <TableHead className="text-right">{t("kpix.commission")}</TableHead>
+                        <TableHead className="text-right">{t("kpix.bonus")}</TableHead>
+                        <TableHead>{t("kpix.salaryMonth")}</TableHead>
+                        <TableHead className="text-right">{t("common.status")}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -780,6 +781,7 @@ function CommissionKpi({
 }
 
 function RateEditor({ initial, onSave }: { initial: number; onSave: (v: number) => void }) {
+  const { t } = useT();
   const [val, setVal] = useState<string>(String(initial));
   useEffect(() => setVal(String(initial)), [initial]);
 
@@ -797,7 +799,7 @@ function RateEditor({ initial, onSave }: { initial: number; onSave: (v: number) 
         disabled={Number(val) === initial || !val}
         onClick={() => onSave(Number(val))}
       >
-        Saqlash
+        {t("common.save")}
       </Button>
     </div>
   );
@@ -822,7 +824,7 @@ function KpiCommissionRow({
   it, managerName, isAdmin, isApproved, isRejected, approvalInfo,
   defaultYear, defaultMonth, fmt, onOpenContract, onSetStatus, onClear,
 }: KpiCommissionRowProps) {
-  const { lang } = useT();
+  const { t, lang } = useT();
   const months = getMonthNames(lang);
   const now = new Date();
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i);
@@ -883,7 +885,7 @@ function KpiCommissionRow({
                   status: approvalInfo!.status,
                 })}
               >
-                Saqlash
+                {t("common.save")}
               </Button>
             )}
           </div>
@@ -895,19 +897,19 @@ function KpiCommissionRow({
         {isApproved ? (
           <div className="inline-flex items-center gap-2">
             <Badge className="bg-green-100 text-green-800 hover:bg-green-100 gap-1">
-              <CheckCircle2 className="h-3 w-3" /> Tasdiqlangan
+              <CheckCircle2 className="h-3 w-3" /> {t("kpix.approved")}
             </Badge>
             {isAdmin && (
-              <Button size="sm" variant="ghost" onClick={() => onClear(it.id)}>Bekor</Button>
+              <Button size="sm" variant="ghost" onClick={() => onClear(it.id)}>{t("common.cancel")}</Button>
             )}
           </div>
         ) : isRejected ? (
           <div className="inline-flex items-center gap-2">
             <Badge className="bg-red-100 text-red-800 hover:bg-red-100 gap-1">
-              <XCircle className="h-3 w-3" /> Berilmaydi
+              <XCircle className="h-3 w-3" /> {t("kpix.denied")}
             </Badge>
             {isAdmin && (
-              <Button size="sm" variant="ghost" onClick={() => onClear(it.id)}>Bekor</Button>
+              <Button size="sm" variant="ghost" onClick={() => onClear(it.id)}>{t("common.cancel")}</Button>
             )}
           </div>
         ) : isAdmin ? (
@@ -919,7 +921,7 @@ function KpiCommissionRow({
                 year: selYear, month: selMonth, bonus: it.bonus, status: "approved",
               })}
             >
-              KPI tasdiqlash
+              {t("kpix.approve")}
             </Button>
             <Button
               size="sm"
@@ -929,11 +931,11 @@ function KpiCommissionRow({
                 year: selYear, month: selMonth, bonus: it.bonus, status: "rejected",
               })}
             >
-              Berilmasin
+              {t("kpix.doNotPay")}
             </Button>
           </div>
         ) : (
-          <Badge variant="outline">Kutilmoqda</Badge>
+          <Badge variant="outline">{t("kpix.pending")}</Badge>
         )}
       </TableCell>
     </TableRow>
@@ -1122,22 +1124,22 @@ function VisaBonusKpi() {
       <EmployeeFilter value={employee} onChange={setEmployee} names={allNames} />
 
       <Card>
-        <CardHeader className="pb-3"><CardTitle className="text-base">Formula</CardTitle></CardHeader>
+        <CardHeader className="pb-3"><CardTitle className="text-base">{t("kpix.formula")}</CardTitle></CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Viza olingan (Olindi) shartnomalar uchun bonus. Komissiyaning har $1 iga {fmt(defaultRate)} so'm (standart stavka, quyida o'zgartirsa bo'ladi). Davr - viza olingan sana bo'yicha.
+          {t("kpix.visaFormula", { rate: fmt(defaultRate) })}
         </CardContent>
       </Card>
 
       {isAdmin && (
         <Card>
-          <CardHeader className="pb-3"><CardTitle className="text-base">Back office xodim stavkasi (so'm / $1)</CardTitle></CardHeader>
+          <CardHeader className="pb-3"><CardTitle className="text-base">{t("kpix.backOfficeRate")}</CardTitle></CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader><TableRow><TableHead>Xodim</TableHead><TableHead className="w-48">Stavka (so'm/$)</TableHead><TableHead className="text-right">Ekvivalent</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>{t("kpix.employee")}</TableHead><TableHead className="w-48">{t("kpix.rate")}</TableHead><TableHead className="text-right">{t("kpix.equivalent")}</TableHead></TableRow></TableHeader>
                 <TableBody>
                   <TableRow className="bg-muted/40">
-                    <TableCell className="font-medium">Standart (barcha xodimlar)</TableCell>
+                    <TableCell className="font-medium">{t("kpix.standard")}</TableCell>
                     <TableCell><RateEditor initial={defaultRate} onSave={(v) => setRate.mutate({ name: DEFAULT_RATE_KEY, rate: v })} /></TableCell>
                     <TableCell className="text-right text-muted-foreground text-sm">{fmt(defaultRate * 100)} so'm / $100</TableCell>
                   </TableRow>
@@ -1160,7 +1162,7 @@ function VisaBonusKpi() {
       )}
 
       {filteredGroups.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">Bu oyda viza olingan shartnomalar yo'q</CardContent></Card>
+        <Card><CardContent className="py-8 text-center text-muted-foreground">{t("kpix.noVisa")}</CardContent></Card>
       ) : filteredGroups.map((g) => {
         const isOpen = expanded.has(g.name);
         return (
@@ -1183,9 +1185,9 @@ function VisaBonusKpi() {
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader><TableRow>
-                      <TableHead>Mijoz</TableHead><TableHead>Shartnoma №</TableHead><TableHead>Viza olingan</TableHead>
-                      <TableHead className="text-right">Komissiya ($)</TableHead><TableHead className="text-right">Bonus (so'm)</TableHead>
-                      <TableHead>Oylikka qo'shiladi</TableHead><TableHead className="text-right">Holat</TableHead>
+                      <TableHead>{t("kpix.client")}</TableHead><TableHead>{t("kpix.contractNo")}</TableHead><TableHead>{t("kpix.visaTaken")}</TableHead>
+                      <TableHead className="text-right">{t("kpix.commission")}</TableHead><TableHead className="text-right">{t("kpix.bonus")}</TableHead>
+                      <TableHead>{t("kpix.salaryMonth")}</TableHead><TableHead className="text-right">{t("common.status")}</TableHead>
                     </TableRow></TableHeader>
                     <TableBody>
                       {g.items.map((it) => (
@@ -1255,7 +1257,7 @@ function KpiPage() {
             </TabsTrigger>
             <TabsTrigger value="visa-bonus" className="gap-2">
               <CheckCircle2 className="h-4 w-4" />
-              <span className="hidden sm:inline">Viza bonusi</span>
+              <span className="hidden sm:inline">{t("kpix.visaBonus")}</span>
               <span className="sm:hidden">Viza</span>
             </TabsTrigger>
           </TabsList>
