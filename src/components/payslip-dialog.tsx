@@ -128,7 +128,7 @@ async function fetchDetail(target: PayslipTarget): Promise<Detail> {
 export function PayslipDialog({
   target, onClose,
 }: { target: PayslipTarget | null; onClose: () => void }) {
-  const { lang } = useT();
+  const { t, lang } = useT();
   const monthNames = getMonthNames(lang);
   const contentRef = useRef<HTMLDivElement>(null);
   const [exporting, setExporting] = useState(false);
@@ -140,7 +140,6 @@ export function PayslipDialog({
     staleTime: 60_000,
   });
 
-  const { t } = useT();
   const nf = (n: number) => new Intl.NumberFormat(localeOf(lang)).format(Math.round(n)) + " so'm";
 
   if (!target) return null;
@@ -156,22 +155,22 @@ export function PayslipDialog({
       if (d && (d.ccCount > 0 || d.kpiApprovals.length > 0 || d.extras.length > 0)) {
         const body: string[][] = [];
         if (d.ccCount > 0) {
-          body.push(["Call-centre KPI", t("ps.contractCount", { n: String(d.ccCount) }), `${t("ps.tier")}: ${nf(d.ccBase)} × ${d.ccPct}%`, nf(d.ccBonus)]);
+          body.push([t("pay.ccKpi"), t("ps.contractCount", { n: String(d.ccCount) }), `${t("ps.tier")}: ${nf(d.ccBase)} × ${d.ccPct}%`, nf(d.ccBonus)]);
         }
         d.kpiApprovals.forEach((k) =>
-          body.push([`Shartnoma bonusi (${k.role})`, k.client, k.contractNo ?? "—", nf(k.bonus)]),
+          body.push([t("pay.pdf.bonusSource", { role: k.role }), k.client, k.contractNo ?? "—", nf(k.bonus)]),
         );
         d.extras.forEach((e) =>
           body.push([t("ps.extraBonus"), e.description, e.date || "—", nf(e.amount)]),
         );
         const extrasTotal = d.extras.reduce((a, e) => a + e.amount, 0);
         body.push([
-          "Jami bonus", "", "",
+          t("pay.pdf.totalBonus"), "", "",
           nf(d.ccBonus + d.kpiApprovals.reduce((a, k) => a + k.bonus, 0) + extrasTotal),
         ]);
         tables.push({
-          title: "Bonus qanday hisoblandi",
-          head: ["Manba", "Mijoz / hajm / sabab", "Izoh", "Summa"],
+          title: t("pay.pdf.bonusBreakdown"),
+          head: [t("pay.pdf.source"), t("pay.pdf.clientVolumeReason"), t("pay.col.note"), t("pay.col.amount")],
           body,
           align: ["left", "left", "left", "right"],
         });
@@ -179,11 +178,11 @@ export function PayslipDialog({
 
       if (d && d.fines.length) {
         tables.push({
-          title: "Jarimalar tafsiloti",
-          head: ["Sana", "Sabab", "Kechikish", "Izoh", "Summa"],
+          title: t("pay.pdf.fineDetails"),
+          head: [t("pay.col.date"), t("pay.pdf.reason"), t("pay.col.lateness"), t("pay.col.note"), t("pay.col.amount")],
           body: [
-            ...d.fines.map((f) => [f.date, f.reason, f.minutes > 0 ? `${f.minutes} daq` : "—", f.note ?? "—", `-${nf(f.amount)}`]),
-            ["Jami jarima", "", "", "", `-${nf(d.fines.reduce((a, f) => a + f.amount, 0))}`],
+            ...d.fines.map((f) => [f.date, f.reason, f.minutes > 0 ? `${f.minutes} ${t("pay.minutesShort")}` : "—", f.note ?? "—", `-${nf(f.amount)}`]),
+            [t("pay.totalFines"), "", "", "", `-${nf(d.fines.reduce((a, f) => a + f.amount, 0))}`],
           ],
           align: ["left", "left", "left", "left", "right"],
         });
@@ -191,11 +190,11 @@ export function PayslipDialog({
 
       if (d && d.advances.length) {
         tables.push({
-          title: "Avanslar",
-          head: ["Sana", "Maqsad", "Holat", "Summa"],
+          title: t("pay.pdf.advances"),
+          head: [t("pay.col.date"), t("pay.pdf.purpose"), t("common.status"), t("pay.col.amount")],
           body: [
             ...d.advances.map((a) => [a.date, a.purpose, a.status, nf(a.amount)]),
-            ["Jami avans", "", "", nf(d.advances.reduce((a, x) => a + x.amount, 0))],
+            [t("pay.advanceTaken"), "", "", nf(d.advances.reduce((a, x) => a + x.amount, 0))],
           ],
           align: ["left", "left", "left", "right"],
         });
@@ -203,12 +202,12 @@ export function PayslipDialog({
 
       if (d && d.payments.length) {
         tables.push({
-          title: "To'lovlar",
-          head: ["Sana", "Turi", "Izoh", "Summa"],
+          title: t("pay.pdf.payments"),
+          head: [t("pay.col.date"), t("common.type"), t("pay.col.note"), t("pay.col.amount")],
           body: [
-            ...d.payments.map((p) => [p.date, p.kind === "advance" ? "avans" : "to'lov", p.note ?? "—", nf(p.amount)]),
-            ["Jami to'langan", "", "", nf(paidTotal)],
-            ["Qoldiq", "", "", nf(Math.max(0, target.gross - paidTotal))],
+            ...d.payments.map((p) => [p.date, p.kind === "advance" ? t("pay.kindAdvance") : t("pay.kindPayment"), p.note ?? "—", nf(p.amount)]),
+            [t("pay.totalPaid"), "", "", nf(paidTotal)],
+            [t("pay.remaining"), "", "", nf(Math.max(0, target.gross - paidTotal))],
           ],
           align: ["left", "left", "left", "right"],
         });
@@ -227,15 +226,15 @@ export function PayslipDialog({
         employee: target.employee_name,
         period: periodLabel,
         summary: [
-          { label: "Belgilangan (asosiy) oylik", value: nf(Number(target.fixed_amount)) },
-          { label: "Bonus / KPI", value: `+ ${nf(Number(target.kpi_amount))}`, tone: "primary" },
-          { label: "Jarimalar", value: `- ${nf(Number(target.penalty_amount))}`, tone: "danger" },
-          { label: "Hisoblangan oylik (jami)", value: nf(target.gross), strong: true },
-          { label: "Oldindan olingan avans", value: target.advance > 0 ? `- ${nf(target.advance)}` : "—", tone: "muted" },
-          { label: "Qo'lga beriladigan summa", value: nf(target.total), strong: true, tone: "primary" },
+          { label: t("pay.fixedSalary"), value: nf(Number(target.fixed_amount)) },
+          { label: t("pay.bonusKpi"), value: `+ ${nf(Number(target.kpi_amount))}`, tone: "primary" },
+          { label: t("pay.fines"), value: `- ${nf(Number(target.penalty_amount))}`, tone: "danger" },
+          { label: t("pay.grossSalary"), value: nf(target.gross), strong: true },
+          { label: t("pay.advanceTaken"), value: target.advance > 0 ? `- ${nf(target.advance)}` : "—", tone: "muted" },
+          { label: t("pay.finalAmount"), value: nf(target.total), strong: true, tone: "primary" },
         ],
         notes: [
-          "Formula: Asosiy oylik + Bonus - Jarima = Hisoblangan oylik. Avans ilgari to'langani uchun faqat qo'lga beriladigan summani kamaytiradi.",
+          t("pay.formula"),
         ],
         tables,
         footNote: target.note,
@@ -306,15 +305,15 @@ export function PayslipDialog({
                 {data && data.kpiApprovals.length > 0 && (
                   <div className="rounded-md border border-border p-3">
                     <div className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
-                      Tasdiqlangan shartnoma bonuslari
+                      {t("pay.approvedContractBonuses")}
                     </div>
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-left text-xs text-muted-foreground">
-                          <th className="py-1">Mijoz</th>
-                          <th className="py-1">Shartnoma</th>
-                          <th className="py-1">Rol</th>
-                          <th className="py-1 text-right">Bonus</th>
+                           <th className="py-1">{t("pay.col.client")}</th>
+                           <th className="py-1">{t("pay.col.contract")}</th>
+                           <th className="py-1">{t("pay.col.role")}</th>
+                           <th className="py-1 text-right">{t("pay.col.bonus")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -327,7 +326,7 @@ export function PayslipDialog({
                           </tr>
                         ))}
                         <tr className="border-t border-border">
-                          <td className="py-1 font-semibold" colSpan={3}>Jami</td>
+                           <td className="py-1 font-semibold" colSpan={3}>{t("pay.total")}</td>
                           <td className="py-1 text-right font-semibold text-primary">
                             {nf(data.kpiApprovals.reduce((a, k) => a + k.bonus, 0))}
                           </td>
@@ -340,14 +339,14 @@ export function PayslipDialog({
                 {data && data.extras.length > 0 && (
                   <div className="rounded-md border border-border p-3">
                     <div className="mb-1 text-xs font-semibold uppercase text-muted-foreground">
-                      Qo‘shimcha bonus
+                       {t("pay.extraBonus")}
                     </div>
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="text-left text-xs text-muted-foreground">
-                          <th className="py-1">Sana</th>
-                          <th className="py-1">Sabab / izoh</th>
-                          <th className="py-1 text-right">Summa</th>
+                           <th className="py-1">{t("pay.col.date")}</th>
+                           <th className="py-1">{t("pay.col.reasonNote")}</th>
+                           <th className="py-1 text-right">{t("pay.col.amount")}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -359,7 +358,7 @@ export function PayslipDialog({
                           </tr>
                         ))}
                         <tr className="border-t border-border">
-                          <td className="py-1 font-semibold" colSpan={2}>Jami qo‘shimcha bonus</td>
+                           <td className="py-1 font-semibold" colSpan={2}>{t("pay.totalExtraBonus")}</td>
                           <td className="py-1 text-right font-semibold text-primary">
                             {nf(data.extras.reduce((a, e) => a + e.amount, 0))}
                           </td>
@@ -371,10 +370,10 @@ export function PayslipDialog({
 
                 {data && data.ccCount === 0 && data.kpiApprovals.length === 0 && data.extras.length === 0 && (
                   <div className="text-sm text-muted-foreground">
-                    Bu oy uchun avtomatik bonus manbasi topilmadi
+                     {t("pay.noAutoBonusSource")}
                     {Number(target.kpi_amount) > 0
-                      ? " — bonus qo‘lda kiritilgan (izohga qarang)."
-                      : " va bonus hisoblanmagan."}
+                       ? t("pay.manualBonusHint")
+                       : t("pay.noBonusCalculated")}
                   </div>
                 )}
               </div>
@@ -383,18 +382,18 @@ export function PayslipDialog({
 
           {/* Jarimalar */}
           <section className="rounded-lg border border-border bg-card p-4">
-            <div className="mb-2 text-sm font-semibold">3. Jarimalar tafsiloti</div>
+             <div className="mb-2 text-sm font-semibold">{t("pay.section3.title")}</div>
             {(data?.fines.length ?? 0) === 0 ? (
-              <div className="text-sm text-muted-foreground">Bu oyda jarima yo‘q.</div>
+               <div className="text-sm text-muted-foreground">{t("pay.noFines")}</div>
             ) : (
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-xs text-muted-foreground">
-                    <th className="py-1">Sana</th>
-                    <th className="py-1">Sabab</th>
-                    <th className="py-1">Kechikish</th>
-                    <th className="py-1">Izoh</th>
-                    <th className="py-1 text-right">Summa</th>
+                     <th className="py-1">{t("pay.col.date")}</th>
+                     <th className="py-1">{t("pay.pdf.reason")}</th>
+                     <th className="py-1">{t("pay.col.lateness")}</th>
+                     <th className="py-1">{t("pay.col.note")}</th>
+                     <th className="py-1 text-right">{t("pay.col.amount")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -402,13 +401,13 @@ export function PayslipDialog({
                     <tr key={i} className="border-t border-border">
                       <td className="py-1">{f.date}</td>
                       <td className="py-1">{f.reason}</td>
-                      <td className="py-1 text-muted-foreground">{f.minutes > 0 ? `${f.minutes} daq` : "—"}</td>
+                       <td className="py-1 text-muted-foreground">{f.minutes > 0 ? `${f.minutes} ${t("pay.minutesShort")}` : "—"}</td>
                       <td className="py-1 text-muted-foreground">{f.note ?? "—"}</td>
                       <td className="py-1 text-right text-destructive">−{nf(f.amount)}</td>
                     </tr>
                   ))}
                   <tr className="border-t border-border">
-                    <td className="py-1 font-semibold" colSpan={4}>Jami jarima</td>
+                     <td className="py-1 font-semibold" colSpan={4}>{t("pay.totalFines")}</td>
                     <td className="py-1 text-right font-semibold text-destructive">
                       −{nf(data!.fines.reduce((a, f) => a + f.amount, 0))}
                     </td>
@@ -420,11 +419,11 @@ export function PayslipDialog({
 
           {/* Avans va to'lovlar */}
           <section className="rounded-lg border border-border bg-card p-4">
-            <div className="mb-2 text-sm font-semibold">4. Avans va to‘lovlar</div>
+             <div className="mb-2 text-sm font-semibold">{t("pay.section4.title")}</div>
             <div className="mb-3">
-              <div className="mb-1 text-xs font-semibold uppercase text-muted-foreground">Avanslar</div>
+               <div className="mb-1 text-xs font-semibold uppercase text-muted-foreground">{t("pay.advancesTitle")}</div>
               {(data?.advances.length ?? 0) === 0 ? (
-                <div className="text-sm text-muted-foreground">Avans olinmagan.</div>
+                 <div className="text-sm text-muted-foreground">{t("pay.noAdvance")}</div>
               ) : (
                 <table className="w-full text-sm">
                   <tbody>
@@ -441,26 +440,26 @@ export function PayslipDialog({
               )}
             </div>
             <div>
-              <div className="mb-1 text-xs font-semibold uppercase text-muted-foreground">To‘lovlar</div>
+               <div className="mb-1 text-xs font-semibold uppercase text-muted-foreground">{t("pay.paymentsTitle")}</div>
               {(data?.payments.length ?? 0) === 0 ? (
-                <div className="text-sm text-muted-foreground">Hali to‘lov qilinmagan.</div>
+                 <div className="text-sm text-muted-foreground">{t("pay.noPayments")}</div>
               ) : (
                 <table className="w-full text-sm">
                   <tbody>
                     {data!.payments.map((p, i) => (
                       <tr key={i} className="border-t border-border">
                         <td className="py-1">{p.date}</td>
-                        <td className="py-1 text-muted-foreground">{p.kind === "advance" ? "avans" : "to‘lov"}</td>
+                         <td className="py-1 text-muted-foreground">{p.kind === "advance" ? t("pay.kindAdvance") : t("pay.kindPayment")}</td>
                         <td className="py-1 text-muted-foreground">{p.note ?? "—"}</td>
                         <td className="py-1 text-right">{nf(p.amount)}</td>
                       </tr>
                     ))}
                     <tr className="border-t border-border">
-                      <td className="py-1 font-semibold" colSpan={3}>Jami to‘langan</td>
+                       <td className="py-1 font-semibold" colSpan={3}>{t("pay.totalPaid")}</td>
                       <td className="py-1 text-right font-semibold">{nf(paidTotal)}</td>
                     </tr>
                     <tr className="border-t border-border">
-                      <td className="py-1 font-semibold" colSpan={3}>Qoldiq</td>
+                       <td className="py-1 font-semibold" colSpan={3}>{t("pay.remaining")}</td>
                       <td className="py-1 text-right font-semibold text-primary">
                         {nf(Math.max(0, target.gross - paidTotal))}
                       </td>
@@ -471,17 +470,17 @@ export function PayslipDialog({
             </div>
             {target.note && (
               <div className="mt-3 rounded bg-muted p-2 text-xs text-muted-foreground">
-                Izoh: {target.note}
+                 {t("pay.noteLabel")} {target.note}
               </div>
             )}
           </section>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Yopish</Button>
+           <Button variant="outline" onClick={onClose}>{t("pay.close")}</Button>
           <Button onClick={onExport} disabled={exporting || isLoading}>
             {exporting ? <RefreshCw className="animate-spin" /> : <FileText />}
-            {exporting ? "Tayyorlanmoqda…" : "PDF qilib olish"}
+             {exporting ? t("pay.exporting") : t("pay.exportPdf")}
           </Button>
         </DialogFooter>
       </DialogContent>

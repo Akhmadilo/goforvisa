@@ -585,7 +585,7 @@ function FinancePage() {
           summary: t("finance.title"),
           monthly: t("finance.pnl"),
           categoriesTitle: t("finance.category"),
-          generated: "Yaratildi",
+          generated: t("finx.pdf.generated"),
           page: "",
         },
       });
@@ -656,14 +656,14 @@ function FinancePage() {
                 title="PDF"
               >
                 {pdfExporting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-                <span className="hidden sm:inline">{pdfExporting ? "Tayyorlanmoqda" : "PDF"}</span>
+                <span className="hidden sm:inline">{pdfExporting ? t("finx.export.preparing") : "PDF"}</span>
               </button>
               <button
                 onClick={() => window.print()}
                 className="h-9 px-2 md:px-3 rounded-lg border border-border/70 bg-card/70 hover:bg-secondary hover:border-primary/40 transition-colors flex items-center gap-1.5 text-xs font-medium"
-                title="Print"
+                 title={t("finx.export.print")}
               >
-                <Printer className="h-4 w-4" /> <span className="hidden sm:inline">Print</span>
+                 <Printer className="h-4 w-4" /> <span className="hidden sm:inline">{t("finx.export.print")}</span>
               </button>
               {isAdmin && (
                 <Link to="/admin" className="h-9 w-9 rounded-lg border border-border/70 bg-card/70 hover:bg-secondary hover:border-primary/40 transition-colors flex items-center justify-center" title={t("nav.admin")}>
@@ -758,38 +758,38 @@ function FinancePage() {
           {/* Advanced KPIs */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <KpiCard
-              label="O'rtacha oylik daromad"
+              label={t("finx.kpi.avgMonthlyRevenue")}
               value={fmt(extras.avgRev)}
               icon={<Activity className="h-4 w-4" />}
               tone="blue"
-              sub={`${allMonths.length} oy asosida`}
+              sub={t("finx.kpi.monthsBasis", { n: allMonths.length })}
             />
             <KpiCard
-              label="Burn rate (o'rt. xarajat/oy)"
+              label={t("finx.kpi.burnRate")}
               value={fmt(extras.burn)}
               icon={<Wallet className="h-4 w-4" />}
               tone="red"
-              sub={extras.bufferMonths !== null ? `Zaxira: ${extras.bufferMonths.toFixed(1)} oy` : "Foyda musbat"}
+              sub={extras.bufferMonths !== null ? t("finx.kpi.reserve", { n: extras.bufferMonths.toFixed(1) }) : t("finx.kpi.positiveProfit")}
             />
 
             <KpiCard
-              label="Eng yaxshi oy"
+              label={t("finx.kpi.bestMonth")}
               value={extras.bestKey ? `${MONTHS[Number(extras.bestKey.split("-")[1]) - 1].slice(0,3)} ${extras.bestKey.split("-")[0].slice(2)}` : "—"}
               icon={<Award className="h-4 w-4" />}
               tone="green"
               sub={extras.bestVal > -Infinity ? fmt(extras.bestVal) : ""}
             />
             <KpiCard
-              label="YoY daromad o'sishi"
+              label={t("finx.kpi.yoyRevenueGrowth")}
               value={extras.yoyRevGrowth === null ? "—" : `${extras.yoyRevGrowth >= 0 ? "+" : ""}${extras.yoyRevGrowth.toFixed(1)}%`}
               icon={extras.yoyRevGrowth !== null && extras.yoyRevGrowth >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
               tone={extras.yoyRevGrowth === null ? undefined : extras.yoyRevGrowth >= 0 ? "green" : "red"}
-              sub={extras.yoyRevPrev > 0 ? `O'tgan yil: ${fmt(extras.yoyRevPrev)}` : "O'tgan yil ma'lumot yo'q"}
+              sub={extras.yoyRevPrev > 0 ? t("finx.kpi.previousYearValue", { v: fmt(extras.yoyRevPrev) }) : t("finx.kpi.noPreviousYearData")}
             />
           </div>
 
           <Card className="p-4 md:p-5 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
-            <div className="text-sm font-semibold mb-3 flex items-center gap-2 before:h-4 before:w-1 before:rounded-full before:bg-primary">Daromad, xarajat va sof foyda</div>
+            <div className="text-sm font-semibold mb-3 flex items-center gap-2 before:h-4 before:w-1 before:rounded-full before:bg-primary">{t("finx.chart.revenueExpenseProfit")}</div>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={chartData}>
@@ -813,23 +813,23 @@ function FinancePage() {
           {/* YoY comparison */}
           {(extras.yoyRevPrev > 0 || extras.yoyExpPrev > 0) && (
             <Card className="p-4 md:p-5 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
-              <div className="text-sm font-semibold mb-3 flex items-center gap-2 before:h-4 before:w-1 before:rounded-full before:bg-primary">Yildan-yilga taqqoslash (tanlangan oylar)</div>
+              <div className="text-sm font-semibold mb-3 flex items-center gap-2 before:h-4 before:w-1 before:rounded-full before:bg-primary">{t("finx.chart.yoyTitle")}</div>
               <div className="overflow-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Ko'rsatkich</TableHead>
-                      <TableHead className="text-right">O'tgan yil</TableHead>
-                      <TableHead className="text-right">Joriy</TableHead>
-                      <TableHead className="text-right">Farq</TableHead>
-                      <TableHead className="text-right">O'sish %</TableHead>
+                      <TableHead>{t("finx.table.metric")}</TableHead>
+                      <TableHead className="text-right">{t("finx.table.previousYear")}</TableHead>
+                      <TableHead className="text-right">{t("finx.table.current")}</TableHead>
+                      <TableHead className="text-right">{t("finx.table.difference")}</TableHead>
+                      <TableHead className="text-right">{t("finx.table.growthPct")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {[
-                      { label: "Daromad", prev: extras.yoyRevPrev, cur: extras.yoyRevCur },
-                      { label: "Xarajat", prev: extras.yoyExpPrev, cur: extras.yoyExpCur, invert: true },
-                      { label: "Sof foyda", prev: extras.yoyProfitPrev, cur: extras.yoyProfitCur, bold: true },
+                       { label: t("chart.revenue"), prev: extras.yoyRevPrev, cur: extras.yoyRevCur },
+                       { label: t("chart.expense"), prev: extras.yoyExpPrev, cur: extras.yoyExpCur, invert: true },
+                       { label: t("chart.netProfit"), prev: extras.yoyProfitPrev, cur: extras.yoyProfitCur, bold: true },
                     ].map((r) => {
                       const diff = r.cur - r.prev;
                       const pct = r.prev !== 0 ? (diff / Math.abs(r.prev)) * 100 : null;
@@ -1419,10 +1419,10 @@ function ForecastCard({
       <Card className="p-4 md:p-5 border-border/70 bg-card/80 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow">
         <div className="flex items-center gap-2 mb-2">
           <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold">Sotuv prognozi (kelasi 3 oy)</span>
+          <span className="text-sm font-semibold">{t("finx.forecast.shortTitle")}</span>
         </div>
         <div className="text-sm text-muted-foreground">
-          Prognoz uchun kamida 2 oy ma'lumot kerak. Hozir: {history.length} oy.
+          {t("finx.forecast.needHistory", { n: history.length })}
         </div>
       </Card>
     );
@@ -1433,29 +1433,29 @@ function ForecastCard({
       <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold">Sotuv prognozi — kelasi 3 oy</span>
+          <span className="text-sm font-semibold">{t("finx.forecast.title")}</span>
           <Badge variant="secondary" className="text-[10px]">{method}</Badge>
         </div>
         <Badge variant="outline" className="text-[10px]">
-          {history.length} oy tarix · avto-yangilanadi
+          {t("finx.forecast.history", { n: history.length })}
         </Badge>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <div className="rounded-lg border p-3">
-          <div className="text-[11px] text-muted-foreground">Realist (3 oy)</div>
+          <div className="text-[11px] text-muted-foreground">{t("finx.forecast.realistic3")}</div>
           <div className="text-base font-bold tabular-nums">{fmtFn(totalForecast)}</div>
         </div>
         <div className="rounded-lg border p-3">
-          <div className="text-[11px] text-muted-foreground">Pessimist</div>
+          <div className="text-[11px] text-muted-foreground">{t("finx.forecast.pessimistic")}</div>
           <div className="text-base font-bold tabular-nums text-red-600 dark:text-red-400">{fmtFn(totalLow)}</div>
         </div>
         <div className="rounded-lg border p-3">
-          <div className="text-[11px] text-muted-foreground">Optimist</div>
+          <div className="text-[11px] text-muted-foreground">{t("finx.forecast.optimistic")}</div>
           <div className="text-base font-bold tabular-nums text-emerald-600 dark:text-emerald-400">{fmtFn(totalHigh)}</div>
         </div>
         <div className="rounded-lg border p-3">
-          <div className="text-[11px] text-muted-foreground">Kelasi oy o'sish</div>
+          <div className="text-[11px] text-muted-foreground">{t("finx.forecast.nextGrowth")}</div>
           <div className={cn(
             "text-base font-bold tabular-nums flex items-center gap-1",
             growth >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400",
@@ -1489,10 +1489,10 @@ function ForecastCard({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Oy</TableHead>
-              <TableHead className="text-right">Pessimist</TableHead>
-              <TableHead className="text-right">Realist</TableHead>
-              <TableHead className="text-right">Optimist</TableHead>
+              <TableHead>{t("common.month")}</TableHead>
+              <TableHead className="text-right">{t("finx.forecast.pessimistic")}</TableHead>
+              <TableHead className="text-right">{t("chart.forecast")}</TableHead>
+              <TableHead className="text-right">{t("finx.forecast.optimistic")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -1544,10 +1544,10 @@ function AgedReceivablesCard({ contracts, t }: { contracts: Contract[]; t: Retur
   }, [contracts]);
 
   const buckets = [
-    { key: "0-30" as const, label: "0–30 kun", tone: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10" },
-    { key: "31-60" as const, label: "31–60 kun", tone: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10" },
-    { key: "61-90" as const, label: "61–90 kun", tone: "text-orange-600 dark:text-orange-400", bg: "bg-orange-500/10" },
-    { key: "90+" as const, label: "90+ kun", tone: "text-destructive", bg: "bg-destructive/10" },
+    { key: "0-30" as const, label: t("finx.receivables.days", { n: "0–30" }), tone: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10" },
+    { key: "31-60" as const, label: t("finx.receivables.days", { n: "31–60" }), tone: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10" },
+    { key: "61-90" as const, label: t("finx.receivables.days", { n: "61–90" }), tone: "text-orange-600 dark:text-orange-400", bg: "bg-orange-500/10" },
+    { key: "90+" as const, label: t("finx.receivables.days", { n: "90+" }), tone: "text-destructive", bg: "bg-destructive/10" },
   ];
   const summary = buckets.map((b) => {
     const items = rows.filter((r) => r.bucket === b.key);
@@ -1563,9 +1563,9 @@ function AgedReceivablesCard({ contracts, t }: { contracts: Contract[]; t: Retur
     <Card className="p-5 space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
-          <h3 className="text-base font-semibold">Aged Receivables (Qarzdorlar yoshi)</h3>
+          <h3 className="text-base font-semibold">{t("finx.receivables.title")}</h3>
           <p className="text-xs text-muted-foreground">
-            Qarzdorlar shartnoma sanasiga qarab guruhlangan. Jami qarzdorlik: <span className="font-semibold text-foreground">{fmtUsd(grand)}</span> ({rows.length} ta)
+            {t("finx.receivables.subtitle", { total: fmtUsd(grand), count: rows.length })}
           </p>
         </div>
         <Button
@@ -1605,7 +1605,7 @@ function AgedReceivablesCard({ contracts, t }: { contracts: Contract[]; t: Retur
             }
           }}
         >
-          <FileText className="h-4 w-4" /> PDF yuklab olish
+          <FileText className="h-4 w-4" /> {t("finx.receivables.download")}
         </Button>
       </div>
 
@@ -1615,7 +1615,7 @@ function AgedReceivablesCard({ contracts, t }: { contracts: Contract[]; t: Retur
           onClick={() => setActiveBucket("all")}
           className={cn("rounded-lg border p-3 text-left transition", activeBucket === "all" ? "border-primary ring-1 ring-primary/40" : "hover:bg-accent/30")}
         >
-          <div className="text-xs text-muted-foreground">Barchasi</div>
+          <div className="text-xs text-muted-foreground">{t("finx.receivables.all")}</div>
           <div className="text-lg font-bold tabular-nums">{fmtUsd(grand)}</div>
           <div className="text-[11px] text-muted-foreground">{rows.length} ta</div>
         </button>
@@ -1636,12 +1636,12 @@ function AgedReceivablesCard({ contracts, t }: { contracts: Contract[]; t: Retur
         <Table>
           <TableHeader className="sticky top-0 bg-background z-10">
             <TableRow>
-              <TableHead>Mijoz</TableHead>
-              <TableHead>Shartnoma</TableHead>
-              <TableHead>Sana</TableHead>
-              <TableHead className="text-right">Kun</TableHead>
-              <TableHead>Guruh</TableHead>
-              <TableHead className="text-right">Qoldiq</TableHead>
+              <TableHead>{t("finx.receivables.client")}</TableHead>
+              <TableHead>{t("finx.receivables.contract")}</TableHead>
+              <TableHead>{t("common.date")}</TableHead>
+              <TableHead className="text-right">{t("finx.receivables.day")}</TableHead>
+              <TableHead>{t("finx.receivables.group")}</TableHead>
+              <TableHead className="text-right">{t("finx.receivables.balance")}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

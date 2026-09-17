@@ -574,7 +574,7 @@ function PositionSelect({ value, onChange }: { value: string; onChange: (v: stri
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`"${name}" pozitsiyani o'chirishni tasdiqlaysizmi?`)) return;
+    if (!confirm(t("emp.position.deleteConfirm", { name }))) return;
     const { error } = await supabase.from("positions").delete().eq("id", id);
     if (error) { toast.error(error.message); return; }
     await qc.invalidateQueries({ queryKey: ["positions"] });
@@ -587,11 +587,11 @@ function PositionSelect({ value, onChange }: { value: string; onChange: (v: stri
         <Input
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
-          placeholder="Yangi pozitsiya nomi"
+          placeholder={t("emp.position.new")}
           autoFocus
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAdd(); } }}
         />
-        <Button type="button" size="sm" onClick={handleAdd} disabled={saving}>Saqlash</Button>
+        <Button type="button" size="sm" onClick={handleAdd} disabled={saving}>{t("common.save")}</Button>
         <Button type="button" size="sm" variant="outline" onClick={() => { setAdding(false); setNewName(""); }}>
           <X className="h-3.5 w-3.5" />
         </Button>
@@ -603,10 +603,10 @@ function PositionSelect({ value, onChange }: { value: string; onChange: (v: stri
     <div className="flex gap-1.5">
       <Select value={value || "__none"} onValueChange={(v) => onChange(v === "__none" ? "" : v)}>
         <SelectTrigger className="flex-1">
-          <SelectValue placeholder="Pozitsiyani tanlang" />
+          <SelectValue placeholder={t("emp.position.select")} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="__none">— tanlanmagan —</SelectItem>
+          <SelectItem value="__none">{t("emp.position.none")}</SelectItem>
           {positions.map((p) => (
             <SelectItem key={p.id} value={p.name}>
               <div className="flex items-center justify-between gap-2 w-full">
@@ -616,7 +616,7 @@ function PositionSelect({ value, onChange }: { value: string; onChange: (v: stri
                     type="button"
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(p.id, p.name); }}
                     className="text-destructive hover:bg-destructive/10 rounded p-0.5"
-                    title="O'chirish"
+                    title={t("common.delete")}
                   >
                     <Trash2 className="h-3 w-3" />
                   </button>
@@ -627,7 +627,7 @@ function PositionSelect({ value, onChange }: { value: string; onChange: (v: stri
         </SelectContent>
       </Select>
       {isAdmin && (
-        <Button type="button" size="sm" variant="outline" onClick={() => setAdding(true)} title="Yangi pozitsiya">
+        <Button type="button" size="sm" variant="outline" onClick={() => setAdding(true)} title={t("emp.position.add")}>
           <Plus className="h-3.5 w-3.5" />
         </Button>
       )}

@@ -1228,7 +1228,7 @@ function VisaResultSelect({ contractId, value, takenDate }: { contractId: string
             onClick={() => { setDateVal(takenDate ?? new Date().toISOString().slice(0, 10)); setDateOpen(true); }}
             className="text-[11px] text-muted-foreground hover:text-primary text-left"
           >
-            {takenDate ? `📅 ${takenDate}` : "📅 Sana tanlang"}
+            {takenDate ? `📅 ${takenDate}` : `📅 ${t("contracts.selectDate")}`}
           </button>
         )
       )}
@@ -1484,7 +1484,7 @@ function PaymentsDialog({
             <Field label={t("contracts.col.method")}>
               <Select value={method} onValueChange={setMethod}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Tanlang" />
+                  <SelectValue placeholder={t("contracts.select")} />
                 </SelectTrigger>
                 <SelectContent>
                   {PAY_METHODS.map((m) => (
