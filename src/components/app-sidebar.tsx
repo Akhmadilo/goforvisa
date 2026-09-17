@@ -163,6 +163,7 @@ function SidebarContent({ onClick }: { onClick?: () => void }) {
 
 export function AppSidebar() {
   const [open, setOpen] = useState(false);
+  const { t } = useT();
 
   return (
     <>
