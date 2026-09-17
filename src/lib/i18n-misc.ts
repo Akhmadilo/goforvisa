@@ -93,6 +93,11 @@ export const miscDict: ExtraDict = {
     "me.tooLarge": "Rasm hajmi 5MB dan kichik bo'lsin",
     "me.position": "Lavozim",
     "me.positionSaved": "Lavozim saqlandi",
+    "emp.position.new": "Yangi lavozim nomi",
+    "emp.position.select": "Lavozimni tanlang",
+    "emp.position.none": "— tanlanmagan —",
+    "emp.position.deleteConfirm": "\"{name}\" lavozimini o'chirishni tasdiqlaysizmi?",
+    "emp.position.add": "Yangi lavozim",
   },
 
   en: {
@@ -181,6 +186,11 @@ export const miscDict: ExtraDict = {
     "me.tooLarge": "Image must be smaller than 5MB",
     "me.position": "Position",
     "me.positionSaved": "Position saved",
+    "emp.position.new": "New position name",
+    "emp.position.select": "Select a position",
+    "emp.position.none": "— not selected —",
+    "emp.position.deleteConfirm": "Delete the \"{name}\" position?",
+    "emp.position.add": "New position",
   },
 
   ru: {
@@ -228,7 +238,7 @@ export const miscDict: ExtraDict = {
     "pdf.beforeDownload": "проверьте страницы перед скачиванием.",
     "pdf.close": "Закрыть",
     "pdf.download": "Скачать",
-    "pdf.preparing": "PDF tayyorlanmoqda...",
+    "pdf.preparing": "Подготовка PDF...",
     "pdf.ready": "PDF готов — скачайте из окна предпросмотра",
     "pdf.error": "Ошибка при создании PDF. Обновите страницу и попробуйте снова.",
     "wr.noReport": "Отчёт не написан",
@@ -269,6 +279,11 @@ export const miscDict: ExtraDict = {
     "me.tooLarge": "Размер изображения должен быть меньше 5MB",
     "me.position": "Должность",
     "me.positionSaved": "Должность сохранена",
+    "emp.position.new": "Название новой должности",
+    "emp.position.select": "Выберите должность",
+    "emp.position.none": "— не выбрано —",
+    "emp.position.deleteConfirm": "Удалить должность \"{name}\"?",
+    "emp.position.add": "Новая должность",
 
   },
 };
