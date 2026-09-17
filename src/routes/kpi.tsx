@@ -159,35 +159,35 @@ function CcTierEditor() {
                     {t("kpix.emptyTable")}
                   </TableCell>
                 </TableRow>
-              ) : (tiers ?? []).map((t) => {
-                const dirty = !!draft[t.id];
+              ) : (tiers ?? []).map((tier) => {
+                const dirty = !!draft[tier.id];
                 return (
-                  <TableRow key={t.id} className="h-8">
+                  <TableRow key={tier.id} className="h-8">
                     {isAdmin && editing ? (
                       <>
                         <TableCell className="py-1">
                           <div className="flex items-center gap-1">
-                            <Input className="h-7 w-14 text-xs" value={val(t, "min")} onChange={(e) => setVal(t, "min", e.target.value)} />
+                            <Input className="h-7 w-14 text-xs" value={val(tier, "min")} onChange={(e) => setVal(tier, "min", e.target.value)} />
                             <span className="text-muted-foreground text-xs">–</span>
-                            <Input className="h-7 w-14 text-xs" placeholder="∞" value={val(t, "max")} onChange={(e) => setVal(t, "max", e.target.value)} />
+                            <Input className="h-7 w-14 text-xs" placeholder="∞" value={val(tier, "max")} onChange={(e) => setVal(tier, "max", e.target.value)} />
                           </div>
                         </TableCell>
-                        <TableCell className="py-1"><Input className="h-7 w-28 text-xs" value={val(t, "base")} onChange={(e) => setVal(t, "base", e.target.value)} /></TableCell>
-                        <TableCell className="py-1"><Input className="h-7 w-14 text-xs" value={val(t, "kpi")} onChange={(e) => setVal(t, "kpi", e.target.value)} /></TableCell>
+                        <TableCell className="py-1"><Input className="h-7 w-28 text-xs" value={val(tier, "base")} onChange={(e) => setVal(tier, "base", e.target.value)} /></TableCell>
+                        <TableCell className="py-1"><Input className="h-7 w-14 text-xs" value={val(tier, "kpi")} onChange={(e) => setVal(tier, "kpi", e.target.value)} /></TableCell>
                         <TableCell className="py-1 text-right whitespace-nowrap">
-                          <Button size="sm" variant={dirty ? "default" : "ghost"} className="h-7 text-xs" disabled={!dirty || saveMut.isPending} onClick={() => saveMut.mutate(t)}>
+                          <Button size="sm" variant={dirty ? "default" : "ghost"} className="h-7 text-xs" disabled={!dirty || saveMut.isPending} onClick={() => saveMut.mutate(tier)}>
                             {t("common.save")}
                           </Button>
-                          <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => delMut.mutate(t.id)}>
+                          <Button size="sm" variant="ghost" className="h-7 text-xs text-destructive" onClick={() => delMut.mutate(tier.id)}>
                             {t("common.delete")}
                           </Button>
                         </TableCell>
                       </>
                     ) : (
                       <>
-                        <TableCell className="py-1 text-xs">{t.min_count}{t.max_count === null ? "+" : `–${t.max_count}`}</TableCell>
-                        <TableCell className="py-1 text-xs">{fmt(t.base_uzs)} so'm</TableCell>
-                        <TableCell className="py-1 text-xs">{t.kpi_pct}%</TableCell>
+                        <TableCell className="py-1 text-xs">{tier.min_count}{tier.max_count === null ? "+" : `–${tier.max_count}`}</TableCell>
+                        <TableCell className="py-1 text-xs">{fmt(tier.base_uzs)} so'm</TableCell>
+                        <TableCell className="py-1 text-xs">{tier.kpi_pct}%</TableCell>
                       </>
                     )}
                   </TableRow>
@@ -726,12 +726,12 @@ function CommissionKpi({
               <div className="flex flex-wrap items-center gap-3">
                 {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                 <CardTitle className="text-base">{g.name}</CardTitle>
-                <Badge variant="secondary">{g.items.length} shartnoma</Badge>
+                <Badge variant="secondary">{t("kpix.contractCount", { n: g.items.length })}</Badge>
                 <div className="ml-auto flex flex-wrap gap-2 text-sm">
-                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Tasdiqlangan: {fmt(g.approvedTotal)} so'm</Badge>
-                  {g.pendingTotal > 0 && <Badge variant="outline">Kutilmoqda: {fmt(g.pendingTotal)} so'm</Badge>}
-                  {g.rejectedTotal > 0 && <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Berilmaydi: {fmt(g.rejectedTotal)} so'm</Badge>}
-                  <Badge className="bg-primary text-primary-foreground">Jami: {fmt(g.total)} so'm</Badge>
+                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100">{t("kpix.approved")}: {fmt(g.approvedTotal)} so'm</Badge>
+                  {g.pendingTotal > 0 && <Badge variant="outline">{t("kpix.pending")}: {fmt(g.pendingTotal)} so'm</Badge>}
+                  {g.rejectedTotal > 0 && <Badge className="bg-red-100 text-red-800 hover:bg-red-100">{t("kpix.denied")}: {fmt(g.rejectedTotal)} so'm</Badge>}
+                  <Badge className="bg-primary text-primary-foreground">{t("pay.total")}: {fmt(g.total)} so'm</Badge>
                 </div>
               </div>
             </CardHeader>
@@ -1171,12 +1171,12 @@ function VisaBonusKpi() {
               <div className="flex flex-wrap items-center gap-3">
                 {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                 <CardTitle className="text-base">{g.name}</CardTitle>
-                <Badge variant="secondary">{g.items.length} viza</Badge>
+                <Badge variant="secondary">{t("kpix.visaCount", { n: g.items.length })}</Badge>
                 <div className="ml-auto flex flex-wrap gap-2 text-sm">
-                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Tasdiqlangan: {fmt(g.approvedTotal)} so'm</Badge>
-                  {g.pendingTotal > 0 && <Badge variant="outline">Kutilmoqda: {fmt(g.pendingTotal)} so'm</Badge>}
-                  {g.rejectedTotal > 0 && <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Berilmaydi: {fmt(g.rejectedTotal)} so'm</Badge>}
-                  <Badge className="bg-primary text-primary-foreground">Jami: {fmt(g.total)} so'm</Badge>
+                  <Badge className="bg-green-100 text-green-800 hover:bg-green-100">{t("kpix.approved")}: {fmt(g.approvedTotal)} so'm</Badge>
+                  {g.pendingTotal > 0 && <Badge variant="outline">{t("kpix.pending")}: {fmt(g.pendingTotal)} so'm</Badge>}
+                  {g.rejectedTotal > 0 && <Badge className="bg-red-100 text-red-800 hover:bg-red-100">{t("kpix.denied")}: {fmt(g.rejectedTotal)} so'm</Badge>}
+                  <Badge className="bg-primary text-primary-foreground">{t("pay.total")}: {fmt(g.total)} so'm</Badge>
                 </div>
               </div>
             </CardHeader>
@@ -1267,16 +1267,16 @@ function KpiPage() {
             <CommissionKpi
               role="sales"
               managerField="sales_manager"
-              managerLabel="Sales menejer"
-              formulaHint="Har sales menejer uchun komissiyaning har $1 i = belgilangan stavka (default 500 so'm = 50 000/$100). Bonus shartnoma 100% to'lab bo'lingan oyda hisoblanadi."
+              managerLabel={t("kpix.salesManager")}
+              formulaHint={t("kpix.salesFormula")}
             />
           </TabsContent>
           <TabsContent value="back-office" className="mt-4">
             <CommissionKpi
               role="back_office"
               managerField="back_office_manager"
-              managerLabel="Back office xodim"
-              formulaHint="Har back office xodim uchun komissiyaning har $1 i = belgilangan stavka (default 500 so'm = 50 000/$100). Bonus shartnoma 100% to'lab bo'lingan oyda hisoblanadi."
+              managerLabel={t("kpix.backOfficeEmployee")}
+              formulaHint={t("kpix.backOfficeFormula")}
             />
           </TabsContent>
           <TabsContent value="visa-bonus" className="mt-4"><VisaBonusKpi /></TabsContent>
