@@ -1081,11 +1081,11 @@ function Dashboard() {
         <section className="print-keep space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base md:text-lg font-bold tracking-tight">Viza biznes tahlili</h2>
-              <p className="text-xs text-muted-foreground">Voronka, tasdiqlash darajasi va pipeline qiymati</p>
+              <h2 className="text-base md:text-lg font-bold tracking-tight">{t("dashx.visa.sectionTitle")}</h2>
+              <p className="text-xs text-muted-foreground">{t("dashx.visa.sectionSubtitle")}</p>
             </div>
             <Badge variant="secondary" className="hidden sm:inline-flex">
-              {filtered.length} shartnoma
+              {t("dashx.visa.contractsBadge", { n: filtered.length })}
             </Badge>
           </div>
 
@@ -1093,7 +1093,7 @@ function Dashboard() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <Card className="p-4 shadow-[var(--shadow-card)] relative overflow-hidden">
               <div className="absolute inset-x-0 top-0 h-1" style={{ background: VISA_STAGE_COLORS.taken }} />
-              <div className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wide">Tasdiqlash darajasi</div>
+              <div className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wide">{t("dashx.visa.approvalRate")}</div>
               <div className="mt-1 text-xl md:text-2xl font-bold" style={{ color: VISA_STAGE_COLORS.taken }}>
                 {visaBI.approvalRate.toFixed(1)}%
               </div>
@@ -1103,7 +1103,7 @@ function Dashboard() {
             </Card>
             <Card className="p-4 shadow-[var(--shadow-card)] relative overflow-hidden">
               <div className="absolute inset-x-0 top-0 h-1" style={{ background: VISA_STAGE_COLORS.inProcess }} />
-              <div className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wide">Faol pipeline</div>
+              <div className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wide">{t("dashx.visa.activePipeline")}</div>
               <div className="mt-1 text-xl md:text-2xl font-bold" style={{ color: VISA_STAGE_COLORS.inProcess }}>
                 {visaBI.counts.submitted + visaBI.counts.inProcess}
               </div>
@@ -1113,7 +1113,7 @@ function Dashboard() {
             </Card>
             <Card className="p-4 shadow-[var(--shadow-card)] relative overflow-hidden">
               <div className="absolute inset-x-0 top-0 h-1" style={{ background: VISA_STAGE_COLORS.submitted }} />
-              <div className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wide">Pipeline qiymati</div>
+              <div className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wide">{t("dashx.visa.pipelineValue")}</div>
               <div className="mt-1 text-xl md:text-2xl font-bold" style={{ color: VISA_STAGE_COLORS.submitted }}>
                 {fmtUsd(visaBI.pipelineValue)}
               </div>
@@ -1123,7 +1123,7 @@ function Dashboard() {
             </Card>
             <Card className="p-4 shadow-[var(--shadow-card)] relative overflow-hidden">
               <div className="absolute inset-x-0 top-0 h-1" style={{ background: "#8b5cf6" }} />
-              <div className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wide">O'rt. shartnoma (olingan)</div>
+              <div className="text-[10px] md:text-xs text-muted-foreground uppercase tracking-wide">{t("dashx.visa.avgTicket")}</div>
               <div className="mt-1 text-xl md:text-2xl font-bold" style={{ color: "#8b5cf6" }}>
                 {fmtUsd(visaBI.avgTicketTaken)}
               </div>
@@ -1136,8 +1136,8 @@ function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Visa funnel */}
             <Card className="p-4 md:p-5 shadow-[var(--shadow-card)] print-keep">
-              <h3 className="font-semibold text-sm md:text-base mb-1">Viza bosqichlari taqsimoti</h3>
-              <p className="text-xs text-muted-foreground mb-3">Har bir shartnoma bitta bosqichda hisoblanadi</p>
+              <h3 className="font-semibold text-sm md:text-base mb-1">{t("dashx.visa.funnelTitle")}</h3>
+              <p className="text-xs text-muted-foreground mb-3">{t("dashx.visa.funnelSub")}</p>
               <div className="h-[260px] md:h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={visaBI.funnel} layout="vertical" margin={{ left: 30, right: 40 }}>
@@ -1169,8 +1169,8 @@ function Dashboard() {
 
             {/* Revenue by visa stage */}
             <Card className="p-4 md:p-5 shadow-[var(--shadow-card)] print-keep">
-              <h3 className="font-semibold text-sm md:text-base mb-1">Viza natijalari bo'yicha daromad</h3>
-              <p className="text-xs text-muted-foreground mb-3">Har bir bosqichdagi shartnoma qiymati</p>
+              <h3 className="font-semibold text-sm md:text-base mb-1">{t("dashx.visa.revenueByStageTitle")}</h3>
+              <p className="text-xs text-muted-foreground mb-3">{t("dashx.visa.revenueByStageSub")}</p>
               <div className="h-[260px] md:h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={visaBI.revenueByStage} margin={{ top: 10 }}>
@@ -1203,8 +1203,8 @@ function Dashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Monthly stacked outcomes */}
             <Card className="p-4 md:p-5 shadow-[var(--shadow-card)] print-keep">
-              <h3 className="font-semibold text-sm md:text-base mb-1">Oylik viza natijalari</h3>
-              <p className="text-xs text-muted-foreground mb-3">Biznes sifatining oydan-oyga trendi</p>
+              <h3 className="font-semibold text-sm md:text-base mb-1">{t("dashx.visa.monthlyTitle")}</h3>
+              <p className="text-xs text-muted-foreground mb-3">{t("dashx.visa.monthlySub")}</p>
               <div className="h-[260px] md:h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={visaMonthlyStack}>
@@ -1523,7 +1523,7 @@ function Dashboard() {
           {/* Sotuvchilar performance */}
           <Card className="p-4 md:p-5 shadow-[var(--shadow-card)]">
             <div className="flex items-center justify-between mb-3 md:mb-4">
-              <h3 className="font-semibold text-sm md:text-base">Sotuvchilar samaradorligi</h3>
+              <h3 className="font-semibold text-sm md:text-base">{t("dashx.perf.sales")}</h3>
               <Badge variant="secondary">{salesPerformance.length}</Badge>
             </div>
             <div className="h-[220px] md:h-[260px] mb-3">
@@ -1541,10 +1541,10 @@ function Dashboard() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Sotuvchi</TableHead>
-                    <TableHead className="text-right">Shartnomalar</TableHead>
-                    <TableHead className="text-right">Daromad ($)</TableHead>
-                    <TableHead className="text-right">Sof foyda ($)</TableHead>
+                    <TableHead>{t("dashx.table.seller")}</TableHead>
+                    <TableHead className="text-right">{t("dashx.table.contracts")}</TableHead>
+                    <TableHead className="text-right">{t("dashx.table.revenueUsd")}</TableHead>
+                    <TableHead className="text-right">{t("dashx.table.netProfitUsd")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1557,7 +1557,7 @@ function Dashboard() {
                     </TableRow>
                   ))}
                   {salesPerformance.length === 0 && (
-                    <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">Ma'lumot yo'q</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground">{t("common.noData")}</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -1567,7 +1567,7 @@ function Dashboard() {
           {/* Call operatorlar performance */}
           <Card className="p-4 md:p-5 shadow-[var(--shadow-card)]">
             <div className="flex items-center justify-between mb-3 md:mb-4">
-              <h3 className="font-semibold text-sm md:text-base">Call operatorlar samaradorligi</h3>
+              <h3 className="font-semibold text-sm md:text-base">{t("dashx.perf.callCentre")}</h3>
               <Badge variant="secondary">{callCentrePerformance.length}</Badge>
             </div>
             <div className="h-[220px] md:h-[260px] mb-3">
@@ -1585,9 +1585,9 @@ function Dashboard() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Operator</TableHead>
-                    <TableHead className="text-right">Shartnomalar</TableHead>
-                    <TableHead className="text-right">Daromad ($)</TableHead>
+                    <TableHead>{t("dashx.table.operator")}</TableHead>
+                    <TableHead className="text-right">{t("dashx.table.contracts")}</TableHead>
+                    <TableHead className="text-right">{t("dashx.table.revenueUsd")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1599,7 +1599,7 @@ function Dashboard() {
                     </TableRow>
                   ))}
                   {callCentrePerformance.length === 0 && (
-                    <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">Ma'lumot yo'q</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground">{t("common.noData")}</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -1871,8 +1871,8 @@ function Dashboard() {
                     <TableHead>{t("common.date")}</TableHead>
                     <TableHead className="text-right">{t("dash.table.daysOverdue")}</TableHead>
                     <TableHead className="text-right">{t("dash.table.contract")}</TableHead>
-                    <TableHead className="text-right">To'langan</TableHead>
-                    <TableHead className="text-right">Qoldiq</TableHead>
+                    <TableHead className="text-right">{t("dashx.table.paid")}</TableHead>
+                    <TableHead className="text-right">{t("dashx.table.remaining")}</TableHead>
                     <TableHead>{t("dash.table.manager")}</TableHead>
                     <TableHead>{t("common.note")}</TableHead>
                   </TableRow>
