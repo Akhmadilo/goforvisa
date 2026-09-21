@@ -112,15 +112,15 @@ export function UserCorner() {
             aria-label={t("me.profile")}
             className="pointer-events-auto flex items-center gap-2 rounded-full border border-border bg-card/90 py-1 pl-1 pr-3 shadow-sm backdrop-blur transition-colors hover:bg-secondary"
           >
-            <Avatar className="h-8 w-8">
-              {photoUrl && <AvatarImage src={photoUrl} alt={name} />}
-              <AvatarFallback className="text-xs">
+            <Avatar className="pointer-events-auto h-8 w-8">
+              {photoUrl && <AvatarImage className="pointer-events-auto" src={photoUrl} alt={name} />}
+              <AvatarFallback className="pointer-events-auto text-xs">
                 {initialsOf(profile?.display_name, user.email)}
               </AvatarFallback>
             </Avatar>
-            <span className="hidden sm:block max-w-[160px] text-left leading-tight">
-              <span className="block truncate text-xs font-medium">{name}</span>
-              <span className="block truncate text-[10px] text-muted-foreground">
+            <span className="pointer-events-auto hidden sm:block max-w-[160px] text-left leading-tight">
+              <span className="pointer-events-auto block truncate text-xs font-medium">{name}</span>
+              <span className="pointer-events-auto block truncate text-[10px] text-muted-foreground">
                 {profile?.position || t("me.noPosition")}
               </span>
             </span>
