@@ -94,7 +94,7 @@ export function UserCorner() {
   };
 
   return (
-    <div className="fixed top-3 right-3 z-40">
+    <div className="fixed top-3 right-3 z-40 pointer-events-none">
       <input
         ref={fileRef}
         type="file"
@@ -110,7 +110,7 @@ export function UserCorner() {
           <button
             type="button"
             aria-label={t("me.profile")}
-            className="flex items-center gap-2 rounded-full border border-border bg-card/90 py-1 pl-1 pr-3 shadow-sm backdrop-blur transition-colors hover:bg-secondary"
+            className="pointer-events-auto flex items-center gap-2 rounded-full border border-border bg-card/90 py-1 pl-1 pr-3 shadow-sm backdrop-blur transition-colors hover:bg-secondary"
           >
             <Avatar className="h-8 w-8">
               {photoUrl && <AvatarImage src={photoUrl} alt={name} />}
