@@ -94,7 +94,7 @@ export function UserCorner() {
   };
 
   return (
-    <div className="fixed top-3 right-3 z-40">
+    <div className="fixed top-20 right-3 z-40">
       <input
         ref={fileRef}
         type="file"
