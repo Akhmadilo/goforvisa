@@ -810,7 +810,7 @@ function Dashboard() {
       </div>
       <div className="relative z-10 md:pl-56">
       <header className="border-b border-border bg-card/40 backdrop-blur sticky top-0 z-20">
-        <div className="w-full px-4 sm:px-6 py-3 md:py-4 flex items-center justify-between gap-3">
+        <div className="w-full px-4 sm:pl-6 sm:pr-52 py-3 md:py-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 pl-10 md:pl-0">
             <div
               className="h-9 w-9 md:h-10 md:w-10 rounded-lg flex items-center justify-center shrink-0"
