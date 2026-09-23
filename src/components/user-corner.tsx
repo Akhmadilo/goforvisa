@@ -22,7 +22,7 @@ function initialsOf(name: string | null | undefined, email: string | null | unde
   return (parts[0]?.[0] ?? "?").toUpperCase() + (parts[1]?.[0]?.toUpperCase() ?? "");
 }
 
-/** Top-bar profile with photo upload and the admin-assigned position. */
+/** Sidebar profile with photo upload and the admin-assigned position. */
 export function UserCorner() {
   const { t } = useT();
   const { user } = useAuth();
@@ -94,7 +94,7 @@ export function UserCorner() {
   };
 
   return (
-    <div className="fixed top-3 right-3 z-30" data-user-corner>
+    <div className="px-3 pt-3" data-user-corner>
       <input
         ref={fileRef}
         type="file"
@@ -110,7 +110,7 @@ export function UserCorner() {
           <button
             type="button"
             aria-label={t("me.profile")}
-            className="flex items-center gap-2 rounded-full border border-border bg-card/90 py-1 pl-1 pr-3 shadow-sm backdrop-blur transition-colors hover:bg-secondary"
+            className="flex w-full items-center gap-2 rounded-md border border-border bg-card/90 p-1.5 pr-3 shadow-sm transition-colors hover:bg-secondary"
           >
             <Avatar className="h-8 w-8">
               {photoUrl && <AvatarImage src={photoUrl} alt={name} />}
@@ -118,7 +118,7 @@ export function UserCorner() {
                 {initialsOf(profile?.display_name, user.email)}
               </AvatarFallback>
             </Avatar>
-            <span className="hidden sm:block max-w-[160px] text-left leading-tight">
+            <span className="min-w-0 flex-1 text-left leading-tight">
               <span className="block truncate text-xs font-medium">{name}</span>
               <span className="block truncate text-[10px] text-muted-foreground">
                 {profile?.position || t("me.noPosition")}
