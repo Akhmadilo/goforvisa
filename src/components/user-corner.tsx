@@ -22,7 +22,7 @@ function initialsOf(name: string | null | undefined, email: string | null | unde
   return (parts[0]?.[0] ?? "?").toUpperCase() + (parts[1]?.[0]?.toUpperCase() ?? "");
 }
 
-/** Fixed top-right avatar with photo upload and the admin-assigned position. */
+/** Top-bar profile with photo upload and the admin-assigned position. */
 export function UserCorner() {
   const { t } = useT();
   const { user } = useAuth();
@@ -94,7 +94,7 @@ export function UserCorner() {
   };
 
   return (
-    <div className="fixed top-20 right-3 z-40">
+    <div className="fixed top-3 right-3 z-30" data-user-corner>
       <input
         ref={fileRef}
         type="file"
