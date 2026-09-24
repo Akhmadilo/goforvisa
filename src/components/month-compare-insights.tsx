@@ -13,10 +13,12 @@ import { cn } from "@/lib/utils";
 type Metrics = {
   revenue: number;
   contracts: number;
+  contractValue: number;
   expenses: number;
   salaries: number;
   fines: number;
   cats: Record<string, number>;
+  mgr: Record<string, { count: number; value: number }>;
 };
 
 const ym = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}`;
@@ -46,7 +48,7 @@ export function MonthCompareInsights() {
     queryFn: async () => {
       const [pay, con, exp, sal, fin] = await Promise.all([
         supabase.from("contract_payments").select("amount,currency,paid_at").gte("paid_at", from).lt("paid_at", to),
-        supabase.from("contracts").select("contract_date").gte("contract_date", from).lt("contract_date", to),
+        supabase.from("contracts").select("contract_date,price_uzs,price_usd,sales_manager").gte("contract_date", from).lt("contract_date", to),
         supabase.from("expenses").select("total_amount,currency,expense_date,category").gte("expense_date", from).lt("expense_date", to),
         supabase.from("salaries").select("year,month,fixed_amount,kpi_amount,penalty_amount").in("year", [ppy, py, y]),
         supabase.from("fines").select("amount_uzs,date").gte("date", from).lt("date", to),
@@ -56,12 +58,20 @@ export function MonthCompareInsights() {
   });
 
   const { cur, prev, prev2 } = useMemo(() => {
-    const blank = (): Metrics => ({ revenue: 0, contracts: 0, expenses: 0, salaries: 0, fines: 0, cats: {} });
+    const blank = (): Metrics => ({ revenue: 0, contracts: 0, contractValue: 0, expenses: 0, salaries: 0, fines: 0, cats: {}, mgr: {} });
     const out: Record<string, Metrics> = { [sel]: blank(), [ym(py, pm)]: blank(), [ym(ppy, ppm)]: blank() };
     const toUzs = (amt: number, cur: string, key: string) => (cur?.toUpperCase() === "USD" ? amt * getRate(key) : amt);
     if (data) {
       for (const p of data.pay as any[]) { const k = String(p.paid_at).slice(0, 7); if (out[k]) out[k].revenue += toUzs(Number(p.amount), p.currency, k); }
-      for (const c of data.con as any[]) { const k = String(c.contract_date).slice(0, 7); if (out[k]) out[k].contracts += 1; }
+      for (const c of data.con as any[]) {
+        const k = String(c.contract_date).slice(0, 7); if (!out[k]) continue;
+        out[k].contracts += 1;
+        const v = Number(c.price_uzs) > 0 ? Number(c.price_uzs) : Number(c.price_usd) * getRate(k);
+        out[k].contractValue += v;
+        const mName = (c.sales_manager || "—").trim() || "—";
+        out[k].mgr[mName] = out[k].mgr[mName] ?? { count: 0, value: 0 };
+        out[k].mgr[mName].count += 1; out[k].mgr[mName].value += v;
+      }
       for (const e of data.exp as any[]) {
         const k = String(e.expense_date).slice(0, 7); if (!out[k]) continue;
         const v = toUzs(Number(e.total_amount), e.currency, k);
