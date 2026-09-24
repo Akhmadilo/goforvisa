@@ -155,6 +155,36 @@ export function MonthCompareInsights() {
       ? { tone: "bad", text: t("mom.i.netLoss", { v: fmtUzs(n) }) }
       : { tone: "good", text: t("mom.i.netProfit", { v: fmtUzs(n), p: cur.revenue ? ((n / cur.revenue) * 100).toFixed(1) : "0" }) });
     if (cur.contractValue > 0 && cur.revenue > 0 && cur.contractValue > cur.revenue * 1.3) list.push({ tone: "info", text: t("mom.i.debt", { a: fmtUzs(cur.contractValue), b: fmtUzs(cur.revenue) }) });
+    // Collection rate: how much of signed contract value was actually collected
+    if (cur.contractValue > 0 && cur.revenue > 0) {
+      const cr = (cur.revenue / cur.contractValue) * 100;
+      list.push({ tone: cr < 50 ? "bad" : "good", text: t(cr < 50 ? "mom.i.collectLow" : "mom.i.collectOk", { p: cr.toFixed(1) }) });
+    }
+    // Manager insights: leader and managers who stopped selling
+    const mgrs = Object.entries(cur.mgr).sort((a, b) => b[1].value - a[1].value);
+    if (mgrs.length > 0) {
+      const [topName, topV] = mgrs[0]!;
+      const share = cur.contractValue > 0 ? (topV.value / cur.contractValue) * 100 : 0;
+      list.push({ tone: "info", text: t("mom.i.mgrTop", { n: topName, v: fmtUzs(topV.value), p: share.toFixed(1) }) });
+    }
+    for (const [name, pv] of Object.entries(prev.mgr)) {
+      if (pv.count > 0 && !cur.mgr[name]) list.push({ tone: "bad", text: t("mom.i.mgrGone", { n: name }) });
+    }
+    // Payroll 3-month trend
+    if (prev2.salaries > 0 && prev2.salaries < prev.salaries && prev.salaries < cur.salaries) list.push({ tone: "bad", text: t("mom.i.salTrendUp") });
+    // New expense category that did not exist in the baseline
+    for (const [c, v] of Object.entries(cur.cats)) {
+      if (!(c in base.cats) && v > 0) list.push({ tone: "info", text: t("mom.i.newCat", { c, v: fmtUzs(v) }) });
+    }
+    // Fines per contract (discipline intensity)
+    if (cur.contracts > 0 && base.contracts > 0) {
+      const fpc = cur.fines / cur.contracts, fpb = base.fines / base.contracts;
+      const d = pct(fpc, fpb);
+      if (d >= 30 && cur.fines > 0) list.push({ tone: "bad", text: t("mom.i.finesPerContract", { p: d.toFixed(1) }) });
+    }
+    // Average check 3-month decline
+    const avg = (x: Metrics) => (x.contracts ? x.contractValue / x.contracts : 0);
+    if (avg(prev2) > 0 && avg(prev2) > avg(prev) && avg(prev) > avg(cur)) list.push({ tone: "bad", text: t("mom.i.avgTrendDown") });
     if (!list.length) list.push({ tone: "info", text: t("mom.i.stable") });
     return list;
   }, [cur, prev, prev2, base, t]);
