@@ -245,6 +245,41 @@ export function MonthCompareInsights() {
           })}
         </div>
       </div>
+      {Object.keys(cur.mgr).length > 0 && (
+        <div className="space-y-2">
+          <div className="text-sm font-medium">{t("mom.sales.title")}</div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="text-muted-foreground border-b border-border">
+                <th className="text-left py-2">{t("mom.sales.manager")}</th>
+                <th className="text-right">{t("mom.m.contracts")}</th>
+                <th className="text-right">{t("mom.sales.value")}</th>
+                <th className="text-right">{t("mom.sales.share")}</th>
+                <th className="text-right">{t("mom.change")}</th>
+              </tr></thead>
+              <tbody>
+                {Object.entries(cur.mgr).sort((a, b) => b[1].value - a[1].value).map(([name, v]) => {
+                  const pv = prev.mgr[name]?.value ?? 0;
+                  const ch = pct(v.value, pv);
+                  const share = cur.contractValue > 0 ? (v.value / cur.contractValue) * 100 : 0;
+                  const Icon = Math.abs(ch) < 0.5 ? Minus : ch > 0 ? TrendingUp : TrendingDown;
+                  return (
+                    <tr key={name} className="border-b border-border/50">
+                      <td className="py-2">{name}</td>
+                      <td className="text-right tabular-nums">{v.count}</td>
+                      <td className="text-right tabular-nums font-medium">{fmtUzs(v.value)}</td>
+                      <td className="text-right tabular-nums text-muted-foreground">{share.toFixed(1)}%</td>
+                      <td className={cn("text-right tabular-nums", Math.abs(ch) < 0.5 ? "text-muted-foreground" : ch > 0 ? "text-primary" : "text-destructive")}>
+                        <span className="inline-flex items-center gap-1"><Icon className="h-3.5 w-3.5" />{pv === 0 && v.value > 0 ? t("mom.sales.new") : `${ch > 0 ? "+" : ""}${ch.toFixed(1)}%`}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
       <div className="rounded-md border border-border bg-muted/30 p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
