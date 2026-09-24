@@ -3,7 +3,7 @@ import type { ExtraDict } from "./i18n-extra";
 export const momDict: ExtraDict = {
   uz: {
     "mom.title": "Oyma-oy avtomatik xulosalar",
-    "mom.subtitle": "{cur} va {prev} taqqoslanmoqda · ma'lumot o'zgarganda o'zi yangilanadi",
+    "mom.subtitle": "{cur} — {prev} va {prev2} bilan taqqoslanmoqda · ma'lumot o'zgarganda o'zi yangilanadi",
     "mom.month": "Oy",
     "mom.metric": "Ko'rsatkich",
     "mom.current": "Joriy oy",
@@ -35,7 +35,7 @@ export const momDict: ExtraDict = {
   },
   en: {
     "mom.title": "Automatic month-over-month insights",
-    "mom.subtitle": "Comparing {cur} with {prev} · updates automatically when data changes",
+    "mom.subtitle": "Comparing {cur} with {prev} and {prev2} · updates automatically when data changes",
     "mom.month": "Month",
     "mom.metric": "Metric",
     "mom.current": "This month",
@@ -67,7 +67,7 @@ export const momDict: ExtraDict = {
   },
   ru: {
     "mom.title": "Автоматические выводы: месяц к месяцу",
-    "mom.subtitle": "Сравнение {cur} с {prev} · обновляется автоматически",
+    "mom.subtitle": "Сравнение {cur} с {prev} и {prev2} · обновляется автоматически",
     "mom.month": "Месяц",
     "mom.metric": "Показатель",
     "mom.current": "Текущий месяц",
