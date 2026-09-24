@@ -115,7 +115,7 @@ export function MonthCompareInsights() {
     }
     let top = "", topV = 0;
     for (const [c, v] of Object.entries(cur.cats)) { const d = v - (base.cats[c] ?? 0); if (d > topV) { topV = d; top = c; } }
-    if (top) list.push({ tone: "info", text: t("mom.i.topCat", { c: top, v: fmtUzs(topV) }) });
+    if (top && topV >= base.expenses * 0.1) list.push({ tone: "info", text: t("mom.i.topCat", { c: top, v: fmtUzs(topV) }) });
     if (cur.contracts !== Math.round(base.contracts)) list.push({ tone: cur.contracts > base.contracts ? "good" : "bad", text: t(cur.contracts > base.contracts ? "mom.i.contractsUp" : "mom.i.contractsDown", { a: Math.round(base.contracts), b: cur.contracts }) });
     const f = pct(cur.fines, base.fines);
     if (f >= 20 && cur.fines > 0) list.push({ tone: "bad", text: t("mom.i.finesUp", { p: p(f) }) });
