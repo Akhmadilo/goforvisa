@@ -153,6 +153,7 @@ export function MonthCompareInsights() {
     if (cur.revenue > 0 || cur.expenses > 0) list.push(n < 0
       ? { tone: "bad", text: t("mom.i.netLoss", { v: fmtUzs(n) }) }
       : { tone: "good", text: t("mom.i.netProfit", { v: fmtUzs(n), p: cur.revenue ? ((n / cur.revenue) * 100).toFixed(1) : "0" }) });
+    if (cur.contractValue > 0 && cur.revenue > 0 && cur.contractValue > cur.revenue * 1.3) list.push({ tone: "info", text: t("mom.i.debt", { a: fmtUzs(cur.contractValue), b: fmtUzs(cur.revenue) }) });
     if (!list.length) list.push({ tone: "info", text: t("mom.i.stable") });
     return list;
   }, [cur, prev, prev2, base, t]);
