@@ -284,7 +284,9 @@ export function MonthCompareInsights() {
             <table className="w-full text-sm">
               <thead><tr className="text-muted-foreground border-b border-border">
                 <th className="text-left py-2">{t("mom.sales.manager")}</th>
-                <th className="text-right">{t("mom.m.contracts")}</th>
+                <th className="text-right">{months[ppm - 1]}</th>
+                <th className="text-right">{months[pm - 1]}</th>
+                <th className="text-right">{months[m - 1]}</th>
                 <th className="text-right">{t("mom.sales.value")}</th>
                 <th className="text-right">{t("mom.sales.share")}</th>
                 <th className="text-right">{t("mom.change")}</th>
@@ -298,7 +300,9 @@ export function MonthCompareInsights() {
                   return (
                     <tr key={name} className="border-b border-border/50">
                       <td className="py-2">{name}</td>
-                      <td className="text-right tabular-nums">{v.count}</td>
+                      <td className="text-right tabular-nums text-muted-foreground">{prev2.mgr[name]?.count ?? 0}</td>
+                      <td className="text-right tabular-nums text-muted-foreground">{prev.mgr[name]?.count ?? 0}</td>
+                      <td className="text-right tabular-nums font-medium">{v.count}</td>
                       <td className="text-right tabular-nums font-medium">{fmtUzs(v.value)}</td>
                       <td className="text-right tabular-nums text-muted-foreground">{share.toFixed(1)}%</td>
                       <td className={cn("text-right tabular-nums", Math.abs(ch) < 0.5 ? "text-muted-foreground" : ch > 0 ? "text-primary" : "text-destructive")}>
