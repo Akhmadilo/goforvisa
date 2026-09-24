@@ -137,7 +137,8 @@ export function MonthCompareInsights() {
       if (er > 50) list.push({ tone: "bad", text: t("mom.i.expRatio", { p: er.toFixed(1) }) });
     }
     // Category concentration & biggest saving
-    if (cur.expenses > 0) {
+    // Skip concentration when the month's expenses are too small to be meaningful (e.g. month not closed yet).
+    if (cur.expenses > 0 && cur.expenses >= base.expenses * 0.3) {
       const [bc, bv] = Object.entries(cur.cats).sort((a, b) => b[1] - a[1])[0] ?? ["", 0];
       if (bc && bv / cur.expenses > 0.4) list.push({ tone: "info", text: t("mom.i.catConc", { c: bc, p: ((bv / cur.expenses) * 100).toFixed(1) }) });
     }
