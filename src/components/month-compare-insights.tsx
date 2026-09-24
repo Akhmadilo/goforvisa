@@ -115,7 +115,7 @@ export function MonthCompareInsights() {
     }
     let top = "", topV = 0;
     for (const [c, v] of Object.entries(cur.cats)) { const d = v - (base.cats[c] ?? 0); if (d > topV) { topV = d; top = c; } }
-    if (top) list.push({ tone: "info", text: t("mom.i.topCat", { c: top, v: fmtUzs(topV) }) });
+    if (top && topV >= base.expenses * 0.1) list.push({ tone: "info", text: t("mom.i.topCat", { c: top, v: fmtUzs(topV) }) });
     if (cur.contracts !== Math.round(base.contracts)) list.push({ tone: cur.contracts > base.contracts ? "good" : "bad", text: t(cur.contracts > base.contracts ? "mom.i.contractsUp" : "mom.i.contractsDown", { a: Math.round(base.contracts), b: cur.contracts }) });
     const f = pct(cur.fines, base.fines);
     if (f >= 20 && cur.fines > 0) list.push({ tone: "bad", text: t("mom.i.finesUp", { p: p(f) }) });
@@ -137,7 +137,8 @@ export function MonthCompareInsights() {
       if (er > 50) list.push({ tone: "bad", text: t("mom.i.expRatio", { p: er.toFixed(1) }) });
     }
     // Category concentration & biggest saving
-    if (cur.expenses > 0) {
+    // Skip concentration when the month's expenses are too small to be meaningful (e.g. month not closed yet).
+    if (cur.expenses > 0 && cur.expenses >= base.expenses * 0.3) {
       const [bc, bv] = Object.entries(cur.cats).sort((a, b) => b[1] - a[1])[0] ?? ["", 0];
       if (bc && bv / cur.expenses > 0.4) list.push({ tone: "info", text: t("mom.i.catConc", { c: bc, p: ((bv / cur.expenses) * 100).toFixed(1) }) });
     }
