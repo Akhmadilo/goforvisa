@@ -13,10 +13,12 @@ import { cn } from "@/lib/utils";
 type Metrics = {
   revenue: number;
   contracts: number;
+  contractValue: number;
   expenses: number;
   salaries: number;
   fines: number;
   cats: Record<string, number>;
+  mgr: Record<string, { count: number; value: number }>;
 };
 
 const ym = (y: number, m: number) => `${y}-${String(m).padStart(2, "0")}`;
@@ -46,7 +48,7 @@ export function MonthCompareInsights() {
     queryFn: async () => {
       const [pay, con, exp, sal, fin] = await Promise.all([
         supabase.from("contract_payments").select("amount,currency,paid_at").gte("paid_at", from).lt("paid_at", to),
-        supabase.from("contracts").select("contract_date").gte("contract_date", from).lt("contract_date", to),
+        supabase.from("contracts").select("contract_date,price_uzs,price_usd,sales_manager").gte("contract_date", from).lt("contract_date", to),
         supabase.from("expenses").select("total_amount,currency,expense_date,category").gte("expense_date", from).lt("expense_date", to),
         supabase.from("salaries").select("year,month,fixed_amount,kpi_amount,penalty_amount").in("year", [ppy, py, y]),
         supabase.from("fines").select("amount_uzs,date").gte("date", from).lt("date", to),
@@ -56,12 +58,20 @@ export function MonthCompareInsights() {
   });
 
   const { cur, prev, prev2 } = useMemo(() => {
-    const blank = (): Metrics => ({ revenue: 0, contracts: 0, expenses: 0, salaries: 0, fines: 0, cats: {} });
+    const blank = (): Metrics => ({ revenue: 0, contracts: 0, contractValue: 0, expenses: 0, salaries: 0, fines: 0, cats: {}, mgr: {} });
     const out: Record<string, Metrics> = { [sel]: blank(), [ym(py, pm)]: blank(), [ym(ppy, ppm)]: blank() };
     const toUzs = (amt: number, cur: string, key: string) => (cur?.toUpperCase() === "USD" ? amt * getRate(key) : amt);
     if (data) {
       for (const p of data.pay as any[]) { const k = String(p.paid_at).slice(0, 7); if (out[k]) out[k].revenue += toUzs(Number(p.amount), p.currency, k); }
-      for (const c of data.con as any[]) { const k = String(c.contract_date).slice(0, 7); if (out[k]) out[k].contracts += 1; }
+      for (const c of data.con as any[]) {
+        const k = String(c.contract_date).slice(0, 7); if (!out[k]) continue;
+        out[k].contracts += 1;
+        const v = Number(c.price_uzs) > 0 ? Number(c.price_uzs) : Number(c.price_usd) * getRate(k);
+        out[k].contractValue += v;
+        const mName = (c.sales_manager || "—").trim() || "—";
+        out[k].mgr[mName] = out[k].mgr[mName] ?? { count: 0, value: 0 };
+        out[k].mgr[mName].count += 1; out[k].mgr[mName].value += v;
+      }
       for (const e of data.exp as any[]) {
         const k = String(e.expense_date).slice(0, 7); if (!out[k]) continue;
         const v = toUzs(Number(e.total_amount), e.currency, k);
@@ -82,10 +92,12 @@ export function MonthCompareInsights() {
     return {
       revenue: (prev.revenue + prev2.revenue) / 2,
       contracts: (prev.contracts + prev2.contracts) / 2,
+      contractValue: (prev.contractValue + prev2.contractValue) / 2,
       expenses: (prev.expenses + prev2.expenses) / 2,
       salaries: (prev.salaries + prev2.salaries) / 2,
       fines: (prev.fines + prev2.fines) / 2,
       cats,
+      mgr: {},
     };
   }, [prev, prev2]);
 
@@ -141,6 +153,7 @@ export function MonthCompareInsights() {
     if (cur.revenue > 0 || cur.expenses > 0) list.push(n < 0
       ? { tone: "bad", text: t("mom.i.netLoss", { v: fmtUzs(n) }) }
       : { tone: "good", text: t("mom.i.netProfit", { v: fmtUzs(n), p: cur.revenue ? ((n / cur.revenue) * 100).toFixed(1) : "0" }) });
+    if (cur.contractValue > 0 && cur.revenue > 0 && cur.contractValue > cur.revenue * 1.3) list.push({ tone: "info", text: t("mom.i.debt", { a: fmtUzs(cur.contractValue), b: fmtUzs(cur.revenue) }) });
     if (!list.length) list.push({ tone: "info", text: t("mom.i.stable") });
     return list;
   }, [cur, prev, prev2, base, t]);
@@ -168,6 +181,8 @@ export function MonthCompareInsights() {
   const rows: { key: string; c: number; p: number; p2: number; count?: boolean; inverse?: boolean }[] = [
     { key: "mom.m.revenue", c: cur.revenue, p: prev.revenue, p2: prev2.revenue },
     { key: "mom.m.contracts", c: cur.contracts, p: prev.contracts, p2: prev2.contracts, count: true },
+    { key: "mom.m.contractValue", c: cur.contractValue, p: prev.contractValue, p2: prev2.contractValue },
+    { key: "mom.m.avgCheck", c: cur.contracts ? cur.contractValue / cur.contracts : 0, p: prev.contracts ? prev.contractValue / prev.contracts : 0, p2: prev2.contracts ? prev2.contractValue / prev2.contracts : 0 },
     { key: "mom.m.expenses", c: cur.expenses, p: prev.expenses, p2: prev2.expenses, inverse: true },
     { key: "mom.m.salaries", c: cur.salaries, p: prev.salaries, p2: prev2.salaries, inverse: true },
     { key: "mom.m.fines", c: cur.fines, p: prev.fines, p2: prev2.fines },
@@ -231,6 +246,41 @@ export function MonthCompareInsights() {
           })}
         </div>
       </div>
+      {Object.keys(cur.mgr).length > 0 && (
+        <div className="space-y-2">
+          <div className="text-sm font-medium">{t("mom.sales.title")}</div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="text-muted-foreground border-b border-border">
+                <th className="text-left py-2">{t("mom.sales.manager")}</th>
+                <th className="text-right">{t("mom.m.contracts")}</th>
+                <th className="text-right">{t("mom.sales.value")}</th>
+                <th className="text-right">{t("mom.sales.share")}</th>
+                <th className="text-right">{t("mom.change")}</th>
+              </tr></thead>
+              <tbody>
+                {Object.entries(cur.mgr).sort((a, b) => b[1].value - a[1].value).map(([name, v]) => {
+                  const pv = prev.mgr[name]?.value ?? 0;
+                  const ch = pct(v.value, pv);
+                  const share = cur.contractValue > 0 ? (v.value / cur.contractValue) * 100 : 0;
+                  const Icon = Math.abs(ch) < 0.5 ? Minus : ch > 0 ? TrendingUp : TrendingDown;
+                  return (
+                    <tr key={name} className="border-b border-border/50">
+                      <td className="py-2">{name}</td>
+                      <td className="text-right tabular-nums">{v.count}</td>
+                      <td className="text-right tabular-nums font-medium">{fmtUzs(v.value)}</td>
+                      <td className="text-right tabular-nums text-muted-foreground">{share.toFixed(1)}%</td>
+                      <td className={cn("text-right tabular-nums", Math.abs(ch) < 0.5 ? "text-muted-foreground" : ch > 0 ? "text-primary" : "text-destructive")}>
+                        <span className="inline-flex items-center gap-1"><Icon className="h-3.5 w-3.5" />{pv === 0 && v.value > 0 ? t("mom.sales.new") : `${ch > 0 ? "+" : ""}${ch.toFixed(1)}%`}</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
       <div className="rounded-md border border-border bg-muted/30 p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
