@@ -131,7 +131,7 @@ export function MonthCompareInsights() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2"><Lightbulb className="h-5 w-5 text-primary" />{t("mom.title")}</h3>
-          <p className="text-sm text-muted-foreground">{t("mom.subtitle", { cur: `${months[m - 1]} ${y}`, prev: `${months[pm - 1]} ${py}` })}</p>
+          <p className="text-sm text-muted-foreground">{t("mom.subtitle", { cur: `${months[m - 1]} ${y}`, prev: `${months[pm - 1]} ${py}`, prev2: `${months[ppm - 1]} ${ppy}` })}</p>
         </div>
         <select aria-label={t("mom.month")} value={sel} onChange={(e) => setSel(e.target.value)} className="h-9 rounded-md border border-border bg-background px-2 text-sm">
           {options.map((o) => { const [oy, om] = o.split("-").map(Number); return <option key={o} value={o}>{months[om! - 1]} {oy}</option>; })}
@@ -142,7 +142,7 @@ export function MonthCompareInsights() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="text-muted-foreground border-b border-border">
-              <th className="text-left py-2">{t("mom.metric")}</th><th className="text-right">{t("mom.previous")}</th><th className="text-right">{t("mom.current")}</th><th className="text-right">{t("mom.change")}</th>
+              <th className="text-left py-2">{t("mom.metric")}</th><th className="text-right">{months[ppm - 1]}</th><th className="text-right">{months[pm - 1]}</th><th className="text-right">{months[m - 1]}</th><th className="text-right">{t("mom.change")}</th>
             </tr></thead>
             <tbody>
               {rows.map((r) => {
@@ -152,6 +152,7 @@ export function MonthCompareInsights() {
                 return (
                   <tr key={r.key} className="border-b border-border/50">
                     <td className="py-2">{t(r.key)}</td>
+                    <td className="text-right tabular-nums text-muted-foreground">{r.count ? r.p2 : fmtUzs(r.p2)}</td>
                     <td className="text-right tabular-nums text-muted-foreground">{r.count ? r.p : fmtUzs(r.p)}</td>
                     <td className="text-right tabular-nums font-medium">{r.count ? r.c : fmtUzs(r.c)}</td>
                     <td className={cn("text-right tabular-nums", Math.abs(ch) < 0.5 ? "text-muted-foreground" : good ? "text-primary" : "text-destructive")}>
