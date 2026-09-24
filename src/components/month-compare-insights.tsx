@@ -110,15 +110,15 @@ export function MonthCompareInsights() {
       : { tone: "good", text: t("mom.i.netProfit", { v: fmtUzs(n), p: cur.revenue ? ((n / cur.revenue) * 100).toFixed(1) : "0" }) });
     if (!list.length) list.push({ tone: "info", text: t("mom.i.stable") });
     return list;
-  }, [cur, prev, t]);
+  }, [cur, base, t]);
 
-  const rows: { key: string; c: number; p: number; count?: boolean; inverse?: boolean }[] = [
-    { key: "mom.m.revenue", c: cur.revenue, p: prev.revenue },
-    { key: "mom.m.contracts", c: cur.contracts, p: prev.contracts, count: true },
-    { key: "mom.m.expenses", c: cur.expenses, p: prev.expenses, inverse: true },
-    { key: "mom.m.salaries", c: cur.salaries, p: prev.salaries, inverse: true },
-    { key: "mom.m.fines", c: cur.fines, p: prev.fines },
-    { key: "mom.m.net", c: net(cur), p: net(prev) },
+  const rows: { key: string; c: number; p: number; p2: number; count?: boolean; inverse?: boolean }[] = [
+    { key: "mom.m.revenue", c: cur.revenue, p: prev.revenue, p2: prev2.revenue },
+    { key: "mom.m.contracts", c: cur.contracts, p: prev.contracts, p2: prev2.contracts, count: true },
+    { key: "mom.m.expenses", c: cur.expenses, p: prev.expenses, p2: prev2.expenses, inverse: true },
+    { key: "mom.m.salaries", c: cur.salaries, p: prev.salaries, p2: prev2.salaries, inverse: true },
+    { key: "mom.m.fines", c: cur.fines, p: prev.fines, p2: prev2.fines },
+    { key: "mom.m.net", c: net(cur), p: net(prev), p2: net(prev2) },
   ];
 
   const options = Array.from({ length: 12 }, (_, i) => {
