@@ -1,6 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { TrendingUp, TrendingDown, Minus, Lightbulb, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { TrendingUp, TrendingDown, Minus, Lightbulb, AlertTriangle, CheckCircle2, Sparkles, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { generateAiInsight } from "@/lib/ai-insights.functions";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useUsdRates } from "@/lib/usd-rates";
@@ -104,13 +107,63 @@ export function MonthCompareInsights() {
     if (cur.contracts !== Math.round(base.contracts)) list.push({ tone: cur.contracts > base.contracts ? "good" : "bad", text: t(cur.contracts > base.contracts ? "mom.i.contractsUp" : "mom.i.contractsDown", { a: Math.round(base.contracts), b: cur.contracts }) });
     const f = pct(cur.fines, base.fines);
     if (f >= 20 && cur.fines > 0) list.push({ tone: "bad", text: t("mom.i.finesUp", { p: p(f) }) });
+    if (f <= -20 && base.fines > 0) list.push({ tone: "good", text: t("mom.i.finesDown", { p: p(f) }) });
+    // 3-month consistent trends
+    if (prev2.revenue > 0 && prev2.revenue < prev.revenue && prev.revenue < cur.revenue) list.push({ tone: "good", text: t("mom.i.revTrendUp") });
+    if (prev2.revenue > 0 && prev2.revenue > prev.revenue && prev.revenue > cur.revenue) list.push({ tone: "bad", text: t("mom.i.revTrendDown") });
+    if (prev2.expenses > 0 && prev2.expenses < prev.expenses && prev.expenses < cur.expenses) list.push({ tone: "bad", text: t("mom.i.expTrendUp") });
+    // Average revenue per contract
+    if (cur.contracts > 0 && base.contracts > 0) {
+      const a = cur.revenue / cur.contracts, b = base.revenue / base.contracts;
+      const d = pct(a, b);
+      if (Math.abs(d) >= 10) list.push({ tone: d > 0 ? "good" : "bad", text: t(d > 0 ? "mom.i.avgUp" : "mom.i.avgDown", { v: fmtUzs(a), p: p(d) }) });
+    }
+    if (cur.contracts > base.contracts && r < -5) list.push({ tone: "bad", text: t("mom.i.contractsUpRevDown") });
+    // Expense ratio
+    if (cur.revenue > 0 && cur.expenses > 0) {
+      const er = (cur.expenses / cur.revenue) * 100;
+      if (er > 50) list.push({ tone: "bad", text: t("mom.i.expRatio", { p: er.toFixed(1) }) });
+    }
+    // Category concentration & biggest saving
+    if (cur.expenses > 0) {
+      const [bc, bv] = Object.entries(cur.cats).sort((a, b) => b[1] - a[1])[0] ?? ["", 0];
+      if (bc && bv / cur.expenses > 0.4) list.push({ tone: "info", text: t("mom.i.catConc", { c: bc, p: ((bv / cur.expenses) * 100).toFixed(1) }) });
+    }
+    let low = "", lowV = 0;
+    for (const [c, v] of Object.entries(base.cats)) { const d = (cur.cats[c] ?? 0) - v; if (d < lowV) { lowV = d; low = c; } }
+    if (low) list.push({ tone: "good", text: t("mom.i.catSaved", { c: low, v: fmtUzs(-lowV) }) });
+    // Margin change vs last month (percentage points)
+    if (cur.revenue > 0 && prev.revenue > 0) {
+      const mc = (net(cur) / cur.revenue) * 100, mp = (net(prev) / prev.revenue) * 100;
+      if (Math.abs(mc - mp) >= 3) list.push({ tone: mc > mp ? "good" : "bad", text: t(mc > mp ? "mom.i.marginUp" : "mom.i.marginDown", { p: Math.abs(mc - mp).toFixed(1) }) });
+    }
     const n = net(cur);
     if (cur.revenue > 0 || cur.expenses > 0) list.push(n < 0
       ? { tone: "bad", text: t("mom.i.netLoss", { v: fmtUzs(n) }) }
       : { tone: "good", text: t("mom.i.netProfit", { v: fmtUzs(n), p: cur.revenue ? ((n / cur.revenue) * 100).toFixed(1) : "0" }) });
     if (!list.length) list.push({ tone: "info", text: t("mom.i.stable") });
     return list;
-  }, [cur, base, t]);
+  }, [cur, prev, prev2, base, t]);
+
+  const genAi = useServerFn(generateAiInsight);
+  const aiKey = `ai-insight:${sel}:${lang}`;
+  const [ai, setAi] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiErr, setAiErr] = useState<string | null>(null);
+  useEffect(() => { setAi(localStorage.getItem(aiKey)); setAiErr(null); }, [aiKey]);
+  const runAi = async () => {
+    setAiLoading(true); setAiErr(null);
+    try {
+      const lines = [
+        ["Revenue", prev2.revenue, prev.revenue, cur.revenue], ["New contracts", prev2.contracts, prev.contracts, cur.contracts],
+        ["Expenses", prev2.expenses, prev.expenses, cur.expenses], ["Payroll", prev2.salaries, prev.salaries, cur.salaries],
+        ["Fines", prev2.fines, prev.fines, cur.fines], ["Net", net(prev2), net(prev), net(cur)],
+      ].map((l) => `${l[0]}: ${l.slice(1).map((v) => Math.round(Number(v))).join(" | ")}`).join("\n");
+      const cats = Object.entries(cur.cats).map(([c, v]) => `${c}: ${Math.round(v)} (baseline ${Math.round(base.cats[c] ?? 0)})`).join("\n");
+      const res = await genAi({ data: { lang, period: `${months[ppm - 1]} ${ppy} | ${months[pm - 1]} ${py} | ${months[m - 1]} ${y}`, data: `${lines}\n\nExpense categories current month:\n${cats}\n\nRule-based findings:\n${insights.map((i) => "- " + i.text).join("\n")}` } });
+      setAi(res.text); localStorage.setItem(aiKey, res.text);
+    } catch (e: any) { setAiErr(e?.message ?? "Error"); } finally { setAiLoading(false); }
+  };
 
   const rows: { key: string; c: number; p: number; p2: number; count?: boolean; inverse?: boolean }[] = [
     { key: "mom.m.revenue", c: cur.revenue, p: prev.revenue, p2: prev2.revenue },
