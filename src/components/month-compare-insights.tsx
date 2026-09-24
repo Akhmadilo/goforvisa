@@ -231,6 +231,20 @@ export function MonthCompareInsights() {
           })}
         </div>
       </div>
+      <div className="rounded-md border border-border bg-muted/30 p-4 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="text-sm font-semibold flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" />{t("mom.ai.title")}</div>
+            <p className="text-xs text-muted-foreground">{t("mom.ai.hint")}</p>
+          </div>
+          <Button size="sm" onClick={runAi} disabled={aiLoading}>
+            {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {aiLoading ? t("mom.ai.loading") : ai ? t("mom.ai.again") : t("mom.ai.get")}
+          </Button>
+        </div>
+        {aiErr && <div className="text-sm text-destructive">{aiErr}</div>}
+        {ai && <div className="text-sm whitespace-pre-wrap leading-relaxed">{ai.replace(/\*\*/g, "")}</div>}
+      </div>
     </Card>
   );
 }
