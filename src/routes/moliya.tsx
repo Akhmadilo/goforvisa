@@ -33,6 +33,7 @@ import { useUsdRates } from "@/lib/usd-rates";
 import { useT, getMonthNames } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { FinanceInsights } from "@/components/finance-insights";
+import { MonthCompareInsights } from "@/components/month-compare-insights";
 import { CashFlowStatement } from "@/components/cash-flow-statement";
 import { CashFlowIas7 } from "@/components/cash-flow-ias7";
 import { toast } from "sonner";
@@ -1102,6 +1103,8 @@ function FinancePage() {
               </div>
             </div>
           </Card>
+
+          <MonthCompareInsights />
 
           <FinanceInsights
             contracts={contracts}
