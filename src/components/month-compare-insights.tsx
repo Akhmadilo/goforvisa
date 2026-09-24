@@ -29,7 +29,9 @@ export function MonthCompareInsights() {
   const [y, m] = sel.split("-").map(Number) as [number, number];
   const py = m === 1 ? y - 1 : y;
   const pm = m === 1 ? 12 : m - 1;
-  const from = `${py}-${String(pm).padStart(2, "0")}-01`;
+  const ppy = pm === 1 ? py - 1 : py;
+  const ppm = pm === 1 ? 12 : pm - 1;
+  const from = `${ppy}-${String(ppm).padStart(2, "0")}-01`;
   const toD = new Date(y, m, 1);
   const to = `${toD.getFullYear()}-${String(toD.getMonth() + 1).padStart(2, "0")}-01`;
   const { getRate } = useUsdRates();
@@ -43,16 +45,16 @@ export function MonthCompareInsights() {
         supabase.from("contract_payments").select("amount,currency,paid_at").gte("paid_at", from).lt("paid_at", to),
         supabase.from("contracts").select("contract_date").gte("contract_date", from).lt("contract_date", to),
         supabase.from("expenses").select("total_amount,currency,expense_date,category").gte("expense_date", from).lt("expense_date", to),
-        supabase.from("salaries").select("year,month,fixed_amount,kpi_amount,penalty_amount").in("year", [py, y]),
+        supabase.from("salaries").select("year,month,fixed_amount,kpi_amount,penalty_amount").in("year", [ppy, py, y]),
         supabase.from("fines").select("amount_uzs,date").gte("date", from).lt("date", to),
       ]);
       return { pay: pay.data ?? [], con: con.data ?? [], exp: exp.data ?? [], sal: sal.data ?? [], fin: fin.data ?? [] };
     },
   });
 
-  const { cur, prev } = useMemo(() => {
+  const { cur, prev, prev2 } = useMemo(() => {
     const blank = (): Metrics => ({ revenue: 0, contracts: 0, expenses: 0, salaries: 0, fines: 0, cats: {} });
-    const out: Record<string, Metrics> = { [sel]: blank(), [ym(py, pm)]: blank() };
+    const out: Record<string, Metrics> = { [sel]: blank(), [ym(py, pm)]: blank(), [ym(ppy, ppm)]: blank() };
     const toUzs = (amt: number, cur: string, key: string) => (cur?.toUpperCase() === "USD" ? amt * getRate(key) : amt);
     if (data) {
       for (const p of data.pay as any[]) { const k = String(p.paid_at).slice(0, 7); if (out[k]) out[k].revenue += toUzs(Number(p.amount), p.currency, k); }
@@ -65,8 +67,8 @@ export function MonthCompareInsights() {
       for (const s of data.sal as any[]) { const k = ym(s.year, s.month); if (out[k]) out[k].salaries += Number(s.fixed_amount) + Number(s.kpi_amount) - Number(s.penalty_amount); }
       for (const f of data.fin as any[]) { const k = String(f.date).slice(0, 7); if (out[k]) out[k].fines += Number(f.amount_uzs); }
     }
-    return { cur: out[sel]!, prev: out[ym(py, pm)]! };
-  }, [data, sel, py, pm, getRate]);
+    return { cur: out[sel]!, prev: out[ym(py, pm)]!, prev2: out[ym(ppy, ppm)]! };
+  }, [data, sel, py, pm, ppy, ppm, getRate]);
 
   const net = (x: Metrics) => x.revenue - x.expenses - x.salaries;
 
