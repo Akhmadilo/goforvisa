@@ -72,9 +72,23 @@ export function MonthCompareInsights() {
 
   const net = (x: Metrics) => x.revenue - x.expenses - x.salaries;
 
+  // Baseline = average of the two previous months.
+  const base: Metrics = useMemo(() => {
+    const cats: Record<string, number> = {};
+    for (const c of new Set([...Object.keys(prev.cats), ...Object.keys(prev2.cats)])) cats[c] = ((prev.cats[c] ?? 0) + (prev2.cats[c] ?? 0)) / 2;
+    return {
+      revenue: (prev.revenue + prev2.revenue) / 2,
+      contracts: (prev.contracts + prev2.contracts) / 2,
+      expenses: (prev.expenses + prev2.expenses) / 2,
+      salaries: (prev.salaries + prev2.salaries) / 2,
+      fines: (prev.fines + prev2.fines) / 2,
+      cats,
+    };
+  }, [prev, prev2]);
+
   const insights = useMemo(() => {
     const list: { tone: "good" | "bad" | "info"; text: string }[] = [];
-    const r = pct(cur.revenue, prev.revenue), e = pct(cur.expenses, prev.expenses), s = pct(cur.salaries, prev.salaries);
+    const r = pct(cur.revenue, base.revenue), e = pct(cur.expenses, base.expenses), s = pct(cur.salaries, base.salaries);
     const p = (v: number) => Math.abs(v).toFixed(1);
     if (Math.abs(r) >= 5) list.push({ tone: r > 0 ? "good" : "bad", text: t(r > 0 ? "mom.i.revUp" : "mom.i.revDown", { p: p(r) }) });
     if (Math.abs(e) >= 5) list.push({ tone: e > 0 ? "bad" : "good", text: t(e > 0 ? "mom.i.expUp" : "mom.i.expDown", { p: p(e) }) });
