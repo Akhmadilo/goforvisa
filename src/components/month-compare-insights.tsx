@@ -29,7 +29,9 @@ export function MonthCompareInsights() {
   const [y, m] = sel.split("-").map(Number) as [number, number];
   const py = m === 1 ? y - 1 : y;
   const pm = m === 1 ? 12 : m - 1;
-  const from = `${py}-${String(pm).padStart(2, "0")}-01`;
+  const ppy = pm === 1 ? py - 1 : py;
+  const ppm = pm === 1 ? 12 : pm - 1;
+  const from = `${ppy}-${String(ppm).padStart(2, "0")}-01`;
   const toD = new Date(y, m, 1);
   const to = `${toD.getFullYear()}-${String(toD.getMonth() + 1).padStart(2, "0")}-01`;
   const { getRate } = useUsdRates();
@@ -43,16 +45,16 @@ export function MonthCompareInsights() {
         supabase.from("contract_payments").select("amount,currency,paid_at").gte("paid_at", from).lt("paid_at", to),
         supabase.from("contracts").select("contract_date").gte("contract_date", from).lt("contract_date", to),
         supabase.from("expenses").select("total_amount,currency,expense_date,category").gte("expense_date", from).lt("expense_date", to),
-        supabase.from("salaries").select("year,month,fixed_amount,kpi_amount,penalty_amount").in("year", [py, y]),
+        supabase.from("salaries").select("year,month,fixed_amount,kpi_amount,penalty_amount").in("year", [ppy, py, y]),
         supabase.from("fines").select("amount_uzs,date").gte("date", from).lt("date", to),
       ]);
       return { pay: pay.data ?? [], con: con.data ?? [], exp: exp.data ?? [], sal: sal.data ?? [], fin: fin.data ?? [] };
     },
   });
 
-  const { cur, prev } = useMemo(() => {
+  const { cur, prev, prev2 } = useMemo(() => {
     const blank = (): Metrics => ({ revenue: 0, contracts: 0, expenses: 0, salaries: 0, fines: 0, cats: {} });
-    const out: Record<string, Metrics> = { [sel]: blank(), [ym(py, pm)]: blank() };
+    const out: Record<string, Metrics> = { [sel]: blank(), [ym(py, pm)]: blank(), [ym(ppy, ppm)]: blank() };
     const toUzs = (amt: number, cur: string, key: string) => (cur?.toUpperCase() === "USD" ? amt * getRate(key) : amt);
     if (data) {
       for (const p of data.pay as any[]) { const k = String(p.paid_at).slice(0, 7); if (out[k]) out[k].revenue += toUzs(Number(p.amount), p.currency, k); }
@@ -65,14 +67,28 @@ export function MonthCompareInsights() {
       for (const s of data.sal as any[]) { const k = ym(s.year, s.month); if (out[k]) out[k].salaries += Number(s.fixed_amount) + Number(s.kpi_amount) - Number(s.penalty_amount); }
       for (const f of data.fin as any[]) { const k = String(f.date).slice(0, 7); if (out[k]) out[k].fines += Number(f.amount_uzs); }
     }
-    return { cur: out[sel]!, prev: out[ym(py, pm)]! };
-  }, [data, sel, py, pm, getRate]);
+    return { cur: out[sel]!, prev: out[ym(py, pm)]!, prev2: out[ym(ppy, ppm)]! };
+  }, [data, sel, py, pm, ppy, ppm, getRate]);
 
   const net = (x: Metrics) => x.revenue - x.expenses - x.salaries;
 
+  // Baseline = average of the two previous months.
+  const base: Metrics = useMemo(() => {
+    const cats: Record<string, number> = {};
+    for (const c of new Set([...Object.keys(prev.cats), ...Object.keys(prev2.cats)])) cats[c] = ((prev.cats[c] ?? 0) + (prev2.cats[c] ?? 0)) / 2;
+    return {
+      revenue: (prev.revenue + prev2.revenue) / 2,
+      contracts: (prev.contracts + prev2.contracts) / 2,
+      expenses: (prev.expenses + prev2.expenses) / 2,
+      salaries: (prev.salaries + prev2.salaries) / 2,
+      fines: (prev.fines + prev2.fines) / 2,
+      cats,
+    };
+  }, [prev, prev2]);
+
   const insights = useMemo(() => {
     const list: { tone: "good" | "bad" | "info"; text: string }[] = [];
-    const r = pct(cur.revenue, prev.revenue), e = pct(cur.expenses, prev.expenses), s = pct(cur.salaries, prev.salaries);
+    const r = pct(cur.revenue, base.revenue), e = pct(cur.expenses, base.expenses), s = pct(cur.salaries, base.salaries);
     const p = (v: number) => Math.abs(v).toFixed(1);
     if (Math.abs(r) >= 5) list.push({ tone: r > 0 ? "good" : "bad", text: t(r > 0 ? "mom.i.revUp" : "mom.i.revDown", { p: p(r) }) });
     if (Math.abs(e) >= 5) list.push({ tone: e > 0 ? "bad" : "good", text: t(e > 0 ? "mom.i.expUp" : "mom.i.expDown", { p: p(e) }) });
@@ -83,10 +99,10 @@ export function MonthCompareInsights() {
       list.push({ tone: ratio > 40 ? "bad" : "good", text: t(ratio > 40 ? "mom.i.salRatio" : "mom.i.salRatioOk", { p: ratio.toFixed(1) }) });
     }
     let top = "", topV = 0;
-    for (const [c, v] of Object.entries(cur.cats)) { const d = v - (prev.cats[c] ?? 0); if (d > topV) { topV = d; top = c; } }
+    for (const [c, v] of Object.entries(cur.cats)) { const d = v - (base.cats[c] ?? 0); if (d > topV) { topV = d; top = c; } }
     if (top) list.push({ tone: "info", text: t("mom.i.topCat", { c: top, v: fmtUzs(topV) }) });
-    if (cur.contracts !== prev.contracts) list.push({ tone: cur.contracts > prev.contracts ? "good" : "bad", text: t(cur.contracts > prev.contracts ? "mom.i.contractsUp" : "mom.i.contractsDown", { a: prev.contracts, b: cur.contracts }) });
-    const f = pct(cur.fines, prev.fines);
+    if (cur.contracts !== Math.round(base.contracts)) list.push({ tone: cur.contracts > base.contracts ? "good" : "bad", text: t(cur.contracts > base.contracts ? "mom.i.contractsUp" : "mom.i.contractsDown", { a: Math.round(base.contracts), b: cur.contracts }) });
+    const f = pct(cur.fines, base.fines);
     if (f >= 20 && cur.fines > 0) list.push({ tone: "bad", text: t("mom.i.finesUp", { p: p(f) }) });
     const n = net(cur);
     if (cur.revenue > 0 || cur.expenses > 0) list.push(n < 0
@@ -94,15 +110,15 @@ export function MonthCompareInsights() {
       : { tone: "good", text: t("mom.i.netProfit", { v: fmtUzs(n), p: cur.revenue ? ((n / cur.revenue) * 100).toFixed(1) : "0" }) });
     if (!list.length) list.push({ tone: "info", text: t("mom.i.stable") });
     return list;
-  }, [cur, prev, t]);
+  }, [cur, base, t]);
 
-  const rows: { key: string; c: number; p: number; count?: boolean; inverse?: boolean }[] = [
-    { key: "mom.m.revenue", c: cur.revenue, p: prev.revenue },
-    { key: "mom.m.contracts", c: cur.contracts, p: prev.contracts, count: true },
-    { key: "mom.m.expenses", c: cur.expenses, p: prev.expenses, inverse: true },
-    { key: "mom.m.salaries", c: cur.salaries, p: prev.salaries, inverse: true },
-    { key: "mom.m.fines", c: cur.fines, p: prev.fines },
-    { key: "mom.m.net", c: net(cur), p: net(prev) },
+  const rows: { key: string; c: number; p: number; p2: number; count?: boolean; inverse?: boolean }[] = [
+    { key: "mom.m.revenue", c: cur.revenue, p: prev.revenue, p2: prev2.revenue },
+    { key: "mom.m.contracts", c: cur.contracts, p: prev.contracts, p2: prev2.contracts, count: true },
+    { key: "mom.m.expenses", c: cur.expenses, p: prev.expenses, p2: prev2.expenses, inverse: true },
+    { key: "mom.m.salaries", c: cur.salaries, p: prev.salaries, p2: prev2.salaries, inverse: true },
+    { key: "mom.m.fines", c: cur.fines, p: prev.fines, p2: prev2.fines },
+    { key: "mom.m.net", c: net(cur), p: net(prev), p2: net(prev2) },
   ];
 
   const options = Array.from({ length: 12 }, (_, i) => {
@@ -115,7 +131,7 @@ export function MonthCompareInsights() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="text-lg font-semibold flex items-center gap-2"><Lightbulb className="h-5 w-5 text-primary" />{t("mom.title")}</h3>
-          <p className="text-sm text-muted-foreground">{t("mom.subtitle", { cur: `${months[m - 1]} ${y}`, prev: `${months[pm - 1]} ${py}` })}</p>
+          <p className="text-sm text-muted-foreground">{t("mom.subtitle", { cur: `${months[m - 1]} ${y}`, prev: `${months[pm - 1]} ${py}`, prev2: `${months[ppm - 1]} ${ppy}` })}</p>
         </div>
         <select aria-label={t("mom.month")} value={sel} onChange={(e) => setSel(e.target.value)} className="h-9 rounded-md border border-border bg-background px-2 text-sm">
           {options.map((o) => { const [oy, om] = o.split("-").map(Number); return <option key={o} value={o}>{months[om! - 1]} {oy}</option>; })}
@@ -126,7 +142,7 @@ export function MonthCompareInsights() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="text-muted-foreground border-b border-border">
-              <th className="text-left py-2">{t("mom.metric")}</th><th className="text-right">{t("mom.previous")}</th><th className="text-right">{t("mom.current")}</th><th className="text-right">{t("mom.change")}</th>
+              <th className="text-left py-2">{t("mom.metric")}</th><th className="text-right">{months[ppm - 1]}</th><th className="text-right">{months[pm - 1]}</th><th className="text-right">{months[m - 1]}</th><th className="text-right">{t("mom.change")}</th>
             </tr></thead>
             <tbody>
               {rows.map((r) => {
@@ -136,6 +152,7 @@ export function MonthCompareInsights() {
                 return (
                   <tr key={r.key} className="border-b border-border/50">
                     <td className="py-2">{t(r.key)}</td>
+                    <td className="text-right tabular-nums text-muted-foreground">{r.count ? r.p2 : fmtUzs(r.p2)}</td>
                     <td className="text-right tabular-nums text-muted-foreground">{r.count ? r.p : fmtUzs(r.p)}</td>
                     <td className="text-right tabular-nums font-medium">{r.count ? r.c : fmtUzs(r.c)}</td>
                     <td className={cn("text-right tabular-nums", Math.abs(ch) < 0.5 ? "text-muted-foreground" : good ? "text-primary" : "text-destructive")}>
