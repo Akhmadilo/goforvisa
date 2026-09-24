@@ -92,10 +92,12 @@ export function MonthCompareInsights() {
     return {
       revenue: (prev.revenue + prev2.revenue) / 2,
       contracts: (prev.contracts + prev2.contracts) / 2,
+      contractValue: (prev.contractValue + prev2.contractValue) / 2,
       expenses: (prev.expenses + prev2.expenses) / 2,
       salaries: (prev.salaries + prev2.salaries) / 2,
       fines: (prev.fines + prev2.fines) / 2,
       cats,
+      mgr: {},
     };
   }, [prev, prev2]);
 
@@ -178,6 +180,8 @@ export function MonthCompareInsights() {
   const rows: { key: string; c: number; p: number; p2: number; count?: boolean; inverse?: boolean }[] = [
     { key: "mom.m.revenue", c: cur.revenue, p: prev.revenue, p2: prev2.revenue },
     { key: "mom.m.contracts", c: cur.contracts, p: prev.contracts, p2: prev2.contracts, count: true },
+    { key: "mom.m.contractValue", c: cur.contractValue, p: prev.contractValue, p2: prev2.contractValue },
+    { key: "mom.m.avgCheck", c: cur.contracts ? cur.contractValue / cur.contracts : 0, p: prev.contracts ? prev.contractValue / prev.contracts : 0, p2: prev2.contracts ? prev2.contractValue / prev2.contracts : 0 },
     { key: "mom.m.expenses", c: cur.expenses, p: prev.expenses, p2: prev2.expenses, inverse: true },
     { key: "mom.m.salaries", c: cur.salaries, p: prev.salaries, p2: prev2.salaries, inverse: true },
     { key: "mom.m.fines", c: cur.fines, p: prev.fines, p2: prev2.fines },
