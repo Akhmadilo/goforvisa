@@ -45,6 +45,8 @@ export function MonthCompareInsights() {
     queryKey: ["mom-insights", sel],
     staleTime: 60_000,
     refetchInterval: 5 * 60_000,
+    retry: 3,
+    retryDelay: (n) => Math.min(2000 * 2 ** n, 15_000),
     queryFn: async () => {
       const [pay, con, exp, sal, fin] = await Promise.all([
         supabase.from("contract_payments").select("amount,currency,paid_at").gte("paid_at", from).lt("paid_at", to),
@@ -53,6 +55,8 @@ export function MonthCompareInsights() {
         supabase.from("salaries").select("year,month,fixed_amount,kpi_amount,penalty_amount").in("year", [ppy, py, y]),
         supabase.from("fines").select("amount_uzs,date").gte("date", from).lt("date", to),
       ]);
+      const err = pay.error || con.error || exp.error || sal.error || fin.error;
+      if (err) throw err; // don't cache zeros when the database is temporarily unreachable
       return { pay: pay.data ?? [], con: con.data ?? [], exp: exp.data ?? [], sal: sal.data ?? [], fin: fin.data ?? [] };
     },
   });
