@@ -99,10 +99,10 @@ export function MonthCompareInsights() {
       list.push({ tone: ratio > 40 ? "bad" : "good", text: t(ratio > 40 ? "mom.i.salRatio" : "mom.i.salRatioOk", { p: ratio.toFixed(1) }) });
     }
     let top = "", topV = 0;
-    for (const [c, v] of Object.entries(cur.cats)) { const d = v - (prev.cats[c] ?? 0); if (d > topV) { topV = d; top = c; } }
+    for (const [c, v] of Object.entries(cur.cats)) { const d = v - (base.cats[c] ?? 0); if (d > topV) { topV = d; top = c; } }
     if (top) list.push({ tone: "info", text: t("mom.i.topCat", { c: top, v: fmtUzs(topV) }) });
-    if (cur.contracts !== prev.contracts) list.push({ tone: cur.contracts > prev.contracts ? "good" : "bad", text: t(cur.contracts > prev.contracts ? "mom.i.contractsUp" : "mom.i.contractsDown", { a: prev.contracts, b: cur.contracts }) });
-    const f = pct(cur.fines, prev.fines);
+    if (cur.contracts !== Math.round(base.contracts)) list.push({ tone: cur.contracts > base.contracts ? "good" : "bad", text: t(cur.contracts > base.contracts ? "mom.i.contractsUp" : "mom.i.contractsDown", { a: Math.round(base.contracts), b: cur.contracts }) });
+    const f = pct(cur.fines, base.fines);
     if (f >= 20 && cur.fines > 0) list.push({ tone: "bad", text: t("mom.i.finesUp", { p: p(f) }) });
     const n = net(cur);
     if (cur.revenue > 0 || cur.expenses > 0) list.push(n < 0
