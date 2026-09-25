@@ -430,7 +430,6 @@ function CommissionKpi({
         .select(`id, client_name, contract_no, ${managerField}, price_usd, commission, visa_result`)
         .not(managerField, "is", null)
         .gt("price_usd", 0)
-        .gt("commission", 0)
         .limit(20000);
       if (error) throw error;
       return data ?? [];
@@ -464,10 +463,10 @@ function CommissionKpi({
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("sales_kpi_rates")
-        .select("manager_name, rate_per_usd")
-        .eq("role", role);
+        .select("manager_name, rate_per_usd, role")
+        .in("role", [role, `${role}_pc`, `${role}_mode`]);
       if (error) throw error;
-      return (data ?? []) as { manager_name: string; rate_per_usd: number }[];
+      return (data ?? []) as { manager_name: string; rate_per_usd: number; role: string }[];
     },
     staleTime: 10 * 60_000,
     gcTime: 30 * 60_000,
@@ -487,24 +486,38 @@ function CommissionKpi({
     gcTime: 10 * 60_000,
   });
 
+  const rowsOf = (r: string) => (rates ?? []).filter((x) => x.role === r);
+  const findRow = (r: string, name: string) => {
+    const key = normalizeName(name).toLowerCase();
+    return rowsOf(r).find((x) => normalizeName(x.manager_name).toLowerCase() === key);
+  };
   const defaultRate = useMemo(() => {
-    const r = (rates ?? []).find((x) => x.manager_name === DEFAULT_RATE_KEY);
+    const r = (rates ?? []).find((x) => x.role === role && x.manager_name === DEFAULT_RATE_KEY);
     return r ? Number(r.rate_per_usd) : 500;
-  }, [rates]);
+  }, [rates, role]);
+  const defaultPc = useMemo(() => {
+    const r = (rates ?? []).find((x) => x.role === `${role}_pc` && x.manager_name === DEFAULT_RATE_KEY);
+    return r ? Number(r.rate_per_usd) : 150000;
+  }, [rates, role]);
 
   const rateFor = (name: string): number => {
-    const key = normalizeName(name).toLowerCase();
-    const r = (rates ?? []).find((x) => normalizeName(x.manager_name).toLowerCase() === key);
+    const r = findRow(role, name);
     return r ? Number(r.rate_per_usd) : defaultRate;
   };
+  const pcFor = (name: string): number => {
+    const r = findRow(`${role}_pc`, name);
+    return r ? Number(r.rate_per_usd) : defaultPc;
+  };
+  /** true = paid per fully-paid contract (fixed so'm), false = commission × rate. */
+  const isPerContract = (name: string): boolean => Number(findRow(`${role}_mode`, name)?.rate_per_usd ?? 0) === 1;
 
 
 
   const setRate = useMutation({
-    mutationFn: async ({ name, rate }: { name: string; rate: number }) => {
+    mutationFn: async ({ name, rate, kind }: { name: string; rate: number; kind?: string }) => {
       const { error } = await (supabase as any)
         .from("sales_kpi_rates")
-        .upsert({ manager_name: name, rate_per_usd: rate, role }, { onConflict: "role,manager_name" });
+        .upsert({ manager_name: name, rate_per_usd: rate, role: kind ?? role }, { onConflict: "role,manager_name" });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -581,7 +594,8 @@ function CommissionKpi({
       if (isCancelledResult(c.visa_result)) continue;
       const price = Number(c.price_usd ?? 0);
       const commissionUsd = Number(c.commission ?? 0);
-      if (price <= 0 || commissionUsd <= 0) continue;
+      const perContract = isPerContract(name);
+      if (price <= 0 || (!perContract && commissionUsd <= 0)) continue;
       const ps = byContract.get(c.id) ?? [];
       let running = 0;
       let completionDate: string | null = null;
@@ -600,8 +614,7 @@ function CommissionKpi({
       // paid_at is a plain date string — parse it without timezone shifts.
       const [cy, cm] = completionDate.slice(0, 10).split("-").map(Number);
       if (cy !== yNum || cm !== mNum) continue;
-      const rate = rateFor(name);
-      const bonus = Math.round(commissionUsd * rate);
+      const bonus = perContract ? Math.round(pcFor(name)) : Math.round(commissionUsd * rateFor(name));
       const key = name.toLowerCase();
       const g = groups.get(key) ?? { label: name, items: [] };
       g.items.push({
@@ -629,7 +642,7 @@ function CommissionKpi({
       })
       .sort((a, b) => b.total - a.total);
     return list;
-  }, [contracts, payments, year, month, getRate, rates, approvals, managerField]);
+  }, [contracts, payments, year, month, getRate, rates, approvals, managerField, role]);
 
   const allNames = useMemo(() => managerGroups.map((g) => g.name), [managerGroups]);
   const filteredGroups = useMemo(
@@ -680,6 +693,8 @@ function CommissionKpi({
                     <TableHead>{managerLabel}</TableHead>
                     <TableHead className="w-48">{t("kpix.rate")}</TableHead>
                     <TableHead className="text-right">{t("kpix.equivalent")}</TableHead>
+                    <TableHead className="w-44">{t("kpix.calcMode")}</TableHead>
+                    <TableHead className="w-48">{t("kpix.perContract")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -692,6 +707,13 @@ function CommissionKpi({
                       />
                     </TableCell>
                     <TableCell className="text-right text-muted-foreground text-sm">{fmt(defaultRate * 100)} so'm / $100</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">—</TableCell>
+                    <TableCell>
+                      <RateEditor
+                        initial={defaultPc}
+                        onSave={(v) => setRate.mutate({ name: DEFAULT_RATE_KEY, rate: v, kind: `${role}_pc` })}
+                      />
+                    </TableCell>
                   </TableRow>
                   {filteredGroups.map((g) => {
                     const cur = rateFor(g.name);
@@ -705,6 +727,24 @@ function CommissionKpi({
                           />
                         </TableCell>
                         <TableCell className="text-right text-muted-foreground text-sm">{fmt(cur * 100)} so'm / $100</TableCell>
+                        <TableCell>
+                          <Select
+                            value={isPerContract(g.name) ? "pc" : "commission"}
+                            onValueChange={(v) => setRate.mutate({ name: g.name, rate: v === "pc" ? 1 : 0, kind: `${role}_mode` })}
+                          >
+                            <SelectTrigger className="h-8 w-40"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="commission">{t("kpix.modeCommission")}</SelectItem>
+                              <SelectItem value="pc">{t("kpix.modePerContract")}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                        <TableCell>
+                          <RateEditor
+                            initial={pcFor(g.name)}
+                            onSave={(v) => setRate.mutate({ name: g.name, rate: v, kind: `${role}_pc` })}
+                          />
+                        </TableCell>
                       </TableRow>
                     );
                   })}
