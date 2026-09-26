@@ -1,0 +1,11 @@
+CREATE INDEX IF NOT EXISTS idx_contract_payments_tenant_paid_at ON public.contract_payments (tenant_id, paid_at);
+CREATE INDEX IF NOT EXISTS idx_contracts_tenant_contract_date ON public.contracts (tenant_id, contract_date);
+CREATE INDEX IF NOT EXISTS idx_expenses_tenant_expense_date ON public.expenses (tenant_id, expense_date);
+CREATE INDEX IF NOT EXISTS idx_fines_tenant_date ON public.fines (tenant_id, date);
+CREATE INDEX IF NOT EXISTS idx_salaries_tenant_year_month ON public.salaries (tenant_id, year, month);
+CREATE INDEX IF NOT EXISTS idx_expense_payments_tenant_paid_at ON public.expense_payments (tenant_id, paid_at);
+ANALYZE public.contract_payments;
+ANALYZE public.contracts;
+ANALYZE public.expenses;
+ANALYZE public.fines;
+ANALYZE public.salaries;
