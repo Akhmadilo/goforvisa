@@ -41,48 +41,53 @@ export function MonthCompareInsights() {
   const to = `${toD.getFullYear()}-${String(toD.getMonth() + 1).padStart(2, "0")}-01`;
   const { getRate } = useUsdRates();
 
+  // One pre-aggregated round trip instead of five parallel table scans.
   const { data } = useQuery({
     queryKey: ["mom-insights", sel],
-    staleTime: 60_000,
-    refetchInterval: 5 * 60_000,
-    retry: 3,
-    retryDelay: (n) => Math.min(2000 * 2 ** n, 15_000),
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchInterval: 15 * 60_000,
+    retry: 2,
+    retryDelay: (n) => Math.min(3000 * 2 ** n, 20_000),
     queryFn: async () => {
-      const [pay, con, exp, sal, fin] = await Promise.all([
-        supabase.from("contract_payments").select("amount,currency,paid_at").gte("paid_at", from).lt("paid_at", to),
-        supabase.from("contracts").select("contract_date,price_uzs,price_usd,sales_manager").gte("contract_date", from).lt("contract_date", to),
-        supabase.from("expenses").select("total_amount,currency,expense_date,category").gte("expense_date", from).lt("expense_date", to),
-        supabase.from("salaries").select("year,month,fixed_amount,kpi_amount,penalty_amount").in("year", [ppy, py, y]),
-        supabase.from("fines").select("amount_uzs,date").gte("date", from).lt("date", to),
-      ]);
-      const err = pay.error || con.error || exp.error || sal.error || fin.error;
-      if (err) throw err; // don't cache zeros when the database is temporarily unreachable
-      return { pay: pay.data ?? [], con: con.data ?? [], exp: exp.data ?? [], sal: sal.data ?? [], fin: fin.data ?? [] };
+      const { data, error } = await supabase.rpc("month_compare_metrics", {
+        _from: from,
+        _to: to,
+        _years: Array.from(new Set([ppy, py, y])),
+      });
+      if (error) throw error; // don't cache zeros when the database is temporarily unreachable
+      return (data ?? { pay: [], con: [], exp: [], sal: [], fin: [] }) as {
+        pay: { k: string; c: string; a: number }[];
+        con: { k: string; mgr: string; n: number; uzs: number; usd: number }[];
+        exp: { k: string; cat: string; c: string; a: number }[];
+        sal: { k: string; a: number }[];
+        fin: { k: string; a: number }[];
+      };
     },
   });
 
   const { cur, prev, prev2 } = useMemo(() => {
     const blank = (): Metrics => ({ revenue: 0, contracts: 0, contractValue: 0, expenses: 0, salaries: 0, fines: 0, cats: {}, mgr: {} });
     const out: Record<string, Metrics> = { [sel]: blank(), [ym(py, pm)]: blank(), [ym(ppy, ppm)]: blank() };
-    const toUzs = (amt: number, cur: string, key: string) => (cur?.toUpperCase() === "USD" ? amt * getRate(key) : amt);
+    const toUzs = (amt: number, curr: string, key: string) => (curr === "USD" ? amt * getRate(key) : amt);
     if (data) {
-      for (const p of data.pay as any[]) { const k = String(p.paid_at).slice(0, 7); if (out[k]) out[k].revenue += toUzs(Number(p.amount), p.currency, k); }
-      for (const c of data.con as any[]) {
-        const k = String(c.contract_date).slice(0, 7); if (!out[k]) continue;
-        out[k].contracts += 1;
-        const v = Number(c.price_uzs) > 0 ? Number(c.price_uzs) : Number(c.price_usd) * getRate(k);
-        out[k].contractValue += v;
-        const mName = (c.sales_manager || "—").trim() || "—";
-        out[k].mgr[mName] = out[k].mgr[mName] ?? { count: 0, value: 0 };
-        out[k].mgr[mName].count += 1; out[k].mgr[mName].value += v;
+      for (const p of data.pay ?? []) { if (out[p.k]) out[p.k]!.revenue += toUzs(Number(p.a), p.c, p.k); }
+      for (const c of data.con ?? []) {
+        const row = out[c.k]; if (!row) continue;
+        const v = Number(c.uzs) + Number(c.usd) * getRate(c.k);
+        row.contracts += Number(c.n);
+        row.contractValue += v;
+        row.mgr[c.mgr] = row.mgr[c.mgr] ?? { count: 0, value: 0 };
+        row.mgr[c.mgr]!.count += Number(c.n); row.mgr[c.mgr]!.value += v;
       }
-      for (const e of data.exp as any[]) {
-        const k = String(e.expense_date).slice(0, 7); if (!out[k]) continue;
-        const v = toUzs(Number(e.total_amount), e.currency, k);
-        out[k].expenses += v; out[k].cats[e.category] = (out[k].cats[e.category] ?? 0) + v;
+      for (const e of data.exp ?? []) {
+        const row = out[e.k]; if (!row) continue;
+        const v = toUzs(Number(e.a), e.c, e.k);
+        row.expenses += v; row.cats[e.cat] = (row.cats[e.cat] ?? 0) + v;
       }
-      for (const s of data.sal as any[]) { const k = ym(s.year, s.month); if (out[k]) out[k].salaries += Number(s.fixed_amount) + Number(s.kpi_amount) - Number(s.penalty_amount); }
-      for (const f of data.fin as any[]) { const k = String(f.date).slice(0, 7); if (out[k]) out[k].fines += Number(f.amount_uzs); }
+      for (const s of data.sal ?? []) { if (out[s.k]) out[s.k]!.salaries += Number(s.a); }
+      for (const f of data.fin ?? []) { if (out[f.k]) out[f.k]!.fines += Number(f.a); }
     }
     return { cur: out[sel]!, prev: out[ym(py, pm)]!, prev2: out[ym(ppy, ppm)]! };
   }, [data, sel, py, pm, ppy, ppm, getRate]);
