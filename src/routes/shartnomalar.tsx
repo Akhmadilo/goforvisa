@@ -196,7 +196,7 @@ function ShartnomalarPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contracts")
-        .select("id, year, month, client_name, contract_no, contract_date, price_uzs, price_usd, docs_usd, commission, people, note, contract_type, phone, call_centre, sales_manager, back_office_manager, company, visa_result, visa_taken_date, client_photo_url, contract_pdf_url, created_at")
+        .select("id, year, month, client_name, contract_no, contract_date, price_uzs, price_usd, docs_usd, commission, people, note, contract_type, phone, call_centre, sales_manager, back_office_manager, company, visa_result, visa_taken_date, client_photo_url, contract_pdf_url, created_at, created_by")
         .order("created_at", { ascending: true });
       if (error) throw error;
       const rows = (data ?? []) as unknown as ContractRow[];
@@ -216,11 +216,11 @@ function ShartnomalarPage() {
   });
 
   const { data: creatorNames = new Map<string, string>() } = useQuery({
-    queryKey: ["contract-creators", (contracts ?? []).length],
-    enabled: !!contracts?.length,
+    queryKey: ["contract-creators", (data ?? []).length],
+    enabled: !!data?.length,
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const ids = Array.from(new Set((contracts ?? []).map((c: any) => c.created_by).filter(Boolean)));
+      const ids = Array.from(new Set((data ?? []).map((c: any) => c.created_by).filter(Boolean)));
       if (!ids.length) return new Map<string, string>();
       const { data } = await supabase.from("profiles").select("id, display_name").in("id", ids);
       return new Map((data ?? []).map((p: any) => [p.id, p.display_name ?? ""]));
