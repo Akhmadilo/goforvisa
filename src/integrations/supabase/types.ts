@@ -296,6 +296,7 @@ export type Database = {
           method: string | null
           note: string | null
           paid_at: string
+          received_by: string | null
           tenant_id: string
           updated_at: string
         }
@@ -309,6 +310,7 @@ export type Database = {
           method?: string | null
           note?: string | null
           paid_at?: string
+          received_by?: string | null
           tenant_id?: string
           updated_at?: string
         }
@@ -322,6 +324,7 @@ export type Database = {
           method?: string | null
           note?: string | null
           paid_at?: string
+          received_by?: string | null
           tenant_id?: string
           updated_at?: string
         }

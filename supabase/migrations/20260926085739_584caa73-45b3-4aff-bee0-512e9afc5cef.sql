@@ -1,0 +1,1 @@
+ALTER TABLE public.contract_payments ADD COLUMN IF NOT EXISTS received_by text;
