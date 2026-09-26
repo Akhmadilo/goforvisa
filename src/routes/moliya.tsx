@@ -157,11 +157,22 @@ function FinancePage() {
   const fmt = useMemo(() => makeFmt(currency), [currency]);
   const canAccessFinance = !!user && !permsLoading && can("finance_section");
 
+  // Shared cache settings: keep finance reads warm so revisiting the page
+  // doesn't fire four full-table reads against the database again.
+  const financeQuery = {
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    retry: 2,
+    retryDelay: (n: number) => Math.min(3000 * 2 ** n, 20_000),
+  } as const;
+
   const fetchContracts = useServerFn(getContracts);
   const { data: contracts = [] } = useQuery({
     queryKey: ["contracts"],
     queryFn: () => fetchContracts(),
     enabled: canAccessFinance,
+    ...financeQuery,
   });
 
   const { data: expenses = [] } = useQuery({
@@ -173,6 +184,7 @@ function FinancePage() {
       return (data ?? []) as Expense[];
     },
     enabled: canAccessFinance,
+    ...financeQuery,
   });
 
   const { data: payments = [] } = useQuery({
@@ -184,6 +196,7 @@ function FinancePage() {
       return (data ?? []) as Payment[];
     },
     enabled: canAccessFinance,
+    ...financeQuery,
   });
 
   const { data: salaries = [] } = useQuery({
@@ -196,6 +209,7 @@ function FinancePage() {
       return (data ?? []) as Salary[];
     },
     enabled: canAccessFinance,
+    ...financeQuery,
   });
 
   const { getRate } = useUsdRates();
