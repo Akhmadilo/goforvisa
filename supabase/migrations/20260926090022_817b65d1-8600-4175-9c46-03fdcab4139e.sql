@@ -1,0 +1,1 @@
+ALTER TABLE public.bot_settings ADD COLUMN IF NOT EXISTS payment_receivers text[] NOT NULL DEFAULT ARRAY['Saodat','Muhiddin']::text[];
