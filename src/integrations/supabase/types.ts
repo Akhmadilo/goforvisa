@@ -1915,6 +1915,10 @@ export type Database = {
         Returns: boolean
       }
       is_platform_admin: { Args: never; Returns: boolean }
+      month_compare_metrics: {
+        Args: { _from: string; _to: string; _years: number[] }
+        Returns: Json
+      }
       recompute_expense_status: {
         Args: { _expense_id: string }
         Returns: undefined
