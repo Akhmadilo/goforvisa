@@ -220,10 +220,10 @@ function ShartnomalarPage() {
     enabled: !!data?.length,
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const ids = Array.from(new Set((data ?? []).map((c: any) => c.created_by).filter(Boolean)));
+      const ids: string[] = Array.from(new Set((data ?? []).map((c: any) => c.created_by).filter(Boolean)));
       if (!ids.length) return new Map<string, string>();
-      const { data } = await supabase.from("profiles").select("id, display_name").in("id", ids);
-      return new Map((data ?? []).map((p: any) => [p.id, p.display_name ?? ""]));
+      const { data: profs } = await supabase.from("profiles").select("id, display_name").in("id", ids);
+      return new Map((profs ?? []).map((p: any) => [p.id, p.display_name ?? ""]));
     },
   });
 
