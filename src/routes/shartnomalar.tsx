@@ -652,6 +652,8 @@ function ShartnomalarPage() {
             </div>
           </div>
 
+          <DailyPaymentsCard />
+
           <Card>
             <CardContent className="p-3">
               <div className="flex flex-wrap items-end gap-2">
@@ -1618,6 +1620,102 @@ function PaymentsDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function DailyPaymentsCard() {
+  const { t, lang } = useT();
+  const fmt = (n: number) => Number(n).toLocaleString(localeOf(lang), { maximumFractionDigits: 2 });
+  const [date, setDate] = useState<Date>(new Date());
+  const day = format(date, "yyyy-MM-dd");
+
+  const { data: rows = [], isFetching } = useQuery({
+    queryKey: ["daily-payments", day],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("contract_payments")
+        .select("id, contract_id, amount, currency, paid_at, method, note, received_by")
+        .eq("paid_at", day)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      const pays = (data ?? []) as PaymentRow[];
+      const ids = Array.from(new Set(pays.map((p) => p.contract_id)));
+      let names = new Map<string, string>();
+      if (ids.length) {
+        const { data: ctrs } = await supabase.from("contracts").select("id, client_name, contract_no").in("id", ids);
+        names = new Map((ctrs ?? []).map((c: any) => [c.id, c.client_name + (c.contract_no ? ` (№${c.contract_no})` : "")]));
+      }
+      return pays.map((p) => ({ ...p, client: names.get(p.contract_id) ?? "—" }));
+    },
+  });
+
+  let totUzs = 0, totUsd = 0;
+  rows.forEach((p) => {
+    if ((p.currency || "").toUpperCase() === "USD") totUsd += Number(p.amount) || 0;
+    else totUzs += Number(p.amount) || 0;
+  });
+  const totalStr = [totUzs ? `${fmt(totUzs)} so'm` : "", totUsd ? `$${fmt(totUsd)}` : ""].filter(Boolean).join(" + ") || "0";
+
+  return (
+    <Card>
+      <CardHeader className="p-3 pb-2 flex flex-row items-center justify-between gap-2 flex-wrap">
+        <CardTitle className="text-sm font-semibold">{t("daily.title")}</CardTitle>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="justify-start text-left font-normal">
+              <CalendarIcon className="h-4 w-4 mr-1" />
+              {format(date, "yyyy-MM-dd")}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={(d) => d && setDate(d)}
+              initialFocus
+              className="p-3 pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
+      </CardHeader>
+      <CardContent className="p-3 pt-0">
+        {rows.length === 0 ? (
+          <p className="text-sm text-muted-foreground py-3 text-center">
+            {isFetching ? "…" : t("daily.empty")}
+          </p>
+        ) : (
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("contracts.col.client")}</TableHead>
+                  <TableHead className="text-right">{t("contracts.col.amount")}</TableHead>
+                  <TableHead>{t("contracts.col.method")}</TableHead>
+                  <TableHead>{t("contracts.col.receiver")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((p) => (
+                  <TableRow key={p.id}>
+                    <TableCell className="text-sm">{(p as any).client}</TableCell>
+                    <TableCell className="text-right font-medium tabular-nums whitespace-nowrap">
+                      {p.currency === "USD" ? `$${fmt(Number(p.amount))}` : `${fmt(Number(p.amount))} so'm`}
+                    </TableCell>
+                    <TableCell>{payMethodLabel(p.method)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{p.received_by ?? "—"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            <div className="mt-2 pt-2 border-t text-sm font-semibold flex justify-between">
+              <span>{t("daily.total")}: {totalStr}</span>
+              <span className="text-muted-foreground font-normal">{rows.length} {t("daily.count")}</span>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
