@@ -102,7 +102,7 @@ export const getBotSettings = createServerFn({ method: "GET" })
 
 export const saveBotSettings = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: Partial<BotSettings>) =>
+  .inputValidator((d: Partial<BotSettings> & { payment_receivers?: string[] }) =>
     z
       .object({
         notify_on_payment: z.boolean(),
@@ -113,6 +113,7 @@ export const saveBotSettings = createServerFn({ method: "POST" })
         payment_template: z.string().trim().min(1).max(1000),
         employee_features: z.record(z.string(), z.boolean()).default({}),
         welcome_text: z.string().trim().max(1000).nullable().default(null),
+        payment_receivers: z.array(z.string().trim().min(1).max(60)).max(20).default(["Saodat", "Muhiddin"]),
       })
       .parse(d),
   )

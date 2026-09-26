@@ -91,7 +91,19 @@ type PaymentRow = {
   received_by: string | null;
 };
 
-const PAY_RECEIVERS = ["Saodat", "Muhiddin"] as const;
+const DEFAULT_RECEIVERS = ["Saodat", "Muhiddin"];
+function usePayReceivers(): string[] {
+  const { data } = useQuery({
+    queryKey: ["pay-receivers"],
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase.from("bot_settings").select("*").maybeSingle();
+      const list = ((data as any)?.payment_receivers as string[] | undefined)?.filter(Boolean);
+      return list && list.length ? list : DEFAULT_RECEIVERS;
+    },
+  });
+  return data ?? DEFAULT_RECEIVERS;
+}
 
 const PAY_METHODS = [
   { value: "cash", label: "💵 Naqd" },
@@ -1317,7 +1329,8 @@ function PaymentsDialog({
   const [method, setMethod] = useState<string>("cash");
 
   const [note, setNote] = useState<string>("");
-  const [receiver, setReceiver] = useState<string>("Saodat");
+  const PAY_RECEIVERS = usePayReceivers();
+  const [receiver, setReceiver] = useState<string>(DEFAULT_RECEIVERS[0]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -1325,7 +1338,7 @@ function PaymentsDialog({
       setAmount(0);
       setPaidAt(new Date().toISOString().slice(0, 10));
       setMethod("cash");
-      setReceiver("Saodat");
+      setReceiver(PAY_RECEIVERS[0] ?? "");
       setNote("");
     }
   }, [open, contract?.id]);

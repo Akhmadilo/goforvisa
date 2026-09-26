@@ -174,6 +174,7 @@ export type Database = {
           mention_bosses: boolean
           notify_on_contract: boolean
           notify_on_payment: boolean
+          payment_receivers: string[]
           payment_template: string
           tenant_id: string
           updated_at: string
@@ -187,6 +188,7 @@ export type Database = {
           mention_bosses?: boolean
           notify_on_contract?: boolean
           notify_on_payment?: boolean
+          payment_receivers?: string[]
           payment_template?: string
           tenant_id: string
           updated_at?: string
@@ -200,6 +202,7 @@ export type Database = {
           mention_bosses?: boolean
           notify_on_contract?: boolean
           notify_on_payment?: boolean
+          payment_receivers?: string[]
           payment_template?: string
           tenant_id?: string
           updated_at?: string
