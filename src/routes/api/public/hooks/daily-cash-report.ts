@@ -84,7 +84,7 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
 
           const { data: pays } = await sb
             .from("contract_payments")
-            .select("amount, currency, method, note, contract_id, created_at")
+            .select("amount, currency, method, note, contract_id, created_at, received_by")
             .eq("tenant_id", g.tenant_id)
             .eq("paid_at", date)
             .order("created_at", { ascending: true });
@@ -102,20 +102,49 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
             }
           }
 
+          const isCard = (m: string | null) => {
+            const k = (m || "").toLowerCase().trim();
+            return k === "card" || k === "plastik" || k === "karta";
+          };
+          const isCashM = (m: string | null) => {
+            const k = (m || "").toLowerCase().trim();
+            return !k || k === "cash" || k === "naqd";
+          };
+          const money = (uzs: number, usd: number) =>
+            [uzs ? `${fmt(uzs)} so'm` : "", usd ? `$${fmt(usd)}` : ""].filter(Boolean).join(" + ") || "0";
+
           let totalUzs = 0;
           let totalUsd = 0;
           const lines: string[] = [];
           const details: any[] = [];
+          type Agg = { cashUzs: number; cashUsd: number; cardUzs: number; cardUsd: number; otherUzs: number; otherUsd: number; n: number };
+          const byRecv = new Map<string, Agg>();
           rows.forEach((p, i) => {
             const cur = (p.currency || "UZS").toUpperCase();
             const amt = Number(p.amount) || 0;
-            if (cur === "USD") totalUsd += amt;
+            const usd = cur === "USD";
+            if (usd) totalUsd += amt;
             else totalUzs += amt;
             const client = names[p.contract_id] || "Noma'lum mijoz";
-            const sum = cur === "USD" ? `$${fmt(amt)}` : `${fmt(amt)} so'm`;
-            lines.push(`${i + 1}. ${client}\n    ${sum} — ${methodLabel(p.method)}`);
-            details.push({ client, amount: amt, currency: cur, method: p.method });
+            const recv = (p.received_by || "").trim() || "Belgilanmagan";
+            const sum = usd ? `$${fmt(amt)}` : `${fmt(amt)} so'm`;
+            lines.push(`${i + 1}. ${client}\n    ${sum} — ${methodLabel(p.method)} — 👤 ${recv}`);
+            details.push({ client, amount: amt, currency: cur, method: p.method, received_by: recv });
+            const a = byRecv.get(recv) || { cashUzs: 0, cashUsd: 0, cardUzs: 0, cardUsd: 0, otherUzs: 0, otherUsd: 0, n: 0 };
+            a.n++;
+            if (isCard(p.method)) usd ? (a.cardUsd += amt) : (a.cardUzs += amt);
+            else if (isCashM(p.method)) usd ? (a.cashUsd += amt) : (a.cashUzs += amt);
+            else usd ? (a.otherUsd += amt) : (a.otherUzs += amt);
+            byRecv.set(recv, a);
           });
+
+          const recvBlock = Array.from(byRecv.entries())
+            .map(([r, a]) => {
+              let s = `👤 <b>${r}</b> (${a.n} ta)\n    💵 Naqd: ${money(a.cashUzs, a.cashUsd)}\n    💳 Karta: ${money(a.cardUzs, a.cardUsd)}`;
+              if (a.otherUzs || a.otherUsd) s += `\n    🏦 Boshqa: ${money(a.otherUzs, a.otherUsd)}`;
+              return s;
+            })
+            .join("\n\n");
 
           const isEmpty = rows.length === 0;
           const header = isEmpty
@@ -124,11 +153,8 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
           const body = isEmpty
             ? "❗️ <b>Bugun to'lov qabul qilinmadi.</b>\n\n<b>Jami:</b> 0\n<b>To'lovlar soni:</b> 0"
             : lines.join("\n") +
-              `\n\n<b>Jami:</b> ${totalUzs > 0 ? fmt(totalUzs) + " so'm" : ""}${
-                totalUzs > 0 && totalUsd > 0 ? " + " : ""
-              }${totalUsd > 0 ? "$" + fmt(totalUsd) : ""}${
-                totalUzs === 0 && totalUsd === 0 ? "0" : ""
-              }\n<b>To'lovlar soni:</b> ${rows.length}`;
+              `\n\n<b>Qabul qiluvchilar bo'yicha:</b>\n${recvBlock}` +
+              `\n\n<b>Jami:</b> ${money(totalUzs, totalUsd)}\n<b>To'lovlar soni:</b> ${rows.length}`;
 
           // rahbariyatni (CEO / owner) otmetka qilish (Bot bo'limida o'chirish mumkin)
           const wantMentions = cfg?.mention_bosses !== false;

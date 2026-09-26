@@ -60,6 +60,7 @@ type FormState = {
   payment_template: string;
   employee_features: Record<string, boolean>;
   welcome_text: string;
+  payment_receivers: string;
 };
 
 const DEFAULTS: FormState = {
@@ -71,6 +72,7 @@ const DEFAULTS: FormState = {
   payment_template: DEFAULT_PAYMENT_TEMPLATE,
   employee_features: {},
   welcome_text: "",
+  payment_receivers: "Saodat, Muhiddin",
 };
 
 const ROLE_OPTIONS = [
@@ -148,6 +150,7 @@ function BotPage() {
       payment_template: (s.payment_template || DEFAULT_PAYMENT_TEMPLATE).replace(/%0A/g, "\n"),
       employee_features: (s.employee_features as Record<string, boolean>) || {},
       welcome_text: s.welcome_text || "",
+      payment_receivers: (((s as any).payment_receivers as string[]) || ["Saodat", "Muhiddin"]).join(", "),
     };
     setForm(next);
     setSaved(next);
@@ -163,7 +166,13 @@ function BotPage() {
 
   const saveMut = useMutation({
     mutationFn: () =>
-      saveFn({ data: { ...form, welcome_text: form.welcome_text.trim() || null } }),
+      saveFn({
+        data: {
+          ...form,
+          welcome_text: form.welcome_text.trim() || null,
+          payment_receivers: form.payment_receivers.split(",").map((x) => x.trim()).filter(Boolean),
+        },
+      }),
     onSuccess: () => { setSaved(form); invalidate(); toast.success(t("bot.toast.saved")); },
     onError: (e: any) => toast.error(e?.message || t("bot.toast.error")),
   });
@@ -374,6 +383,19 @@ function BotPage() {
                   checked={form.mention_bosses}
                   disabled={!isAdmin || !form.daily_report_enabled}
                   onCheckedChange={(v) => set("mention_bosses", v)}
+                />
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label>{t("bot.notify.receivers")}</Label>
+                <p className="text-xs text-muted-foreground">{t("bot.notify.receiversDesc")}</p>
+                <Input
+                  value={form.payment_receivers}
+                  disabled={!isAdmin}
+                  placeholder="Saodat, Muhiddin"
+                  onChange={(e) => set("payment_receivers", e.target.value)}
                 />
               </div>
 
