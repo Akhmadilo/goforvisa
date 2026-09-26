@@ -160,6 +160,7 @@ export const miscDict: ExtraDict = {
     "fines.lateTitle": "Kech qolgani uchun",
     "contracts.select": "Tanlang",
     "contracts.selectDate": "Sana tanlang",
+    "contracts.col.receiver": "Qabul qiluvchi",
   },
 
   en: {
@@ -315,6 +316,7 @@ export const miscDict: ExtraDict = {
     "fines.lateTitle": "For being late",
     "contracts.select": "Select",
     "contracts.selectDate": "Select date",
+    "contracts.col.receiver": "Received by",
   },
 
   ru: {
@@ -470,6 +472,7 @@ export const miscDict: ExtraDict = {
     "fines.lateTitle": "За опоздание",
     "contracts.select": "Выберите",
     "contracts.selectDate": "Выберите дату",
+    "contracts.col.receiver": "Принял(а)",
 
   },
 };
