@@ -88,7 +88,10 @@ type PaymentRow = {
   method: string | null;
   note: string | null;
   created_by: string | null;
+  received_by: string | null;
 };
+
+const PAY_RECEIVERS = ["Saodat", "Muhiddin"] as const;
 
 const PAY_METHODS = [
   { value: "cash", label: "💵 Naqd" },
@@ -1276,7 +1279,7 @@ function PaymentsDialog({
       if (!contract) return [];
       const { data, error } = await supabase
         .from("contract_payments")
-        .select("id, contract_id, amount, currency, paid_at, method, note, created_by")
+.select("id, contract_id, amount, currency, paid_at, method, note, created_by, received_by")
         .eq("contract_id", contract.id)
         .order("paid_at", { ascending: false });
       if (error) throw error;
@@ -1314,6 +1317,7 @@ function PaymentsDialog({
   const [method, setMethod] = useState<string>("cash");
 
   const [note, setNote] = useState<string>("");
+  const [receiver, setReceiver] = useState<string>("Saodat");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -1321,7 +1325,7 @@ function PaymentsDialog({
       setAmount(0);
       setPaidAt(new Date().toISOString().slice(0, 10));
       setMethod("cash");
-
+      setReceiver("Saodat");
       setNote("");
     }
   }, [open, contract?.id]);
@@ -1367,6 +1371,7 @@ function PaymentsDialog({
       paid_at: paidAt,
       method: method || null,
       note: note || null,
+      received_by: receiver || null,
       created_by: user?.id ?? null,
     });
     setSaving(false);
@@ -1393,6 +1398,16 @@ function PaymentsDialog({
         paidAt,
       },
     }).catch((e) => console.error("notifyPayment failed", e));
+  };
+
+  const updateReceiver = async (id: string, value: string) => {
+    const { error } = await supabase.from("contract_payments").update({ received_by: value }).eq("id", id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    toast.success(t("toast.saved"));
+    refetch();
   };
 
   const remove = async (id: string) => {
@@ -1493,6 +1508,18 @@ function PaymentsDialog({
                 </SelectContent>
               </Select>
             </Field>
+            <Field label={t("contracts.col.receiver")}>
+              <Select value={receiver} onValueChange={setReceiver}>
+                <SelectTrigger>
+                  <SelectValue placeholder={t("contracts.select")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAY_RECEIVERS.map((r) => (
+                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
 
             <Button onClick={add} disabled={saving || isFullyPaid}>
               <Plus className="h-4 w-4 mr-1" /> {t("common.add")}
@@ -1514,6 +1541,7 @@ function PaymentsDialog({
                 <TableHead>{t("contracts.col.currency")}</TableHead>
                 <TableHead>{t("contracts.col.method")}</TableHead>
                 <TableHead>{t("contracts.col.creator")}</TableHead>
+                <TableHead>{t("contracts.col.receiver")}</TableHead>
                 <TableHead>{t("contracts.col.note")}</TableHead>
                 {canDelete && <TableHead></TableHead>}
               </TableRow>
@@ -1534,6 +1562,22 @@ function PaymentsDialog({
                     <TableCell>{payMethodLabel(p.method)}</TableCell>
                     <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                       {p.created_by ? (payerNameById.get(p.created_by) ?? "—") : "—"}
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {canCreate ? (
+                        <Select value={p.received_by ?? ""} onValueChange={(v) => updateReceiver(p.id, v)}>
+                          <SelectTrigger className="h-7 w-[110px] text-xs">
+                            <SelectValue placeholder="—" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {PAY_RECEIVERS.map((r) => (
+                              <SelectItem key={r} value={r}>{r}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        p.received_by ?? "—"
+                      )}
                     </TableCell>
                     <TableCell>{p.note ?? "—"}</TableCell>
                     {canDelete && (
