@@ -215,6 +215,19 @@ function ShartnomalarPage() {
     enabled: canAccessContracts,
   });
 
+  const { data: creatorNames = new Map<string, string>() } = useQuery({
+    queryKey: ["contract-creators", (contracts ?? []).length],
+    enabled: !!contracts?.length,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const ids = Array.from(new Set((contracts ?? []).map((c: any) => c.created_by).filter(Boolean)));
+      if (!ids.length) return new Map<string, string>();
+      const { data } = await supabase.from("profiles").select("id, display_name").in("id", ids);
+      return new Map((data ?? []).map((p: any) => [p.id, p.display_name ?? ""]));
+    },
+  });
+
+
   const { data: payments } = useQuery({
     queryKey: ["contract-payments"],
     queryFn: async () => {
@@ -818,7 +831,12 @@ function ShartnomalarPage() {
                               )}
                             </TableCell>
                             <TableCell className="whitespace-nowrap">{c.contract_date ?? "—"}</TableCell>
-                            <TableCell className="font-medium whitespace-nowrap">{c.client_name}</TableCell>
+                            <TableCell className="font-medium whitespace-nowrap">
+                              <div>{c.client_name}</div>
+                              {(c as any).created_by && creatorNames.get((c as any).created_by) && (
+                                <div className="text-[10px] font-normal text-muted-foreground/70">{creatorNames.get((c as any).created_by)}</div>
+                              )}
+                            </TableCell>
                             <TableCell className="whitespace-nowrap">{c.contract_no ?? "—"}</TableCell>
                             <TableCell className="whitespace-nowrap">{c.phone ?? "—"}</TableCell>
                             <TableCell className="text-right whitespace-nowrap">
