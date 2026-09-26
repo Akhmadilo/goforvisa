@@ -161,6 +161,11 @@ export const miscDict: ExtraDict = {
     "contracts.select": "Tanlang",
     "contracts.selectDate": "Sana tanlang",
     "contracts.col.receiver": "Qabul qiluvchi",
+    "daily.title": "Kunlik to'lovlar",
+    "daily.pickDate": "Sana tanlang",
+    "daily.empty": "Bu kunda to'lov qabul qilinmagan",
+    "daily.total": "Jami",
+    "daily.count": "ta to'lov",
   },
 
   en: {
@@ -317,6 +322,11 @@ export const miscDict: ExtraDict = {
     "contracts.select": "Select",
     "contracts.selectDate": "Select date",
     "contracts.col.receiver": "Received by",
+    "daily.title": "Daily payments",
+    "daily.pickDate": "Pick a date",
+    "daily.empty": "No payments received on this day",
+    "daily.total": "Total",
+    "daily.count": "payments",
   },
 
   ru: {
@@ -473,6 +483,10 @@ export const miscDict: ExtraDict = {
     "contracts.select": "Выберите",
     "contracts.selectDate": "Выберите дату",
     "contracts.col.receiver": "Принял(а)",
-
+    "daily.title": "Платежи за день",
+    "daily.pickDate": "Выберите дату",
+    "daily.empty": "В этот день платежей не было",
+    "daily.total": "Итого",
+    "daily.count": "платежей",
   },
 };
