@@ -505,6 +505,7 @@ export type Database = {
           id: string
           message_id: number | null
           payments_count: number
+          receiver: string
           status: string
           tenant_id: string
           total_usd: number
@@ -522,6 +523,7 @@ export type Database = {
           id?: string
           message_id?: number | null
           payments_count?: number
+          receiver?: string
           status?: string
           tenant_id?: string
           total_usd?: number
@@ -539,6 +541,7 @@ export type Database = {
           id?: string
           message_id?: number | null
           payments_count?: number
+          receiver?: string
           status?: string
           tenant_id?: string
           total_usd?: number

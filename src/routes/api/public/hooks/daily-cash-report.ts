@@ -113,49 +113,6 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
           const money = (uzs: number, usd: number) =>
             [uzs ? `${fmt(uzs)} so'm` : "", usd ? `$${fmt(usd)}` : ""].filter(Boolean).join(" + ") || "0";
 
-          let totalUzs = 0;
-          let totalUsd = 0;
-          const lines: string[] = [];
-          const details: any[] = [];
-          type Agg = { cashUzs: number; cashUsd: number; cardUzs: number; cardUsd: number; otherUzs: number; otherUsd: number; n: number };
-          const byRecv = new Map<string, Agg>();
-          rows.forEach((p, i) => {
-            const cur = (p.currency || "UZS").toUpperCase();
-            const amt = Number(p.amount) || 0;
-            const usd = cur === "USD";
-            if (usd) totalUsd += amt;
-            else totalUzs += amt;
-            const client = names[p.contract_id] || "Noma'lum mijoz";
-            const recv = (p.received_by || "").trim() || "Belgilanmagan";
-            const sum = usd ? `$${fmt(amt)}` : `${fmt(amt)} so'm`;
-            lines.push(`${i + 1}. ${client}\n    ${sum} — ${methodLabel(p.method)} — 👤 ${recv}`);
-            details.push({ client, amount: amt, currency: cur, method: p.method, received_by: recv });
-            const a = byRecv.get(recv) || { cashUzs: 0, cashUsd: 0, cardUzs: 0, cardUsd: 0, otherUzs: 0, otherUsd: 0, n: 0 };
-            a.n++;
-            if (isCard(p.method)) usd ? (a.cardUsd += amt) : (a.cardUzs += amt);
-            else if (isCashM(p.method)) usd ? (a.cashUsd += amt) : (a.cashUzs += amt);
-            else usd ? (a.otherUsd += amt) : (a.otherUzs += amt);
-            byRecv.set(recv, a);
-          });
-
-          const recvBlock = Array.from(byRecv.entries())
-            .map(([r, a]) => {
-              let s = `👤 <b>${r}</b> (${a.n} ta)\n    💵 Naqd: ${money(a.cashUzs, a.cashUsd)}\n    💳 Karta: ${money(a.cardUzs, a.cardUsd)}`;
-              if (a.otherUzs || a.otherUsd) s += `\n    🏦 Boshqa: ${money(a.otherUzs, a.otherUsd)}`;
-              return s;
-            })
-            .join("\n\n");
-
-          const isEmpty = rows.length === 0;
-          const header = isEmpty
-            ? `📭 <b>Kunlik kassa hisoboti</b>\n🗓 ${date}\n\n`
-            : `📊 <b>Kunlik kassa hisoboti</b>\n🗓 ${date}\n\n`;
-          const body = isEmpty
-            ? "❗️ <b>Bugun to'lov qabul qilinmadi.</b>\n\n<b>Jami:</b> 0\n<b>To'lovlar soni:</b> 0"
-            : lines.join("\n") +
-              `\n\n<b>Qabul qiluvchilar bo'yicha:</b>\n${recvBlock}` +
-              `\n\n<b>Jami:</b> ${money(totalUzs, totalUsd)}\n<b>To'lovlar soni:</b> ${rows.length}`;
-
           // rahbariyatni (CEO / owner) otmetka qilish (Bot bo'limida o'chirish mumkin)
           const wantMentions = cfg?.mention_bosses !== false;
           const { data: bosses } = wantMentions
@@ -165,8 +122,6 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
                 .eq("tenant_id", g.tenant_id)
                 .in("bot_role", ["ceo", "owner"])
             : { data: [] as any[] };
-
-
 
           const mentions = ((bosses || []) as any[])
             .map((b) => {
@@ -180,57 +135,117 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
             })
             .join(" ");
 
-          const text =
-            header +
-            body +
-            (mentions ? `\n\n${mentions}` : "") +
-            "\n\nIltimos, tasdiqlang 👇";
+          // Har bir qabul qiluvchi uchun alohida guruh
+          const byRecv = new Map<string, any[]>();
+          for (const p of rows) {
+            const recv = (p.received_by || "").trim() || "Belgilanmagan";
+            const arr = byRecv.get(recv) || [];
+            arr.push(p);
+            byRecv.set(recv, arr);
+          }
 
-          // upsert report row first (need id for callback data)
-          const { data: rep } = await sb
-            .from("daily_cash_reports")
-            .upsert(
-              {
-                tenant_id: g.tenant_id,
-                chat_id: g.chat_id,
-                date,
-                total_uzs: totalUzs,
-                total_usd: totalUsd,
-                payments_count: rows.length,
+          type Blk = { receiver: string; text: string; totalUzs: number; totalUsd: number; count: number; details: any[] };
+          const blocks: Blk[] = [];
+
+          if (rows.length === 0) {
+            blocks.push({
+              receiver: "",
+              text:
+                `📭 <b>Kunlik kassa hisoboti</b>\n🗓 ${date}\n\n` +
+                "❗️ <b>Bugun to'lov qabul qilinmadi.</b>\n\n<b>Jami:</b> 0\n<b>To'lovlar soni:</b> 0",
+              totalUzs: 0,
+              totalUsd: 0,
+              count: 0,
+              details: [],
+            });
+          } else {
+            for (const [recv, list] of byRecv.entries()) {
+              let tUzs = 0;
+              let tUsd = 0;
+              let cashUzs = 0, cashUsd = 0, cardUzs = 0, cardUsd = 0, othUzs = 0, othUsd = 0;
+              const lines: string[] = [];
+              const details: any[] = [];
+              list.forEach((p, i) => {
+                const cur = (p.currency || "UZS").toUpperCase();
+                const amt = Number(p.amount) || 0;
+                const usd = cur === "USD";
+                if (usd) tUsd += amt; else tUzs += amt;
+                if (isCard(p.method)) usd ? (cardUsd += amt) : (cardUzs += amt);
+                else if (isCashM(p.method)) usd ? (cashUsd += amt) : (cashUzs += amt);
+                else usd ? (othUsd += amt) : (othUzs += amt);
+                const client = names[p.contract_id] || "Noma'lum mijoz";
+                const sum = usd ? `$${fmt(amt)}` : `${fmt(amt)} so'm`;
+                lines.push(`${i + 1}. ${client}\n    ${sum} — ${methodLabel(p.method)}`);
+                details.push({ client, amount: amt, currency: cur, method: p.method, received_by: recv });
+              });
+
+              let sumBlock = `💵 Naqd: ${money(cashUzs, cashUsd)}\n💳 Karta: ${money(cardUzs, cardUsd)}`;
+              if (othUzs || othUsd) sumBlock += `\n🏦 Boshqa: ${money(othUzs, othUsd)}`;
+
+              blocks.push({
+                receiver: recv,
+                text:
+                  `📊 <b>Kunlik kassa hisoboti</b>\n👤 <b>${recv}</b>\n🗓 ${date}\n\n` +
+                  lines.join("\n") +
+                  `\n\n${sumBlock}` +
+                  `\n\n<b>Jami:</b> ${money(tUzs, tUsd)}\n<b>To'lovlar soni:</b> ${list.length}`,
+                totalUzs: tUzs,
+                totalUsd: tUsd,
+                count: list.length,
                 details,
-                status: "pending",
-                message_id: null,
-                decided_by_tg: null,
-                decided_by_name: null,
-                decided_at: null,
-              },
-              { onConflict: "chat_id,date" },
-            )
-            .select("id")
-            .single();
+              });
+            }
+          }
 
-          if (!rep) continue;
+          for (const b of blocks) {
+            const text = b.text + (mentions ? `\n\n${mentions}` : "") + "\n\nIltimos, tasdiqlang 👇";
 
-          const res: any = await tg("sendMessage", {
-            chat_id: g.chat_id,
-            text,
-            parse_mode: "HTML",
-            reply_markup: {
-              inline_keyboard: [
-                [
-                  { text: "✅ Qabul qildim", callback_data: `cash_ok_${rep.id}` },
-                  { text: "❌ Noto'g'ri", callback_data: `cash_no_${rep.id}` },
-                ],
-              ],
-            },
-          });
-
-          if (res?.ok) {
-            sent++;
-            await sb
+            const { data: rep } = await sb
               .from("daily_cash_reports")
-              .update({ message_id: res.result.message_id })
-              .eq("id", rep.id);
+              .upsert(
+                {
+                  tenant_id: g.tenant_id,
+                  chat_id: g.chat_id,
+                  date,
+                  receiver: b.receiver,
+                  total_uzs: b.totalUzs,
+                  total_usd: b.totalUsd,
+                  payments_count: b.count,
+                  details: b.details,
+                  status: "pending",
+                  message_id: null,
+                  decided_by_tg: null,
+                  decided_by_name: null,
+                  decided_at: null,
+                },
+                { onConflict: "chat_id,date,receiver" },
+              )
+              .select("id")
+              .single();
+
+            if (!rep) continue;
+
+            const res: any = await tg("sendMessage", {
+              chat_id: g.chat_id,
+              text,
+              parse_mode: "HTML",
+              reply_markup: {
+                inline_keyboard: [
+                  [
+                    { text: "✅ Qabul qildim", callback_data: `cash_ok_${rep.id}` },
+                    { text: "❌ Noto'g'ri", callback_data: `cash_no_${rep.id}` },
+                  ],
+                ],
+              },
+            });
+
+            if (res?.ok) {
+              sent++;
+              await sb
+                .from("daily_cash_reports")
+                .update({ message_id: res.result.message_id })
+                .eq("id", rep.id);
+            }
           }
         }
 
