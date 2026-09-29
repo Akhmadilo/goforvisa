@@ -135,6 +135,44 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
             })
             .join(" ");
 
+          // Qabul qiluvchining o'zini alohida otmetka qilish uchun ro'yxat
+          const { data: tgUsers } = await sb
+            .from("employee_telegram")
+            .select("telegram_id, telegram_username, first_name, last_name, employees(full_name)")
+            .eq("tenant_id", g.tenant_id);
+
+          const norm = (s: string) =>
+            (s || "")
+              .toLowerCase()
+              .replace(/kh/g, "h")
+              .replace(/[^a-zа-яё\s]/gi, "")
+              .trim();
+
+          const mentionFor = (receiver: string): string => {
+            const key = norm(receiver);
+            if (!key) return "";
+            const first = key.split(/\s+/)[0];
+            const hit = ((tgUsers || []) as any[]).find((u) => {
+              const pool = [
+                u.employees?.full_name,
+                [u.first_name, u.last_name].filter(Boolean).join(" "),
+                u.telegram_username,
+              ]
+                .filter(Boolean)
+                .map((x: string) => norm(x));
+              return pool.some((p) => p.includes(first) || first.includes(p.split(/\s+/)[0]));
+            });
+            if (!hit) return "";
+            const nm =
+              hit.employees?.full_name ||
+              [hit.first_name, hit.last_name].filter(Boolean).join(" ").trim() ||
+              receiver;
+            return hit.telegram_username
+              ? `@${hit.telegram_username}`
+              : `<a href="tg://user?id=${hit.telegram_id}">${nm}</a>`;
+          };
+
+
           // Har bir qabul qiluvchi uchun alohida guruh
           const byRecv = new Map<string, any[]>();
           for (const p of rows) {
