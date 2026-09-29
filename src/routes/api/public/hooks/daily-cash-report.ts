@@ -238,7 +238,15 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
           }
 
           for (const b of blocks) {
-            const text = b.text + (mentions ? `\n\n${mentions}` : "") + "\n\nIltimos, tasdiqlang 👇";
+            const rMention = b.receiver ? mentionFor(b.receiver) : "";
+            const tail = [rMention, mentions].filter(Boolean).join(" ");
+            const text =
+              b.text +
+              (tail ? `\n\n${tail}` : "") +
+              (rMention
+                ? `\n\n${b.receiver}, iltimos tasdiqlang 👇`
+                : "\n\nIltimos, tasdiqlang 👇");
+
 
             const { data: rep } = await sb
               .from("daily_cash_reports")
