@@ -220,13 +220,15 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
               let sumBlock = `💵 Naqd: ${money(cashUzs, cashUsd)}\n💳 Karta: ${money(cardUzs, cardUsd)}`;
               if (othUzs || othUsd) sumBlock += `\n🏦 Boshqa: ${money(othUzs, othUsd)}`;
 
+              const rm = mentionFor(recv);
               blocks.push({
                 receiver: recv,
                 text:
-                  `📊 <b>Kunlik kassa hisoboti</b>\n👤 <b>${recv}</b>\n🗓 ${date}\n\n` +
+                  `📊 <b>Kunlik kassa hisoboti</b>\n👤 <b>${recv}</b>${rm ? ` ${rm}` : ""}\n🗓 ${date}\n\n` +
                   lines.join("\n") +
                   `\n\n${sumBlock}` +
                   `\n\n<b>Jami:</b> ${money(tUzs, tUsd)}\n<b>To'lovlar soni:</b> ${list.length}`,
+
                 totalUzs: tUzs,
                 totalUsd: tUsd,
                 count: list.length,
