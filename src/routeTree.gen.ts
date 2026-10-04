@@ -9,88 +9,28 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as BotRouteImport } from './routes/bot'
-import { Route as EmployeesRouteImport } from './routes/employees'
-import { Route as JarimaRouteImport } from './routes/jarima'
-import { Route as JavoblarRouteImport } from './routes/javoblar'
-import { Route as KpiRouteImport } from './routes/kpi'
-import { Route as MoliyaRouteImport } from './routes/moliya'
-import { Route as PlatformRouteImport } from './routes/platform'
-import { Route as SalariesRouteImport } from './routes/salaries'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as ShartnomalarRouteImport } from './routes/shartnomalar'
-import { Route as TrustRouteImport } from './routes/trust'
 import { Route as XarajatlarRouteImport } from './routes/xarajatlar'
-import { Route as ApiPublicHooksDailyCashReportRouteImport } from './routes/api/public/hooks/daily-cash-report'
-import { Route as ApiPublicHooksWorkReportReminderRouteImport } from './routes/api/public/hooks/work-report-reminder'
+import { Route as TrustRouteImport } from './routes/trust'
+import { Route as ShartnomalarRouteImport } from './routes/shartnomalar'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SalariesRouteImport } from './routes/salaries'
+import { Route as PlatformRouteImport } from './routes/platform'
+import { Route as MoliyaRouteImport } from './routes/moliya'
+import { Route as KpiRouteImport } from './routes/kpi'
+import { Route as JavoblarRouteImport } from './routes/javoblar'
+import { Route as JarimaRouteImport } from './routes/jarima'
+import { Route as EmployeesRouteImport } from './routes/employees'
+import { Route as BotRouteImport } from './routes/bot'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as ApiPublicTelegramWebhookRouteImport } from './routes/api/public/telegram/webhook'
+import { Route as ApiPublicHooksWorkReportReminderRouteImport } from './routes/api/public/hooks/work-report-reminder'
+import { Route as ApiPublicHooksDailyCashReportRouteImport } from './routes/api/public/hooks/daily-cash-report'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BotRoute = BotRouteImport.update({
-  id: '/bot',
-  path: '/bot',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EmployeesRoute = EmployeesRouteImport.update({
-  id: '/employees',
-  path: '/employees',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JarimaRoute = JarimaRouteImport.update({
-  id: '/jarima',
-  path: '/jarima',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JavoblarRoute = JavoblarRouteImport.update({
-  id: '/javoblar',
-  path: '/javoblar',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const KpiRoute = KpiRouteImport.update({
-  id: '/kpi',
-  path: '/kpi',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MoliyaRoute = MoliyaRouteImport.update({
-  id: '/moliya',
-  path: '/moliya',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlatformRoute = PlatformRouteImport.update({
-  id: '/platform',
-  path: '/platform',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SalariesRoute = SalariesRouteImport.update({
-  id: '/salaries',
-  path: '/salaries',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ShartnomalarRoute = ShartnomalarRouteImport.update({
-  id: '/shartnomalar',
-  path: '/shartnomalar',
+const XarajatlarRoute = XarajatlarRouteImport.update({
+  id: '/xarajatlar',
+  path: '/xarajatlar',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TrustRoute = TrustRouteImport.update({
@@ -98,15 +38,75 @@ const TrustRoute = TrustRouteImport.update({
   path: '/trust',
   getParentRoute: () => rootRouteImport,
 } as any)
-const XarajatlarRoute = XarajatlarRouteImport.update({
-  id: '/xarajatlar',
-  path: '/xarajatlar',
+const ShartnomalarRoute = ShartnomalarRouteImport.update({
+  id: '/shartnomalar',
+  path: '/shartnomalar',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicHooksDailyCashReportRoute =
-  ApiPublicHooksDailyCashReportRouteImport.update({
-    id: '/api/public/hooks/daily-cash-report',
-    path: '/api/public/hooks/daily-cash-report',
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SalariesRoute = SalariesRouteImport.update({
+  id: '/salaries',
+  path: '/salaries',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlatformRoute = PlatformRouteImport.update({
+  id: '/platform',
+  path: '/platform',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MoliyaRoute = MoliyaRouteImport.update({
+  id: '/moliya',
+  path: '/moliya',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const KpiRoute = KpiRouteImport.update({
+  id: '/kpi',
+  path: '/kpi',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JavoblarRoute = JavoblarRouteImport.update({
+  id: '/javoblar',
+  path: '/javoblar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JarimaRoute = JarimaRouteImport.update({
+  id: '/jarima',
+  path: '/jarima',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EmployeesRoute = EmployeesRouteImport.update({
+  id: '/employees',
+  path: '/employees',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BotRoute = BotRouteImport.update({
+  id: '/bot',
+  path: '/bot',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTelegramWebhookRoute =
+  ApiPublicTelegramWebhookRouteImport.update({
+    id: '/api/public/telegram/webhook',
+    path: '/api/public/telegram/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicHooksWorkReportReminderRoute =
@@ -115,10 +115,10 @@ const ApiPublicHooksWorkReportReminderRoute =
     path: '/api/public/hooks/work-report-reminder',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicTelegramWebhookRoute =
-  ApiPublicTelegramWebhookRouteImport.update({
-    id: '/api/public/telegram/webhook',
-    path: '/api/public/telegram/webhook',
+const ApiPublicHooksDailyCashReportRoute =
+  ApiPublicHooksDailyCashReportRouteImport.update({
+    id: '/api/public/hooks/daily-cash-report',
+    path: '/api/public/hooks/daily-cash-report',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -269,95 +269,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/bot': {
-      id: '/bot'
-      path: '/bot'
-      fullPath: '/bot'
-      preLoaderRoute: typeof BotRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/employees': {
-      id: '/employees'
-      path: '/employees'
-      fullPath: '/employees'
-      preLoaderRoute: typeof EmployeesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/jarima': {
-      id: '/jarima'
-      path: '/jarima'
-      fullPath: '/jarima'
-      preLoaderRoute: typeof JarimaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/javoblar': {
-      id: '/javoblar'
-      path: '/javoblar'
-      fullPath: '/javoblar'
-      preLoaderRoute: typeof JavoblarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/kpi': {
-      id: '/kpi'
-      path: '/kpi'
-      fullPath: '/kpi'
-      preLoaderRoute: typeof KpiRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/moliya': {
-      id: '/moliya'
-      path: '/moliya'
-      fullPath: '/moliya'
-      preLoaderRoute: typeof MoliyaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/platform': {
-      id: '/platform'
-      path: '/platform'
-      fullPath: '/platform'
-      preLoaderRoute: typeof PlatformRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/salaries': {
-      id: '/salaries'
-      path: '/salaries'
-      fullPath: '/salaries'
-      preLoaderRoute: typeof SalariesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/shartnomalar': {
-      id: '/shartnomalar'
-      path: '/shartnomalar'
-      fullPath: '/shartnomalar'
-      preLoaderRoute: typeof ShartnomalarRouteImport
+    '/xarajatlar': {
+      id: '/xarajatlar'
+      path: '/xarajatlar'
+      fullPath: '/xarajatlar'
+      preLoaderRoute: typeof XarajatlarRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/trust': {
@@ -367,18 +283,102 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TrustRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/xarajatlar': {
-      id: '/xarajatlar'
-      path: '/xarajatlar'
-      fullPath: '/xarajatlar'
-      preLoaderRoute: typeof XarajatlarRouteImport
+    '/shartnomalar': {
+      id: '/shartnomalar'
+      path: '/shartnomalar'
+      fullPath: '/shartnomalar'
+      preLoaderRoute: typeof ShartnomalarRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/hooks/daily-cash-report': {
-      id: '/api/public/hooks/daily-cash-report'
-      path: '/api/public/hooks/daily-cash-report'
-      fullPath: '/api/public/hooks/daily-cash-report'
-      preLoaderRoute: typeof ApiPublicHooksDailyCashReportRouteImport
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/salaries': {
+      id: '/salaries'
+      path: '/salaries'
+      fullPath: '/salaries'
+      preLoaderRoute: typeof SalariesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/platform': {
+      id: '/platform'
+      path: '/platform'
+      fullPath: '/platform'
+      preLoaderRoute: typeof PlatformRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/moliya': {
+      id: '/moliya'
+      path: '/moliya'
+      fullPath: '/moliya'
+      preLoaderRoute: typeof MoliyaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/kpi': {
+      id: '/kpi'
+      path: '/kpi'
+      fullPath: '/kpi'
+      preLoaderRoute: typeof KpiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/javoblar': {
+      id: '/javoblar'
+      path: '/javoblar'
+      fullPath: '/javoblar'
+      preLoaderRoute: typeof JavoblarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/jarima': {
+      id: '/jarima'
+      path: '/jarima'
+      fullPath: '/jarima'
+      preLoaderRoute: typeof JarimaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/employees': {
+      id: '/employees'
+      path: '/employees'
+      fullPath: '/employees'
+      preLoaderRoute: typeof EmployeesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bot': {
+      id: '/bot'
+      path: '/bot'
+      fullPath: '/bot'
+      preLoaderRoute: typeof BotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/telegram/webhook': {
+      id: '/api/public/telegram/webhook'
+      path: '/api/public/telegram/webhook'
+      fullPath: '/api/public/telegram/webhook'
+      preLoaderRoute: typeof ApiPublicTelegramWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/hooks/work-report-reminder': {
@@ -388,11 +388,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksWorkReportReminderRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/telegram/webhook': {
-      id: '/api/public/telegram/webhook'
-      path: '/api/public/telegram/webhook'
-      fullPath: '/api/public/telegram/webhook'
-      preLoaderRoute: typeof ApiPublicTelegramWebhookRouteImport
+    '/api/public/hooks/daily-cash-report': {
+      id: '/api/public/hooks/daily-cash-report'
+      path: '/api/public/hooks/daily-cash-report'
+      fullPath: '/api/public/hooks/daily-cash-report'
+      preLoaderRoute: typeof ApiPublicHooksDailyCashReportRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
