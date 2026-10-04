@@ -152,6 +152,8 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
             const key = norm(receiver);
             if (!key) return "";
             const first = key.split(/\s+/)[0];
+            if (first.length < 3) return "";
+            // Faqat ism aniq mos kelsa otmetka qilamiz (bo'sh/qisman moslik boshqa odamni belgilab qo'ymasin)
             const hit = ((tgUsers || []) as any[]).find((u) => {
               const pool = [
                 u.employees?.full_name,
@@ -159,8 +161,9 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
                 u.telegram_username,
               ]
                 .filter(Boolean)
-                .map((x: string) => norm(x));
-              return pool.some((p) => p.includes(first) || first.includes(p.split(/\s+/)[0]));
+                .map((x: string) => norm(x))
+                .filter((x: string) => x.length > 0);
+              return pool.some((p) => p.split(/\s+/).includes(first));
             });
             if (!hit) return "";
             const nm =
@@ -243,8 +246,8 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
             const text =
               b.text +
               (tail ? `\n\n${tail}` : "") +
-              (rMention
-                ? `\n\n${b.receiver}, iltimos tasdiqlang 👇`
+              (b.receiver
+                ? `\n\n${b.receiver}${rMention ? "" : " (rahbar)"}, iltimos tasdiqlang 👇`
                 : "\n\nIltimos, tasdiqlang 👇");
 
 
