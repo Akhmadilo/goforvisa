@@ -246,8 +246,8 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
             const text =
               b.text +
               (tail ? `\n\n${tail}` : "") +
-              (rMention
-                ? `\n\n${b.receiver}, iltimos tasdiqlang 👇`
+              (b.receiver
+                ? `\n\n${b.receiver}${rMention ? "" : " (rahbar)"}, iltimos tasdiqlang 👇`
                 : "\n\nIltimos, tasdiqlang 👇");
 
 
