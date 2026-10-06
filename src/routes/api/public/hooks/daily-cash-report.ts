@@ -242,7 +242,9 @@ export const Route = createFileRoute("/api/public/hooks/daily-cash-report")({
 
           for (const b of blocks) {
             const rMention = b.receiver ? mentionFor(b.receiver) : "";
-            const tail = [rMention, mentions].filter(Boolean).join(" ");
+            // Qabul qiluvchili hisobotda belgi faqat sarlavhada (👤 qatorida) bo'ladi;
+            // pastda qayta otmetka qilinmaydi. Bo'sh kun hisobotida rahbarlar belgilanadi.
+            const tail = b.receiver ? "" : mentions;
             const text =
               b.text +
               (tail ? `\n\n${tail}` : "") +
