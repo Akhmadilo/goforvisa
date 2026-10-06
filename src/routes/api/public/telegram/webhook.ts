@@ -978,7 +978,11 @@ async function handleCashDecision(cq: any, ok: boolean, reportId: string) {
   const suffix = ok
     ? `\n\n✅ <b>Qabul qilindi</b> — ${name} (${stamp})`
     : `\n\n❌ <b>Noto'g'ri deb belgilandi</b> — ${name} (${stamp})\nIltimos, moliya bo'limi tekshirsin.`;
-  const base = (cq.message.text || "").replace(/\n\nIltimos, tasdiqlang 👇$/, "");
+  // Strip the confirmation prompt from any report variant (per-receiver or no-payment day).
+  const base = (cq.message.text || "").replace(
+    /\n\n[^\n]*iltimos tasdiqlang 👇$/i,
+    "",
+  );
   await tg("editMessageText", {
     chat_id: chatId,
     message_id: cq.message.message_id,
