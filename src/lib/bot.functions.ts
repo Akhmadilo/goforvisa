@@ -388,3 +388,26 @@ export const deleteBotUser = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ---- Send AI insight to daily cash groups (no AI cost; just Telegram) ----
+export const sendInsightToGroup = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { period: string; text: string }) =>
+    z.object({ period: z.string().max(200), text: z.string().min(1).max(3800) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: groups } = await context.supabase
+      .from("telegram_groups")
+      .select("chat_id")
+      .eq("kind", "daily_cash")
+      .eq("is_active", true);
+    if (!groups?.length) return { ok: false, sent: 0 };
+    const body = esc(data.text.replace(/\*\*/g, ""));
+    const text = `🤖 <b>Moliya tahlili — AI xulosa</b>\n🗓 ${esc(data.period)}\n\n${body}`;
+    let sent = 0;
+    for (const g of groups as { chat_id: number }[]) {
+      const res: any = await tg("sendMessage", { chat_id: g.chat_id, text, parse_mode: "HTML" });
+      if (res?.ok) sent++;
+    }
+    return { ok: sent > 0, sent };
+  });
