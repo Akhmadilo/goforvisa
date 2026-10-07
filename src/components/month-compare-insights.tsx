@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { TrendingUp, TrendingDown, Minus, Lightbulb, AlertTriangle, CheckCircle2, Sparkles, Loader2 } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, Lightbulb, AlertTriangle, CheckCircle2, Sparkles, Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { generateAiInsight } from "@/lib/ai-insights.functions";
+import { sendInsightToGroup } from "@/lib/bot.functions";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useUsdRates } from "@/lib/usd-rates";
@@ -218,6 +220,17 @@ export function MonthCompareInsights() {
     } catch (e: any) { setAiErr(e?.message ?? "Error"); } finally { setAiLoading(false); }
   };
 
+  const sendGroup = useServerFn(sendInsightToGroup);
+  const [sending, setSending] = useState(false);
+  const runSend = async () => {
+    if (!ai) return;
+    setSending(true);
+    try {
+      const r = await sendGroup({ data: { period: `${months[ppm - 1]} ${ppy} | ${months[pm - 1]} ${py} | ${months[m - 1]} ${y}`, text: ai.slice(0, 3800) } });
+      r.ok ? toast.success(t("mom.ai.sent")) : toast.error(t("mom.ai.sendFail"));
+    } catch (e: any) { toast.error(e?.message ?? "Error"); } finally { setSending(false); }
+  };
+
   const rows: { key: string; c: number; p: number; p2: number; count?: boolean; inverse?: boolean }[] = [
     { key: "mom.m.revenue", c: cur.revenue, p: prev.revenue, p2: prev2.revenue },
     { key: "mom.m.contracts", c: cur.contracts, p: prev.contracts, p2: prev2.contracts, count: true },
@@ -331,10 +344,18 @@ export function MonthCompareInsights() {
             <div className="text-sm font-semibold flex items-center gap-2"><Sparkles className="h-4 w-4 text-primary" />{t("mom.ai.title")}</div>
             <p className="text-xs text-muted-foreground">{t("mom.ai.hint")}</p>
           </div>
+          <div className="flex flex-wrap gap-2">
+          {ai && (
+            <Button size="sm" variant="outline" onClick={runSend} disabled={sending}>
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {t("mom.ai.send")}
+            </Button>
+          )}
           <Button size="sm" onClick={runAi} disabled={aiLoading}>
             {aiLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
             {aiLoading ? t("mom.ai.loading") : ai ? t("mom.ai.again") : t("mom.ai.get")}
           </Button>
+          </div>
         </div>
         {aiErr && <div className="text-sm text-destructive">{aiErr}</div>}
         {ai && <div className="text-sm whitespace-pre-wrap leading-relaxed">{ai.replace(/\*\*/g, "")}</div>}
