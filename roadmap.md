@@ -1,0 +1,3 @@
+- [ ] Explain and verify Mahbuba's late fine against her preserved schedule.
+- [ ] Let administrators select KPI employees in Settings and reflect selections in KPI lists.
+- [ ] Verify KPI settings persistence and calculations.
