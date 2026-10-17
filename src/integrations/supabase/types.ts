@@ -1926,6 +1926,10 @@ export type Database = {
         Args: { _expense_id: string }
         Returns: undefined
       }
+      save_kpi_participants: {
+        Args: { p_participants: Json }
+        Returns: undefined
+      }
       tenant_default: { Args: never; Returns: string }
     }
     Enums: {
