@@ -17,10 +17,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useAuth } from "@/hooks/use-auth";
 import { AppSidebar } from "@/components/app-sidebar";
+import { KpiParticipantsSettings } from "@/components/kpi-participants-settings";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
-  head: () => ({ meta: [{ title: "Settings" }] }),
+  head: () => ({ meta: [
+    { title: "Sozlamalar — Visa Platform" },
+    { name: "description", content: "Xodimlar KPI va kompaniya sozlamalarini boshqarish." },
+    { property: "og:title", content: "Sozlamalar — Visa Platform" },
+    { property: "og:description", content: "Xodimlar KPI va kompaniya sozlamalarini boshqarish." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
+  ] }),
 });
 
 type UsdRateRow = {
@@ -75,6 +82,7 @@ function SettingsPage() {
           </div>
         </Card>
 
+        {isAdmin && <KpiParticipantsSettings />}
         {isAdmin && <BaseSalariesCard />}
         {isAdmin && <UsdRatesCard />}
         {isAdmin && <OperatorsCard />}

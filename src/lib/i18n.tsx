@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { extraDict } from "./i18n-extra";
+import { kpiRosterDict } from "./i18n-kpi-roster";
 
 export type Lang = "uz" | "en" | "ru";
 
@@ -1485,9 +1486,9 @@ const dict = {
 } as const;
 
 const merged = {
-  uz: { ...(dict.uz as Record<string, string>), ...extraDict.uz },
-  en: { ...(dict.en as Record<string, string>), ...extraDict.en },
-  ru: { ...(dict.ru as Record<string, string>), ...extraDict.ru },
+  uz: { ...(dict.uz as Record<string, string>), ...extraDict.uz, ...kpiRosterDict.uz },
+  en: { ...(dict.en as Record<string, string>), ...extraDict.en, ...kpiRosterDict.en },
+  ru: { ...(dict.ru as Record<string, string>), ...extraDict.ru, ...kpiRosterDict.ru },
 };
 
 export type I18nKey = keyof (typeof dict)["uz"] | (string & {});

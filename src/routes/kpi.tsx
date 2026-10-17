@@ -33,6 +33,8 @@ import { useUsdRates } from "@/lib/usd-rates";
 import { useIsAdmin } from "@/hooks/use-is-admin";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
+import { useKpiRoster } from "@/hooks/use-kpi-roster";
+import { participates, resolveKpiNames } from "@/lib/kpi-participants";
 
 export const Route = createFileRoute("/kpi")({
   component: KpiPage,
@@ -40,6 +42,10 @@ export const Route = createFileRoute("/kpi")({
     meta: [
       { title: "KPI — GoForVisa" },
       { name: "description", content: "Ishchilar KPI ko'rsatkichlari" },
+      { property: "og:title", content: "KPI — GoForVisa" },
+      { property: "og:description", content: "Ishchilar KPI ko'rsatkichlari" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
 });
@@ -55,6 +61,7 @@ function CcTierEditor() {
   const isAdmin = useIsAdmin();
   const qc = useQueryClient();
   const { data: tiers } = useCcTiers();
+  const roster = useKpiRoster();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Record<string, { min: string; max: string; base: string; kpi: string }>>({});
 
@@ -314,12 +321,14 @@ function CallCentreKpi() {
     const put = (rawName: string, inc: number) => {
       const label = normalizeName(rawName);
       if (!label) return;
+      if (!participates("call_centre", roster.data?.participants ?? {}, label)) return;
       const key = label.toLowerCase();
       const cur = counts.get(key) ?? { label, count: 0 };
       cur.count += inc;
       counts.set(key, cur);
     };
 
+    resolveKpiNames("call_centre", roster.data?.participants ?? {}, []).forEach(name => put(name, 0));
     (operators ?? []).forEach((o: { name: string; is_active: boolean }) => {
       if (o.is_active) put(o.name, 0);
     });
@@ -338,7 +347,7 @@ function CallCentreKpi() {
         return { name: label, count, base, kpi, bonus, total: base + bonus };
       })
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-  }, [contracts, operators, tiers]);
+  }, [contracts, operators, tiers, roster.data]);
 
   const rows = useMemo(
     () => (employee === "__all__" ? allRows : allRows.filter((r) => r.name === employee)),
