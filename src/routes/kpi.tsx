@@ -61,7 +61,6 @@ function CcTierEditor() {
   const isAdmin = useIsAdmin();
   const qc = useQueryClient();
   const { data: tiers } = useCcTiers();
-  const roster = useKpiRoster();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Record<string, { min: string; max: string; base: string; kpi: string }>>({});
 
@@ -280,6 +279,7 @@ function CallCentreKpi() {
   const [month, setMonth] = useState<string>(String(now.getMonth() + 1));
   const [employee, setEmployee] = useState<string>("__all__");
   const { data: tiers } = useCcTiers();
+  const roster = useKpiRoster();
 
 
 

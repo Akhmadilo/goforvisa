@@ -1485,7 +1485,7 @@ const dict = {
   },
 } as const;
 
-const merged = {
+const merged: Record<Lang, Record<string, string>> = {
   uz: { ...(dict.uz as Record<string, string>), ...extraDict.uz, ...kpiRosterDict.uz },
   en: { ...(dict.en as Record<string, string>), ...extraDict.en, ...kpiRosterDict.en },
   ru: { ...(dict.ru as Record<string, string>), ...extraDict.ru, ...kpiRosterDict.ru },
