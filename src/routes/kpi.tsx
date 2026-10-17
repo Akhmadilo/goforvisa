@@ -496,6 +496,7 @@ function CommissionKpi({
   });
 
   const rowsOf = (r: string) => (rates ?? []).filter((x) => x.role === r);
+  const roster = useKpiRoster();
   const findRow = (r: string, name: string) => {
     const key = normalizeName(name).toLowerCase();
     return rowsOf(r).find((x) => normalizeName(x.manager_name).toLowerCase() === key);
@@ -600,6 +601,7 @@ function CommissionKpi({
     for (const c of contracts as any[]) {
       const name = normalizeName(c[managerField]);
       if (!name) continue;
+      if (!participates(role, roster.data?.participants ?? {}, name)) continue;
       if (isCancelledResult(c.visa_result)) continue;
       const price = Number(c.price_usd ?? 0);
       const commissionUsd = Number(c.commission ?? 0);
@@ -651,9 +653,10 @@ function CommissionKpi({
       })
       .sort((a, b) => b.total - a.total);
     return list;
-  }, [contracts, payments, year, month, getRate, rates, approvals, managerField, role]);
+  }, [contracts, payments, year, month, getRate, rates, approvals, managerField, role, roster.data]);
 
-  const allNames = useMemo(() => managerGroups.map((g) => g.name), [managerGroups]);
+  const allNames = resolveKpiNames(role, roster.data?.participants ?? {}, roster.data?.legacy[role] ?? managerGroups.map(g => g.name));
+  const rateNames = employee === "__all__" ? allNames : allNames.filter(name => name === employee);
   const filteredGroups = useMemo(
     () => (employee === "__all__" ? managerGroups : managerGroups.filter((g) => g.name === employee)),
     [managerGroups, employee],
@@ -724,7 +727,8 @@ function CommissionKpi({
                       />
                     </TableCell>
                   </TableRow>
-                  {filteredGroups.map((g) => {
+                  {rateNames.map((name) => {
+                    const g = { name };
                     const cur = rateFor(g.name);
                     return (
                       <TableRow key={g.name}>
@@ -1006,6 +1010,7 @@ function VisaBonusKpi() {
   const fmt = (n: number) => n.toLocaleString(localeOf(lang));
   const role = "visa_bonus" as const;
   const DEFAULT_RATE = 250;
+  const roster = useKpiRoster();
 
   const { data: contracts } = useQuery({
     queryKey: ["kpi-visa-contracts"],
@@ -1116,6 +1121,7 @@ function VisaBonusKpi() {
     for (const c of contracts as any[]) {
       const name = normalizeName(c.back_office_manager);
       if (!name) continue;
+      if (!participates(role, roster.data?.participants ?? {}, name)) continue;
       if (isCancelledResult(c.visa_result)) continue;
       const takenDate: string | null = c.visa_taken_date ?? null;
       if (!takenDate) continue;
@@ -1143,9 +1149,10 @@ function VisaBonusKpi() {
         return { name, items, approvedTotal, pendingTotal, rejectedTotal, total: approvedTotal + pendingTotal };
       })
       .sort((a, b) => b.total - a.total);
-  }, [contracts, year, month, rates, approvals]);
+  }, [contracts, year, month, rates, approvals, roster.data]);
 
-  const allNames = useMemo(() => managerGroups.map((g) => g.name), [managerGroups]);
+  const allNames = resolveKpiNames(role, roster.data?.participants ?? {}, roster.data?.legacy[role] ?? managerGroups.map(g => g.name));
+  const rateNames = employee === "__all__" ? allNames : allNames.filter(name => name === employee);
   const filteredGroups = useMemo(
     () => (employee === "__all__" ? managerGroups : managerGroups.filter((g) => g.name === employee)),
     [managerGroups, employee],
@@ -1192,7 +1199,8 @@ function VisaBonusKpi() {
                     <TableCell><RateEditor initial={defaultRate} onSave={(v) => setRate.mutate({ name: DEFAULT_RATE_KEY, rate: v })} /></TableCell>
                     <TableCell className="text-right text-muted-foreground text-sm">{fmt(defaultRate * 100)} so'm / $100</TableCell>
                   </TableRow>
-                  {filteredGroups.map((g) => {
+                  {rateNames.map((name) => {
+                    const g = { name };
                     const cur = rateFor(g.name);
                     return (
                       <TableRow key={g.name}>
