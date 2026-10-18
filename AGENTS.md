@@ -1,2 +1,3 @@
 - Persist KPI participant selections per tenant through a narrowly authorized database function; never grant general tenant-settings editing to company administrators.
 - Share KPI roster resolution between Settings and KPI views so zero-contract employees remain configurable and excluded employees do not receive new calculations.
+- Scope KPI roster reads explicitly to current_tenant_id, matching the save function, because platform administrators can read multiple tenants through RLS.
