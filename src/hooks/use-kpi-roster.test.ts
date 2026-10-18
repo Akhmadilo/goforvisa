@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   rpc: vi.fn(),
   from: vi.fn(),
-  useQuery: vi.fn((options) => options),
+  useQuery: vi.fn((options: { queryFn: () => Promise<{ participants: { sales?: string[] } }> }) => options),
 }));
 vi.mock("@tanstack/react-query", () => ({ useQuery: mocks.useQuery }));
 vi.mock("@/hooks/use-auth", () => ({ useAuth: () => ({ user: { id: "admin" } }) }));
@@ -28,6 +28,7 @@ describe("KPI roster tenant isolation", () => {
     });
     useKpiRoster();
     const options = mocks.useQuery.mock.calls[0]?.[0];
+    if (!options) throw new Error("Roster query was not registered");
     const result = await options.queryFn();
     expect(mocks.rpc).toHaveBeenCalledWith("current_tenant_id");
     expect(scopes).toEqual({
