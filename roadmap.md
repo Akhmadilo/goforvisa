@@ -1,4 +1,4 @@
 - [x] Explain and verify Mahbuba's late fine against her preserved schedule.
 - [x] Let administrators select KPI employees in Settings and reflect selections in KPI lists.
 - [x] Verify KPI settings persistence and calculations.
-- [ ] Fix KPI selection save/read tenant mismatch and verify deselection persists.
+- [x] Fix KPI selection save/read tenant mismatch and verify deselection persists.
