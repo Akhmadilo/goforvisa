@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useKpiRoster } from "@/hooks/use-kpi-roster";
-import { KPI_ROLES, resolveKpiNames, nameKey, type KpiParticipants } from "@/lib/kpi-participants";
+import { KPI_ROLES, resolveKpiNames, resolveKpiSettingsNames, nameKey, type KpiParticipants } from "@/lib/kpi-participants";
 import { supabase } from "@/integrations/supabase/client";
 import { useT } from "@/lib/i18n";
 import { toast } from "sonner";
@@ -23,10 +23,7 @@ export function KpiParticipantsSettings() {
     onSuccess: async () => { await qc.invalidateQueries({ queryKey: ["kpi-roster"] }); setDraft(null); toast.success(t("toast.saved")); },
     onError: (error: Error) => toast.error(error.message),
   });
-  const names = Array.from(new Map([
-    ...(roster.data?.employees ?? []).filter(e => !e.terminated_at).map(e => e.full_name),
-    ...KPI_ROLES.flatMap(role => selections[role] ?? []),
-  ].map(name => [nameKey(name), name])).values()).sort((a,b) => a.localeCompare(b));
+  const names = resolveKpiSettingsNames(roster.data?.employees ?? [], roster.data?.legacy ?? {}, selections);
   return <Card className="p-6 space-y-4">
     <h2 className="text-lg font-semibold">{t("kpiRoster.title")}</h2>
     {roster.isPending ? <p>{t("common.loading")}</p> : roster.isError ? <p className="text-destructive">{roster.error.message}</p> : <div className="overflow-x-auto">
