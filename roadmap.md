@@ -2,4 +2,4 @@
 - [x] Let administrators select KPI employees in Settings and reflect selections in KPI lists.
 - [x] Verify KPI settings persistence and calculations.
 - [x] Fix KPI selection save/read tenant mismatch and verify deselection persists.
-- [ ] Keep deselected KPI roster candidates available and verify saving, reloading, and reselecting.
+- [x] Keep deselected KPI roster candidates available and verify saving, reloading, and reselecting.
