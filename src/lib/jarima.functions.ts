@@ -222,12 +222,14 @@ export const deleteTelegramAccount = createServerFn({ method: "POST" })
 
 export const saveSchedule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { employeeId: string; weekday: number; startTime: string; isWorking: boolean }) =>
+  .inputValidator((d: { employeeId: string; weekday: number; startTime: string; isWorking: boolean; applyMode?: "none" | "all" | "from"; fromDate?: string | null }) =>
     z.object({
       employeeId: z.string().uuid(),
       weekday: z.number().int().min(0).max(6),
       startTime: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/),
       isWorking: z.boolean(),
+      applyMode: z.enum(["none", "all", "from"]).default("none"),
+      fromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
     }).parse(d)
   )
   .handler(async ({ data, context }) => {
@@ -242,11 +244,16 @@ export const saveSchedule = createServerFn({ method: "POST" })
       }, { onConflict: "employee_id,weekday" });
     if (error) throw new Error(error.message);
 
-    // Recompute fines for all past attendance of this employee on this weekday
-    const { data: attRows } = await c
+    // Only recompute past fines when the user chose to apply the change retroactively
+    if (data.applyMode === "none") return { ok: true, updated: 0 };
+    if (data.applyMode === "from" && !data.fromDate) throw new Error("fromDate required");
+
+    let q = c
       .from("attendance")
       .select("date, check_in_at")
       .eq("employee_id", data.employeeId);
+    if (data.applyMode === "from") q = q.gte("date", data.fromDate);
+    const { data: attRows } = await q;
 
     const { data: empRules } = await c
       .from("fine_rules")
@@ -256,9 +263,12 @@ export const saveSchedule = createServerFn({ method: "POST" })
     const empLate = (empRules || []).filter((r: any) => (r.kind || "late") === "late" && r.employee_id === data.employeeId);
     const rules = empLate.length > 0 ? empLate : (empRules || []).filter((r: any) => (r.kind || "late") === "late" && r.employee_id == null);
 
+    let updated = 0;
     for (const a of attRows || []) {
       const wd = new Date(`${a.date}T00:00:00Z`).getUTCDay();
       if (wd !== data.weekday) continue;
+      updated++;
+
 
       let minutesLate = 0;
       if (data.isWorking) {
@@ -300,7 +310,7 @@ export const saveSchedule = createServerFn({ method: "POST" })
       }
     }
 
-    return { ok: true };
+    return { ok: true, updated };
   });
 
 async function recomputeAllLateFines(c: any) {
