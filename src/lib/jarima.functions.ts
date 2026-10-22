@@ -310,7 +310,7 @@ export const saveSchedule = createServerFn({ method: "POST" })
       }
     }
 
-    return { ok: true };
+    return { ok: true, updated };
   });
 
 async function recomputeAllLateFines(c: any) {

@@ -881,12 +881,14 @@ function JarimaPage() {
   );
 }
 
+type ApplyMode = "none" | "all" | "from";
+
 function ScheduleEditor({
   employees, schedules, onSave,
 }: {
   employees: Emp[];
   schedules: { employee_id: string; weekday: number; start_time: string; is_working: boolean }[];
-  onSave: (v: { employeeId: string; weekday: number; startTime: string; isWorking: boolean }) => void;
+  onSave: (v: { employeeId: string; weekday: number; startTime: string; isWorking: boolean; applyMode: ApplyMode; fromDate: string | null }) => void;
 }) {
   const { t } = useT();
   const getDay = (empId: string, wd: number) =>
@@ -910,7 +912,7 @@ function ScheduleEditor({
                       label={t(`fines.wd.${wd}`)}
                       startTime={cur.start_time.slice(0, 5)}
                       isWorking={cur.is_working}
-                      onSave={(startTime, isWorking) => onSave({ employeeId: emp.id, weekday: wd, startTime, isWorking })}
+                      onSave={(startTime, isWorking, applyMode, fromDate) => onSave({ employeeId: emp.id, weekday: wd, startTime, isWorking, applyMode, fromDate })}
                     />
                   );
                 })}
@@ -928,16 +930,47 @@ function ScheduleEditor({
 
 function DayRow({
   label, startTime, isWorking, onSave,
-}: { label: string; startTime: string; isWorking: boolean; onSave: (st: string, iw: boolean) => void }) {
+}: { label: string; startTime: string; isWorking: boolean; onSave: (st: string, iw: boolean, mode: ApplyMode, fromDate: string | null) => void }) {
   const { t } = useT();
   const [st, setSt] = useState(startTime);
   const [iw, setIw] = useState(isWorking);
+  const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<ApplyMode>("none");
+  const [fromDate, setFromDate] = useState("");
+  const options: { v: ApplyMode; label: string }[] = [
+    { v: "none", label: t("fines.apply.none") },
+    { v: "all", label: t("fines.apply.all") },
+    { v: "from", label: t("fines.apply.from") },
+  ];
   return (
     <div className="flex items-center gap-3 p-2 border rounded">
       <span className="w-10 font-medium">{label}</span>
       <Switch checked={iw} onCheckedChange={setIw} />
       <Input type="time" value={st} onChange={e => setSt(e.target.value)} className="w-32" disabled={!iw} />
-      <Button size="sm" onClick={() => onSave(st, iw)}>{t("common.save")}</Button>
+      <Button size="sm" onClick={() => { setMode("none"); setFromDate(""); setOpen(true); }}>{t("common.save")}</Button>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{t("fines.apply.title")}</DialogTitle></DialogHeader>
+          <div className="space-y-2">
+            {options.map(o => (
+              <label key={o.v} className="flex items-center gap-2 p-2 border rounded cursor-pointer">
+                <input type="radio" name={`apply-${label}`} checked={mode === o.v} onChange={() => setMode(o.v)} />
+                <span className="text-sm">{o.label}</span>
+              </label>
+            ))}
+            {mode === "from" && (
+              <Input type="date" value={fromDate} onChange={e => setFromDate(e.target.value)} />
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
+            <Button
+              disabled={mode === "from" && !fromDate}
+              onClick={() => { onSave(st, iw, mode, mode === "from" ? fromDate : null); setOpen(false); }}
+            >{t("common.save")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
