@@ -572,7 +572,7 @@ function JarimaPage() {
     onError: (e: any) => toast.error(e?.message || t("fines.error")),
   });
   const schedMut = useMutation({
-    mutationFn: (v: { employeeId: string; weekday: number; startTime: string; isWorking: boolean }) =>
+    mutationFn: (v: { employeeId: string; weekday: number; startTime: string; isWorking: boolean; applyMode: "none" | "all" | "from"; fromDate: string | null }) =>
       saveSchedFn({ data: v }),
     onSuccess: () => { invalidate(); toast.success(t("toast.saved")); },
     onError: (e: any) => toast.error(e.message),
