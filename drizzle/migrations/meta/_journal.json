@@ -8,6 +8,13 @@
       "when": 1792225062261,
       "tag": "0000_save_kpi_participants",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792754779950,
+      "tag": "0001_employee_targets",
+      "breakpoints": true
     }
   ]
 }

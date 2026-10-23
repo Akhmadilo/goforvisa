@@ -644,6 +644,60 @@ export type Database = {
           },
         ]
       }
+      employee_targets: {
+        Row: {
+          contracts_target: number
+          created_at: string
+          created_by: string | null
+          docs_target: number
+          employee_id: string
+          id: string
+          month: number
+          tenant_id: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          contracts_target?: number
+          created_at?: string
+          created_by?: string | null
+          docs_target?: number
+          employee_id: string
+          id?: string
+          month: number
+          tenant_id?: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          contracts_target?: number
+          created_at?: string
+          created_by?: string | null
+          docs_target?: number
+          employee_id?: string
+          id?: string
+          month?: number
+          tenant_id?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_targets_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_targets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_telegram: {
         Row: {
           bot_role: Database["public"]["Enums"]["telegram_bot_role"]
