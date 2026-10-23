@@ -35,6 +35,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { toast } from "sonner";
 import { useKpiRoster } from "@/hooks/use-kpi-roster";
 import { participates, resolveKpiNames } from "@/lib/kpi-participants";
+import { EmployeeTargets } from "@/components/employee-targets";
 
 export const Route = createFileRoute("/kpi")({
   component: KpiPage,
@@ -1297,7 +1298,7 @@ function KpiPage() {
         </div>
 
         <Tabs defaultValue="call-centre" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 max-w-3xl">
+          <TabsList className="grid w-full grid-cols-5 max-w-4xl">
             <TabsTrigger value="call-centre" className="gap-2">
               <PhoneCall className="h-4 w-4" />
               <span className="hidden sm:inline">Call-centre</span>
@@ -1316,6 +1317,10 @@ function KpiPage() {
               <CheckCircle2 className="h-4 w-4" />
               <span className="hidden sm:inline">{t("kpix.visaBonus")}</span>
               <span className="sm:hidden">Viza</span>
+            </TabsTrigger>
+            <TabsTrigger value="targets" className="gap-2">
+              <Target className="h-4 w-4" />
+              <span>{t("tgt.tab")}</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1337,6 +1342,7 @@ function KpiPage() {
             />
           </TabsContent>
           <TabsContent value="visa-bonus" className="mt-4"><VisaBonusKpi /></TabsContent>
+          <TabsContent value="targets" className="mt-4"><EmployeeTargets /></TabsContent>
         </Tabs>
       </main>
     </div>
