@@ -411,3 +411,50 @@ export const sendInsightToGroup = createServerFn({ method: "POST" })
     }
     return { ok: sent > 0, sent };
   });
+
+// ---- Send monthly target progress to each employee's linked Telegram ----
+export const sendTargetsToTelegram = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: { year: number; month: number }) =>
+    z.object({ year: z.number().int().min(2000).max(2100), month: z.number().int().min(1).max(12) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const c = context.supabase;
+    const { data: isAdmin } = await c.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Forbidden");
+    const { countActuals, monthRange, pct } = await import("./targets");
+    const { data: tenantId } = await c.rpc("current_tenant_id");
+    const { from, to } = monthRange(data.year, data.month);
+    const [{ data: targets }, { data: emps }, { data: contracts }, { data: tgs }] = await Promise.all([
+      c.from("employee_targets").select("employee_id, contracts_target, docs_target")
+        .eq("tenant_id", tenantId as string).eq("year", data.year).eq("month", data.month),
+      c.from("employees").select("id, full_name").eq("tenant_id", tenantId as string),
+      c.from("contracts").select("contract_date, sales_manager, back_office_manager")
+        .eq("tenant_id", tenantId as string).gte("contract_date", from).lt("contract_date", to),
+      c.from("employee_telegram").select("employee_id, telegram_id").eq("tenant_id", tenantId as string),
+    ]);
+    const period = `${data.year}-${String(data.month).padStart(2, "0")}`;
+    let sent = 0;
+    let skipped = 0;
+    for (const t of targets ?? []) {
+      if (!t.contracts_target && !t.docs_target) continue;
+      const emp = (emps ?? []).find((e) => e.id === t.employee_id);
+      const chats = (tgs ?? []).filter((x) => x.employee_id === t.employee_id);
+      if (!emp || !chats.length) { skipped++; continue; }
+      const a = countActuals(emp.full_name, contracts ?? [], data.year, data.month);
+      const line = (label: string, act: number, tgt: number) =>
+        tgt ? `${label}: <b>${act} / ${tgt}</b> (${pct(act, tgt)}%)${act >= tgt ? " ✅" : ` — yana ${tgt - act} ta`}` : "";
+      const text = [
+        `🎯 <b>Oylik target</b> — ${esc(emp.full_name)}`,
+        `🗓 ${period}`,
+        "",
+        line("📄 Sotilgan shartnomalar", a.sold, t.contracts_target),
+        line("📁 Topshirilgan hujjatlar", a.docs, t.docs_target),
+      ].filter((l, i) => i < 3 || l).join("\n");
+      for (const ch of chats) {
+        const res: any = await tg("sendMessage", { chat_id: ch.telegram_id, text, parse_mode: "HTML" });
+        if (res?.ok) sent++;
+      }
+    }
+    return { sent, skipped };
+  });
