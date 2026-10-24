@@ -136,7 +136,7 @@ export function EmployeeTargets() {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-xs text-muted-foreground">{t("tgt.hint")} {!isAdmin && t("tgt.adminOnly")}</p>
+        <p className="text-xs text-muted-foreground">{t("tgt.planSet")}: {withPlan.length}/{rows.length} · {t("tgt.hint")} {!isAdmin && t("tgt.adminOnly")}</p>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -148,10 +148,11 @@ export function EmployeeTargets() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r) => (
+              {visible.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell>
                     <div className="font-medium">{r.full_name}</div>
+                    {!r.ct && !r.dt && <div className="text-xs text-muted-foreground">{t("tgt.noPlan")}</div>}
                     {!data?.linked.has(r.id) && <div className="text-xs text-muted-foreground">{t("tgt.notLinked")}</div>}
                   </TableCell>
                   <TableCell><Cell actual={r.sold} target={r.ct} edit={isAdmin} value={val(r.id, "c", r.ct)} onChange={(v) => setVal(r, "c", v)} /></TableCell>
