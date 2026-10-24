@@ -90,7 +90,7 @@ export function EmployeeTargets() {
   });
 
   const sendM = useMutation({
-    mutationFn: () => send({ data: { year, month } }),
+    mutationFn: (employeeId?: string) => send({ data: { year, month, employeeId } }),
     onSuccess: (r) => toast.success(`${t("tgt.sent")}: ${r.sent}${r.skipped ? ` · ${t("tgt.notLinked")}: ${r.skipped}` : ""}`),
     onError: (e: any) => toast.error(e?.message ?? "Error"),
   });
@@ -116,7 +116,7 @@ export function EmployeeTargets() {
           {isAdmin && (
             <>
               <Button onClick={() => saveM.mutate()} disabled={saveM.isPending || !data}>{t("tgt.save")}</Button>
-              <Button variant="outline" onClick={() => sendM.mutate()} disabled={sendM.isPending || !data} className="gap-2">
+              <Button variant="outline" onClick={() => sendM.mutate(undefined)} disabled={sendM.isPending || !data} className="gap-2">
                 <Send className="h-4 w-4" />{t("tgt.send")}
               </Button>
             </>
@@ -132,6 +132,7 @@ export function EmployeeTargets() {
                 <TableHead>{t("tgt.employee")}</TableHead>
                 <TableHead>{t("tgt.contracts")}</TableHead>
                 <TableHead>{t("tgt.docs")}</TableHead>
+                {isAdmin && <TableHead />}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -143,6 +144,15 @@ export function EmployeeTargets() {
                   </TableCell>
                   <TableCell><Cell actual={r.sold} target={r.ct} edit={isAdmin} value={val(r.id, "c", r.ct)} onChange={(v) => setVal(r, "c", v)} /></TableCell>
                   <TableCell><Cell actual={r.docs} target={r.dt} edit={isAdmin} value={val(r.id, "d", r.dt)} onChange={(v) => setVal(r, "d", v)} /></TableCell>
+                  {isAdmin && (
+                    <TableCell>
+                      <Button size="sm" variant="ghost" className="gap-1"
+                        disabled={sendM.isPending || !data?.linked.has(r.id) || (!r.ct && !r.dt)}
+                        onClick={() => sendM.mutate(r.id)}>
+                        <Send className="h-3.5 w-3.5" />{t("tgt.sendOne")}
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>

@@ -415,8 +415,8 @@ export const sendInsightToGroup = createServerFn({ method: "POST" })
 // ---- Send monthly target progress to each employee's linked Telegram ----
 export const sendTargetsToTelegram = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { year: number; month: number }) =>
-    z.object({ year: z.number().int().min(2000).max(2100), month: z.number().int().min(1).max(12) }).parse(d),
+  .inputValidator((d: { year: number; month: number; employeeId?: string }) =>
+    z.object({ year: z.number().int().min(2000).max(2100), month: z.number().int().min(1).max(12), employeeId: z.string().uuid().optional() }).parse(d),
   )
   .handler(async ({ data, context }) => {
     const c = context.supabase;
@@ -437,6 +437,7 @@ export const sendTargetsToTelegram = createServerFn({ method: "POST" })
     let sent = 0;
     let skipped = 0;
     for (const t of targets ?? []) {
+      if (data.employeeId && t.employee_id !== data.employeeId) continue;
       if (!t.contracts_target && !t.docs_target) continue;
       const emp = (emps ?? []).find((e) => e.id === t.employee_id);
       const chats = (tgs ?? []).filter((x) => x.employee_id === t.employee_id);
@@ -445,7 +446,7 @@ export const sendTargetsToTelegram = createServerFn({ method: "POST" })
       const line = (label: string, act: number, tgt: number) =>
         tgt ? `${label}: <b>${act} / ${tgt}</b> (${pct(act, tgt)}%)${act >= tgt ? " ✅" : ` — yana ${tgt - act} ta`}` : "";
       const text = [
-        `🎯 <b>Oylik target</b> — ${esc(emp.full_name)}`,
+        `🎯 <b>Oylik reja</b> — ${esc(emp.full_name)}`,
         `🗓 ${period}`,
         "",
         line("📄 Sotilgan shartnomalar", a.sold, t.contracts_target),
