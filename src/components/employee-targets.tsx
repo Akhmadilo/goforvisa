@@ -43,6 +43,7 @@ export function EmployeeTargets() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [draft, setDraft] = useState<Record<string, { c: string; d: string }>>({});
+  const [planFilter, setPlanFilter] = useState<"all" | "with" | "without">("all");
   const monthNames = getMonthNames(lang);
 
   const { data } = useQuery({
@@ -74,6 +75,9 @@ export function EmployeeTargets() {
         return { ...e, ct: tg?.contracts_target ?? 0, dt: tg?.docs_target ?? 0, ...countActuals(e.full_name, data.contracts, year, month) };
       });
   }, [data, year, month]);
+
+  const withPlan = rows.filter((r) => r.ct > 0 || r.dt > 0);
+  const visible = planFilter === "with" ? withPlan : planFilter === "without" ? rows.filter((r) => !(r.ct > 0 || r.dt > 0)) : rows;
 
   const saveM = useMutation({
     mutationFn: async () => {
@@ -113,6 +117,14 @@ export function EmployeeTargets() {
             <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
             <SelectContent>{years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
           </Select>
+          <Select value={planFilter} onValueChange={(v) => setPlanFilter(v as "all" | "with" | "without")}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("tgt.all")}</SelectItem>
+              <SelectItem value="with">{t("tgt.withPlan")}</SelectItem>
+              <SelectItem value="without">{t("tgt.noPlan")}</SelectItem>
+            </SelectContent>
+          </Select>
           {isAdmin && (
             <>
               <Button onClick={() => saveM.mutate()} disabled={saveM.isPending || !data}>{t("tgt.save")}</Button>
@@ -124,7 +136,7 @@ export function EmployeeTargets() {
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <p className="text-xs text-muted-foreground">{t("tgt.hint")} {!isAdmin && t("tgt.adminOnly")}</p>
+        <p className="text-xs text-muted-foreground">{t("tgt.planSet")}: {withPlan.length}/{rows.length} · {t("tgt.hint")} {!isAdmin && t("tgt.adminOnly")}</p>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -136,10 +148,11 @@ export function EmployeeTargets() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {rows.map((r) => (
+              {visible.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell>
                     <div className="font-medium">{r.full_name}</div>
+                    {!r.ct && !r.dt && <div className="text-xs text-muted-foreground">{t("tgt.noPlan")}</div>}
                     {!data?.linked.has(r.id) && <div className="text-xs text-muted-foreground">{t("tgt.notLinked")}</div>}
                   </TableCell>
                   <TableCell><Cell actual={r.sold} target={r.ct} edit={isAdmin} value={val(r.id, "c", r.ct)} onChange={(v) => setVal(r, "c", v)} /></TableCell>
