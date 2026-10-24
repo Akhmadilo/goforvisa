@@ -43,6 +43,7 @@ export function EmployeeTargets() {
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [draft, setDraft] = useState<Record<string, { c: string; d: string }>>({});
+  const [planFilter, setPlanFilter] = useState<"all" | "with" | "without">("all");
   const monthNames = getMonthNames(lang);
 
   const { data } = useQuery({
@@ -74,6 +75,9 @@ export function EmployeeTargets() {
         return { ...e, ct: tg?.contracts_target ?? 0, dt: tg?.docs_target ?? 0, ...countActuals(e.full_name, data.contracts, year, month) };
       });
   }, [data, year, month]);
+
+  const withPlan = rows.filter((r) => r.ct > 0 || r.dt > 0);
+  const visible = planFilter === "with" ? withPlan : planFilter === "without" ? rows.filter((r) => !(r.ct > 0 || r.dt > 0)) : rows;
 
   const saveM = useMutation({
     mutationFn: async () => {
@@ -112,6 +116,14 @@ export function EmployeeTargets() {
           <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
             <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
             <SelectContent>{years.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+          </Select>
+          <Select value={planFilter} onValueChange={(v) => setPlanFilter(v as "all" | "with" | "without")}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t("tgt.all")}</SelectItem>
+              <SelectItem value="with">{t("tgt.withPlan")}</SelectItem>
+              <SelectItem value="without">{t("tgt.noPlan")}</SelectItem>
+            </SelectContent>
           </Select>
           {isAdmin && (
             <>
