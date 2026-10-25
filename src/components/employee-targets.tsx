@@ -52,7 +52,7 @@ export function EmployeeTargets() {
       const { data: tenantId } = await supabase.rpc("current_tenant_id");
       const { from, to } = monthRange(year, month);
       const [emps, targets, contracts, tgs] = await Promise.all([
-        supabase.from("employees").select("id, full_name, terminated_at").eq("tenant_id", tenantId as string).order("full_name"),
+        supabase.from("employees").select("id, full_name, position, terminated_at").eq("tenant_id", tenantId as string).order("full_name"),
         supabase.from("employee_targets").select("employee_id, contracts_target, docs_target").eq("tenant_id", tenantId as string).eq("year", year).eq("month", month),
         supabase.from("contracts").select("contract_date, sales_manager, back_office_manager").eq("tenant_id", tenantId as string).gte("contract_date", from).lt("contract_date", to),
         supabase.from("employee_telegram").select("employee_id").eq("tenant_id", tenantId as string),
@@ -69,7 +69,12 @@ export function EmployeeTargets() {
     if (!data) return [];
     const { from } = monthRange(year, month);
     return data.emps
-      .filter((e) => !e.terminated_at || e.terminated_at >= from || data.targets.some((x) => x.employee_id === e.id))
+      .filter((e) => !/moliya|finans|financ/i.test(e.position ?? ""))
+      .filter((e) => {
+        if (!e.terminated_at || e.terminated_at >= from) return true;
+        const tg = data.targets.find((x) => x.employee_id === e.id);
+        return !!tg && (tg.contracts_target > 0 || tg.docs_target > 0);
+      })
       .map((e) => {
         const tg = data.targets.find((x) => x.employee_id === e.id);
         return { ...e, ct: tg?.contracts_target ?? 0, dt: tg?.docs_target ?? 0, ...countActuals(e.full_name, data.contracts, year, month) };
