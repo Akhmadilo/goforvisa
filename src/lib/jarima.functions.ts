@@ -234,6 +234,11 @@ export const saveSchedule = createServerFn({ method: "POST" })
   )
   .handler(async ({ data, context }) => {
     const c: any = context.supabase;
+    // Dates before effective_from keep their previously computed fines, so a later
+    // fine-rule change does not silently undo the admin's "only from now on" choice.
+    const tashkentToday = new Date(Date.now() + 5 * 3600 * 1000).toISOString().slice(0, 10);
+    const effectiveFrom =
+      data.applyMode === "all" ? null : data.applyMode === "from" ? data.fromDate ?? tashkentToday : tashkentToday;
     const { error } = await c
       .from("employee_schedules")
       .upsert({
@@ -241,6 +246,7 @@ export const saveSchedule = createServerFn({ method: "POST" })
         weekday: data.weekday,
         start_time: data.startTime,
         is_working: data.isWorking,
+        effective_from: effectiveFrom,
       }, { onConflict: "employee_id,weekday" });
     if (error) throw new Error(error.message);
 
@@ -313,14 +319,14 @@ export const saveSchedule = createServerFn({ method: "POST" })
     return { ok: true, updated };
   });
 
-async function recomputeAllLateFines(c: any) {
+export async function recomputeAllLateFines(c: any) {
   // Recompute late fines using per-employee rules (fallback to global rules where employee_id IS NULL).
   const { data: atts } = await c
     .from("attendance")
     .select("employee_id, date, check_in_at");
   const { data: scheds } = await c
     .from("employee_schedules")
-    .select("employee_id, weekday, start_time, is_working");
+    .select("employee_id, weekday, start_time, is_working, effective_from");
   const { data: rules } = await c
     .from("fine_rules")
     .select("employee_id, min_minutes, max_minutes, amount_uzs, kind")
@@ -343,6 +349,8 @@ async function recomputeAllLateFines(c: any) {
     const arrival = new Date(new Date(a.check_in_at).getTime() + 5 * 3600 * 1000);
     const wd = new Date(`${a.date}T00:00:00Z`).getUTCDay();
     const sched = schedMap.get(`${a.employee_id}_${wd}`);
+    // Leave dates before the schedule's effective date untouched.
+    if (sched?.effective_from && a.date < sched.effective_from) continue;
     const isWorking = sched ? sched.is_working !== false : true;
     const startStr: string = (sched?.start_time as string) || "10:00";
     const [sh, sm] = startStr.split(":").map(Number);
