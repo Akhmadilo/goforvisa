@@ -1,0 +1,2 @@
+ALTER TABLE public.employee_schedules ADD COLUMN effective_from date;
+COMMENT ON COLUMN public.employee_schedules.effective_from IS 'Date from which this start_time applies; attendance before this date keeps previously computed fines (set when admin saves schedule without applying retroactively).';

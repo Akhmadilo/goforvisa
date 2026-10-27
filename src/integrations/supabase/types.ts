@@ -599,6 +599,7 @@ export type Database = {
       employee_schedules: {
         Row: {
           created_at: string
+          effective_from: string | null
           employee_id: string
           id: string
           is_working: boolean
@@ -609,6 +610,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          effective_from?: string | null
           employee_id: string
           id?: string
           is_working?: boolean
@@ -619,6 +621,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          effective_from?: string | null
           employee_id?: string
           id?: string
           is_working?: boolean

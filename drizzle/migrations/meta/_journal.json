@@ -15,6 +15,13 @@
       "when": 1792754779950,
       "tag": "0001_employee_targets",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793089173807,
+      "tag": "0002_schedule_effective_from",
+      "breakpoints": true
     }
   ]
 }
