@@ -319,7 +319,7 @@ export const saveSchedule = createServerFn({ method: "POST" })
     return { ok: true, updated };
   });
 
-async function recomputeAllLateFines(c: any) {
+export async function recomputeAllLateFines(c: any) {
   // Recompute late fines using per-employee rules (fallback to global rules where employee_id IS NULL).
   const { data: atts } = await c
     .from("attendance")
