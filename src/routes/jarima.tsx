@@ -54,6 +54,7 @@ import autoTable from "jspdf-autotable";
 import logoUrl from "@/assets/logo.png";
 import { LeavesSection } from "@/components/leaves-section";
 import { WorkReportsSection } from "@/components/work-reports-section";
+import { TimeInput24 } from "@/components/time-input-24";
 
 
 export const Route = createFileRoute("/jarima")({
@@ -946,7 +947,7 @@ function DayRow({
     <div className="flex items-center gap-3 p-2 border rounded">
       <span className="w-10 font-medium">{label}</span>
       <Switch checked={iw} onCheckedChange={setIw} />
-      <Input type="time" value={st} onChange={e => setSt(e.target.value)} className="w-32" disabled={!iw} />
+      <TimeInput24 value={st} onChange={setSt} disabled={!iw} />
       <Button size="sm" onClick={() => { setMode("none"); setFromDate(""); setOpen(true); }}>{t("common.save")}</Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -1614,10 +1615,9 @@ function EmployeeMonthView({ employees, signers }: { employees: Emp[]; signers: 
                 <>
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">{t("fines.dialog.checkInLabel")}</label>
-                    <Input
-                      type="time"
+                    <TimeInput24
                       value={editing.time}
-                      onChange={(e) => setEditing({ ...editing, time: e.target.value })}
+                      onChange={(v) => setEditing({ ...editing, time: v })}
                     />
                   </div>
                   <div className="text-[11px] text-muted-foreground">
