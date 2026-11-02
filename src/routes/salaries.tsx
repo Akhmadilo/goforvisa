@@ -53,6 +53,9 @@ type SalaryRow = {
   created_at: string;
 };
 
+// Tozalik xodimi employees jadvalida yo'q, lekin oylik qo'shishda doim chiqishi kerak
+const CLEANING_WORKER = "Tozalik hodimi";
+
 function SalariesPage() {
   const { t, lang } = useT();
   const { user, loading } = useAuth();
@@ -488,7 +491,7 @@ function SalariesPage() {
         onOpenChange={setOpenForm}
         editing={editing}
         userId={user?.id ?? null}
-        knownEmployees={employees}
+        knownEmployees={formEmployees}
       />
 
       <PayslipDialog target={payslipFor} onClose={() => setPayslipFor(null)} />
