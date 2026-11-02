@@ -144,6 +144,27 @@ function SalariesPage() {
     return m;
   }, [profiles]);
 
+  // Active employees for the Add dialog (cleaning worker always included)
+  const { data: activeEmployees = [] } = useQuery({
+    queryKey: ["salary-form-active-employees"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("full_name, terminated_at")
+        .is("terminated_at", null)
+        .order("full_name", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as { full_name: string }[];
+    },
+    enabled: canAccessSalaries,
+  });
+  const formEmployees = useMemo(() => {
+    const names = new Set(activeEmployees.map((e) => e.full_name));
+    names.add(CLEANING_WORKER);
+    if (editing) names.add(editing.employee_name);
+    return Array.from(names).sort();
+  }, [activeEmployees, editing]);
+
   // Realtime
   useEffect(() => {
     if (!canAccessSalaries) return;
