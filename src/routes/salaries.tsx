@@ -53,6 +53,9 @@ type SalaryRow = {
   created_at: string;
 };
 
+// Tozalik xodimi employees jadvalida yo'q, lekin oylik qo'shishda doim chiqishi kerak
+const CLEANING_WORKER = "Tozalik hodimi";
+
 function SalariesPage() {
   const { t, lang } = useT();
   const { user, loading } = useAuth();
@@ -143,6 +146,27 @@ function SalariesPage() {
     for (const p of profiles) m.set(p.id, p.display_name ?? "—");
     return m;
   }, [profiles]);
+
+  // Active employees for the Add dialog (cleaning worker always included)
+  const { data: activeEmployees = [] } = useQuery({
+    queryKey: ["salary-form-active-employees"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("employees")
+        .select("full_name, terminated_at")
+        .is("terminated_at", null)
+        .order("full_name", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as { full_name: string }[];
+    },
+    enabled: canAccessSalaries,
+  });
+  const formEmployees = useMemo(() => {
+    const names = new Set(activeEmployees.map((e) => e.full_name));
+    names.add(CLEANING_WORKER);
+    if (editing) names.add(editing.employee_name);
+    return Array.from(names).sort();
+  }, [activeEmployees, editing]);
 
   // Realtime
   useEffect(() => {
@@ -467,7 +491,7 @@ function SalariesPage() {
         onOpenChange={setOpenForm}
         editing={editing}
         userId={user?.id ?? null}
-        knownEmployees={employees}
+        knownEmployees={formEmployees}
       />
 
       <PayslipDialog target={payslipFor} onClose={() => setPayslipFor(null)} />
