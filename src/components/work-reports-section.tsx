@@ -453,7 +453,7 @@ export function WorkReportsSection() {
                     <span className="font-semibold truncate">{empMap[r.employee_id] ?? "—"}</span>
                     <Badge variant="outline" className="font-mono text-xs">{r.date}</Badge>
                     <span className="text-xs text-muted-foreground">
-                      {new Date(r.created_at).toLocaleString("uz-UZ", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit" })}
+                      {new Date(r.created_at).toLocaleString("uz-UZ", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", hour12: false })}
                     </span>
                   </div>
                   <div className="text-sm whitespace-pre-wrap break-words">{r.content}</div>

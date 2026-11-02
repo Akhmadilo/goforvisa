@@ -835,7 +835,7 @@ function Dashboard() {
               </div>
               <div className="text-[11px] text-muted-foreground mt-0.5">
                 {dataUpdatedAt
-                  ? `${t("common.last")}: ${new Date(dataUpdatedAt).toLocaleTimeString(localeOf(lang))}`
+                  ? `${t("common.last")}: ${new Date(dataUpdatedAt).toLocaleTimeString(localeOf(lang), { hour12: false })}`
                   : "—"}
               </div>
             </div>
